@@ -39,3 +39,8 @@ temp/
 # Personal Files
 TESTING_CHECKLIST.md
 USER_GUIDE.md
+
+# Trinity Files/Folders
+.claude/
+trinity/
+CLAUDE.md
