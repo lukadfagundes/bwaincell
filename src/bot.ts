@@ -1,0 +1,177 @@
+// MUST BE FIRST LINE - Module alias setup
+import 'module-alias/register';
+
+import { Client, GatewayIntentBits, Collection } from 'discord.js';
+import fs from 'fs/promises';
+import { existsSync } from 'fs';
+import path from 'path';
+import { validateEnv } from '@shared/validation/env';
+import { logger, logBotEvent, logError } from '@shared/utils/logger';
+import { handleButtonInteraction, handleSelectMenuInteraction, handleModalSubmit } from '../utils/interactionHandler';
+// Import the properly configured database with all models
+import { sequelize } from '../database';
+
+// Validate environment variables first
+const env = validateEnv();
+
+const client = new Client({
+    intents: [
+        GatewayIntentBits.Guilds,
+        GatewayIntentBits.GuildMessages,
+        GatewayIntentBits.DirectMessages,
+    ]
+});
+
+client.commands = new Collection();
+
+async function loadModels() {
+    // Models are already initialized in database/index.ts
+    // Just sync the database to create tables
+    await sequelize.sync();
+    logger.info('Database synced successfully');
+}
+
+async function loadCommands() {
+    const commandsPath = path.join(__dirname, '..', 'commands');
+    const commandFiles = (await fs.readdir(commandsPath)).filter(file => file.endsWith('.js'));
+
+    for (const file of commandFiles) {
+        const command = require(path.join(commandsPath, file));
+        if ('data' in command && 'execute' in command) {
+            client.commands.set(command.data.name, command);
+            logger.info(`Loaded command: ${command.data.name}`);
+        }
+    }
+}
+
+async function setupScheduler() {
+    const schedulerPath = path.join(__dirname, '..', 'utils', 'scheduler.js');
+    if (existsSync(schedulerPath)) {
+        const { startScheduler } = require(schedulerPath);
+        startScheduler(client);
+        logger.info('Scheduler initialized');
+    }
+}
+
+client.once('clientReady', () => {
+    logger.info(`Bot logged in as ${client.user?.tag}`);
+    logBotEvent('clientReady', {
+        username: client.user?.username,
+        id: client.user?.id,
+        guilds: client.guilds.cache.size
+    });
+});
+
+client.on('interactionCreate', async interaction => {
+    try {
+        if (interaction.isChatInputCommand()) {
+            const command = client.commands.get(interaction.commandName);
+
+            if (!command) {
+                logger.warn(`Unknown command: ${interaction.commandName}`, {
+                    userId: interaction.user.id,
+                    guildId: interaction.guildId
+                });
+                return;
+            }
+
+            try {
+                await command.execute(interaction);
+                logger.info('Command executed successfully', {
+                    command: interaction.commandName,
+                    userId: interaction.user.id,
+                    guildId: interaction.guildId
+                });
+            } catch (error) {
+                logger.error('Error executing command', {
+                    command: interaction.commandName,
+                    error: error instanceof Error ? error.message : 'Unknown error',
+                    stack: error instanceof Error ? error.stack : undefined,
+                    userId: interaction.user.id,
+                    guildId: interaction.guildId
+                });
+
+                const errorMessage = 'There was an error while executing this command!';
+                if (interaction.replied || interaction.deferred) {
+                    await interaction.followUp({ content: errorMessage, ephemeral: true });
+                } else {
+                    await interaction.reply({ content: errorMessage, ephemeral: true });
+                }
+            }
+        } else if (interaction.isButton()) {
+            await handleButtonInteraction(interaction);
+        } else if (interaction.isStringSelectMenu()) {
+            await handleSelectMenuInteraction(interaction);
+        } else if (interaction.isModalSubmit()) {
+            await handleModalSubmit(interaction);
+        } else if (interaction.isAutocomplete()) {
+            const command = client.commands.get(interaction.commandName);
+
+            if (!command) {
+                logger.warn(`No command found for autocomplete: ${interaction.commandName}`);
+                return;
+            }
+
+            if (!command.autocomplete) {
+                logger.warn(`Command ${interaction.commandName} doesn't have autocomplete`);
+                return;
+            }
+
+            try {
+                await command.autocomplete(interaction);
+            } catch (error) {
+                logger.error('Error handling autocomplete', {
+                    command: interaction.commandName,
+                    error: error instanceof Error ? error.message : 'Unknown error',
+                    stack: error instanceof Error ? error.stack : undefined
+                });
+            }
+        }
+    } catch (error) {
+        logError(error as Error, {
+            interactionType: interaction.type,
+            userId: interaction.user?.id,
+            guildId: interaction.guildId
+        });
+    }
+});
+
+client.on('error', error => {
+    logError(error, { context: 'Discord client error' });
+});
+
+client.on('warn', info => {
+    logger.warn('Discord client warning', { info });
+});
+
+async function init() {
+    try {
+        logger.info('Initializing Bwaincell Bot...');
+
+        await loadModels();
+        await loadCommands();
+        await setupScheduler();
+        await client.login(env.DISCORD_TOKEN);
+
+        logger.info('Bot initialization complete');
+    } catch (error) {
+        logError(error as Error, { context: 'Bot initialization failed' });
+        process.exit(1);
+    }
+}
+
+// Handle process termination
+process.on('SIGINT', () => {
+    logger.info('Received SIGINT, shutting down gracefully...');
+    client.destroy();
+    process.exit(0);
+});
+
+process.on('SIGTERM', () => {
+    logger.info('Received SIGTERM, shutting down gracefully...');
+    client.destroy();
+    process.exit(0);
+});
+
+// Start the bot
+init();
