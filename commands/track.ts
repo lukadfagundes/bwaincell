@@ -4,7 +4,7 @@ import {
     ChatInputCommandInteraction
 } from 'discord.js';
 import { logger } from '../shared/utils/logger';
-const Tracker = require('../database/models/Tracker');
+import Tracker from '../database/models/Tracker';
 
 interface TrackerStats {
     count: number;
@@ -68,8 +68,7 @@ export default {
                         .setRequired(true))),
 
     async execute(interaction: ChatInputCommandInteraction): Promise<void> {
-        // CRITICAL: Immediate acknowledgment - must be first
-        await interaction.deferReply();
+        // Note: Interaction is already deferred by bot.js for immediate acknowledgment
 
         const subcommand = interaction.options.getSubcommand();
         const userId = interaction.user.id;
@@ -102,7 +101,8 @@ export default {
 
                 case 'stats': {
                     const metric = interaction.options.getString('metric', true);
-                    const period = interaction.options.getString('period') || 'all';
+                    const periodInput = interaction.options.getString('period') || 'all';
+                    const period = periodInput as 'all' | 'day' | 'week' | 'month' | 'year';
 
                     const stats: TrackerStats | null = await Tracker.getStats(userId, guildId, metric, period);
 

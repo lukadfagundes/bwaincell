@@ -175,7 +175,8 @@
       "WebFetch(domain:discord.com)",
       "Bash(export:*)",
       "Bash(npx coverage-badge-creator:*)",
-      "Bash(while read file)"
+      "Bash(while read file)",
+      "Bash(findstr:*)"
     ],
     "deny": [],
     "ask": [],

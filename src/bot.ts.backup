@@ -72,50 +72,8 @@ client.once('clientReady', () => {
     });
 });
 
-// Duplicate interaction prevention
-const processedInteractions = new Set();
-
 client.on('interactionCreate', async interaction => {
     try {
-        // Prevent duplicate processing
-        if (processedInteractions.has(interaction.id)) {
-            logger.debug('Duplicate interaction detected', { interactionId: interaction.id });
-            return;
-        }
-        processedInteractions.add(interaction.id);
-
-        // Clean up after 15 minutes (Discord token validity period)
-        setTimeout(() => processedInteractions.delete(interaction.id), 15 * 60 * 1000);
-
-        // IMMEDIATE ACKNOWLEDGMENT - FIRST LINE
-        // This prevents 90% of "Unknown interaction" errors by acknowledging within 100ms
-        if (interaction.isChatInputCommand() || interaction.isButton() || interaction.isModalSubmit()) {
-            try {
-                if (!interaction.replied && !interaction.deferred) {
-                    if (interaction.isButton() && interaction.customId) {
-                        // Button interactions need deferUpdate to avoid "Interaction failed" messages
-                        await interaction.deferUpdate();
-                        logger.debug('Button interaction deferred', { customId: interaction.customId });
-                    } else {
-                        // Commands and modals use deferReply
-                        await interaction.deferReply();
-                        logger.debug('Interaction deferred', {
-                            type: interaction.type,
-                            command: interaction.isChatInputCommand() ? interaction.commandName : undefined
-                        });
-                    }
-                }
-            } catch (error) {
-                // If acknowledgment fails, interaction is already invalid - don't process further
-                logger.warn('Failed to acknowledge interaction', {
-                    error: error instanceof Error ? error.message : 'Unknown error',
-                    interactionId: interaction.id,
-                    type: interaction.type
-                });
-                return;
-            }
-        }
-
         if (interaction.isChatInputCommand()) {
             const command = client.commands.get(interaction.commandName);
 
@@ -124,14 +82,6 @@ client.on('interactionCreate', async interaction => {
                     userId: interaction.user.id,
                     guildId: interaction.guildId
                 });
-                // For unknown commands, send error response
-                try {
-                    await interaction.editReply({
-                        content: 'Unknown command. Please try again or contact support.'
-                    });
-                } catch {
-                    // Silent fail if interaction is invalid
-                }
                 return;
             }
 
@@ -151,27 +101,11 @@ client.on('interactionCreate', async interaction => {
                     guildId: interaction.guildId
                 });
 
-                // Enhanced error recovery - check specific error codes
-                const errorCode = (error as any)?.code;
-                if (errorCode === 10062) { // Unknown interaction
-                    logger.warn('Interaction expired before processing');
-                    return; // Don't attempt any response
-                }
-
-                // For already-deferred interactions, use editReply
-                try {
-                    if (interaction.deferred) {
-                        await interaction.editReply({
-                            content: 'An error occurred while processing your request.',
-                        });
-                    } else if (interaction.replied) {
-                        await interaction.followUp({
-                            content: 'An error occurred while processing your request.',
-                            ephemeral: true
-                        });
-                    }
-                } catch {
-                    // Silent fail - interaction is invalid
+                const errorMessage = 'There was an error while executing this command!';
+                if (interaction.replied || interaction.deferred) {
+                    await interaction.followUp({ content: errorMessage, ephemeral: true });
+                } else {
+                    await interaction.reply({ content: errorMessage, ephemeral: true });
                 }
             }
         } else if (interaction.isButton()) {
@@ -181,7 +115,6 @@ client.on('interactionCreate', async interaction => {
         } else if (interaction.isModalSubmit()) {
             await handleModalSubmit(interaction);
         } else if (interaction.isAutocomplete()) {
-            // Autocomplete doesn't need deferral - handle directly
             const command = client.commands.get(interaction.commandName);
 
             if (!command) {

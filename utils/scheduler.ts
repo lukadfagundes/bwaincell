@@ -63,6 +63,11 @@ class Scheduler {
     }
 
     private getCronExpression(reminder: any): string | null {
+        if (!reminder.time) {
+            logger.warn('Reminder has no time set', { reminderId: reminder.id });
+            return null;
+        }
+
         const [hours, minutes] = reminder.time.split(':');
 
         switch (reminder.frequency) {

@@ -75,8 +75,7 @@ export default {
                         .setRequired(true))),
 
     async execute(interaction: ChatInputCommandInteraction): Promise<void> {
-        // CRITICAL: Immediate acknowledgment - must be first
-        await interaction.deferReply();
+        // Note: Interaction is already deferred by bot.js for immediate acknowledgment
 
         const subcommand = interaction.options.getSubcommand();
         const userId = interaction.user.id;
@@ -99,9 +98,8 @@ export default {
                     if (dueDateStr) {
                         dueDate = new Date(dueDateStr);
                         if (isNaN(dueDate.getTime())) {
-                            await interaction.reply({
-                                content: 'Invalid date format. Use YYYY-MM-DD HH:MM',
-                                
+                            await interaction.editReply({
+                                content: 'Invalid date format. Use YYYY-MM-DD HH:MM'
                             });
                             return;
                         }
@@ -230,7 +228,7 @@ export default {
                         components.push(selectRow);
                     }
 
-                    await interaction.reply({ embeds: [embed], components });
+                    await interaction.editReply({ embeds: [embed], components });
                     break;
                 }
 
@@ -272,7 +270,7 @@ export default {
                                 .setEmoji('📋')
                         );
 
-                    await interaction.reply({ embeds: [embed], components: [row] });
+                    await interaction.editReply({ embeds: [embed], components: [row] });
                     break;
                 }
 
@@ -281,9 +279,8 @@ export default {
                     const deleted: boolean = await Task.deleteTask(taskId, userId, guildId);
 
                     if (!deleted) {
-                        await interaction.reply({
-                            content: `❌ Task #${taskId} not found or doesn't belong to you.`,
-                            
+                        await interaction.editReply({
+                            content: `❌ Task #${taskId} not found or doesn't belong to you.`
                         });
                         return;
                     }
@@ -308,7 +305,7 @@ export default {
                                 .setEmoji('📋')
                         );
 
-                    await interaction.reply({ embeds: [embed], components: [row] });
+                    await interaction.editReply({ embeds: [embed], components: [row] });
                     break;
                 }
 
@@ -351,7 +348,7 @@ export default {
                                 .setEmoji('📋')
                         );
 
-                    await interaction.reply({ embeds: [embed], components: [editRow] });
+                    await interaction.editReply({ embeds: [embed], components: [editRow] });
                     break;
                 }
             }

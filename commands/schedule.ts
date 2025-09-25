@@ -85,8 +85,7 @@ export default {
                 .setDescription('Show this week\'s events')),
 
     async execute(interaction: ChatInputCommandInteraction): Promise<void> {
-        // CRITICAL: Immediate acknowledgment - must be first
-        await interaction.deferReply();
+        // Note: Interaction is already deferred by bot.js for immediate acknowledgment
 
         const subcommand = interaction.options.getSubcommand();
         const userId = interaction.user.id;

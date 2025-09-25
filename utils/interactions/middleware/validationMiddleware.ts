@@ -35,11 +35,24 @@ export const validationMiddleware: InteractionMiddleware = {
             // Validate guild context for guild-only commands
             if (!guildId && requiresGuild(interaction)) {
                 logger.warn('Guild validation failed', { userId, interactionId: interaction.id });
+
+                // For commands, let them handle the response themselves
+                if ('isChatInputCommand' in interaction && interaction.isChatInputCommand()) {
+                    // Pass through to command - command will handle the guild validation
+                    await next();
+                    return;
+                }
+
+                // For other interaction types, handle the response
                 if ('reply' in interaction && typeof interaction.reply === 'function') {
-                    await interaction.reply({
-                        content: '❌ This command can only be used in a server.',
-                        ephemeral: true
-                    });
+                    // Check if already acknowledged before responding
+                    if (!('deferred' in interaction && interaction.deferred) &&
+                        !('replied' in interaction && interaction.replied)) {
+                        await interaction.reply({
+                            content: '❌ This command can only be used in a server.',
+                            ephemeral: true
+                        });
+                    }
                 }
                 return; // Don't continue the chain
             }
@@ -66,10 +79,21 @@ export const validationMiddleware: InteractionMiddleware = {
 
             // Send user-friendly error message
             if ('followUp' in interaction && typeof interaction.followUp === 'function') {
-                await interaction.followUp({
-                    content: '❌ Invalid input detected. Please check your input and try again.',
-                    ephemeral: true
-                });
+                // Check if already acknowledged before responding
+                if (!('deferred' in interaction && interaction.deferred) &&
+                    !('replied' in interaction && interaction.replied)) {
+                    if ('reply' in interaction && typeof interaction.reply === 'function') {
+                        await interaction.reply({
+                            content: '❌ Invalid input detected. Please check your input and try again.',
+                            ephemeral: true
+                        });
+                    }
+                } else {
+                    await interaction.followUp({
+                        content: '❌ Invalid input detected. Please check your input and try again.',
+                        ephemeral: true
+                    });
+                }
             }
         }
     }

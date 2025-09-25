@@ -41,7 +41,12 @@ export async function handleRandomButton(interaction: ButtonInteraction<CacheTyp
     const guildId = interaction.guild?.id;
 
     if (!guildId) {
-        await interaction.followUp({ content: '❌ This command can only be used in a server.', ephemeral: true });
+        // Check if already acknowledged before responding
+        if (!interaction.deferred && !interaction.replied) {
+            await interaction.reply({ content: '❌ This command can only be used in a server.', ephemeral: true });
+        } else {
+            await interaction.followUp({ content: '❌ This command can only be used in a server.', ephemeral: true });
+        }
         return;
     }
 
@@ -78,7 +83,11 @@ export async function handleRandomButton(interaction: ButtonInteraction<CacheTyp
                         .setEmoji('🎲')
                 );
 
-            await interaction.update({ embeds: [embed], components: [row] });
+            // Check if already acknowledged before updating
+            if (!interaction.deferred && !interaction.replied) {
+                await interaction.deferUpdate();
+            }
+            await interaction.editReply({ embeds: [embed], components: [row] });
             return;
         }
 
@@ -119,7 +128,11 @@ export async function handleRandomButton(interaction: ButtonInteraction<CacheTyp
                         .setEmoji('💾')
                 );
 
-            await interaction.update({ embeds: [embed], components: [row] });
+            // Check if already acknowledged before updating
+            if (!interaction.deferred && !interaction.replied) {
+                await interaction.deferUpdate();
+            }
+            await interaction.editReply({ embeds: [embed], components: [row] });
             return;
         }
 
@@ -140,16 +153,31 @@ export async function handleRandomButton(interaction: ButtonInteraction<CacheTyp
             // Add the dinner to the list
             const updated = await List.addItem(userId, guildId, 'Meal Ideas', dinnerName);
 
-            if (updated) {
-                await interaction.followUp({
-                    content: `✅ Added "${dinnerName}" to your Meal Ideas list!`,
-                    ephemeral: true
-                });
+            // Check if already acknowledged before responding
+            if (!interaction.deferred && !interaction.replied) {
+                if (updated) {
+                    await interaction.reply({
+                        content: `✅ Added "${dinnerName}" to your Meal Ideas list!`,
+                        ephemeral: true
+                    });
+                } else {
+                    await interaction.reply({
+                        content: `❌ Could not add item to list.`,
+                        ephemeral: true
+                    });
+                }
             } else {
-                await interaction.followUp({
-                    content: `❌ Could not add item to list.`,
-                    ephemeral: true
-                });
+                if (updated) {
+                    await interaction.followUp({
+                        content: `✅ Added "${dinnerName}" to your Meal Ideas list!`,
+                        ephemeral: true
+                    });
+                } else {
+                    await interaction.followUp({
+                        content: `❌ Could not add item to list.`,
+                        ephemeral: true
+                    });
+                }
             }
             return;
         }
@@ -173,7 +201,11 @@ export async function handleRandomButton(interaction: ButtonInteraction<CacheTyp
                         .setEmoji('💝')
                 );
 
-            await interaction.update({ embeds: [embed], components: [row] });
+            // Check if already acknowledged before updating
+            if (!interaction.deferred && !interaction.replied) {
+                await interaction.deferUpdate();
+            }
+            await interaction.editReply({ embeds: [embed], components: [row] });
             return;
         }
 
@@ -195,7 +227,11 @@ export async function handleRandomButton(interaction: ButtonInteraction<CacheTyp
                         .setEmoji('💬')
                 );
 
-            await interaction.update({ embeds: [embed], components: [row] });
+            // Check if already acknowledged before updating
+            if (!interaction.deferred && !interaction.replied) {
+                await interaction.deferUpdate();
+            }
+            await interaction.editReply({ embeds: [embed], components: [row] });
             return;
         }
     } catch (error) {

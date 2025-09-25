@@ -19,7 +19,12 @@ export async function handleListButton(interaction: ButtonInteraction<CacheType>
     const guildId = interaction.guild?.id;
 
     if (!guildId) {
-        await interaction.followUp({ content: '❌ This command can only be used in a server.', ephemeral: true });
+        // Check if already acknowledged before responding
+        if (!interaction.deferred && !interaction.replied) {
+            await interaction.reply({ content: '❌ This command can only be used in a server.', ephemeral: true });
+        } else {
+            await interaction.followUp({ content: '❌ This command can only be used in a server.', ephemeral: true });
+        }
         return;
     }
 
@@ -54,10 +59,18 @@ export async function handleListButton(interaction: ButtonInteraction<CacheType>
             });
 
             if (!list) {
-                await interaction.followUp({
-                    content: `❌ List "${listName}" not found.`,
-                    ephemeral: true
-                });
+                // Check if already acknowledged before responding
+                if (!interaction.deferred && !interaction.replied) {
+                    await interaction.reply({
+                        content: `❌ List "${listName}" not found.`,
+                        ephemeral: true
+                    });
+                } else {
+                    await interaction.followUp({
+                        content: `❌ List "${listName}" not found.`,
+                        ephemeral: true
+                    });
+                }
                 return;
             }
 
@@ -94,7 +107,12 @@ export async function handleListButton(interaction: ButtonInteraction<CacheType>
                         .setDisabled(!list.items || !list.items.some(i => i.completed))
                 );
 
-            await interaction.followUp({ embeds: [embed], components: [row], ephemeral: true });
+            // Check if already acknowledged before responding
+            if (!interaction.deferred && !interaction.replied) {
+                await interaction.reply({ embeds: [embed], components: [row], ephemeral: true });
+            } else {
+                await interaction.followUp({ embeds: [embed], components: [row], ephemeral: true });
+            }
             return;
         }
 
@@ -106,10 +124,18 @@ export async function handleListButton(interaction: ButtonInteraction<CacheType>
             });
 
             if (!list) {
-                await interaction.followUp({
-                    content: `❌ List "${listName}" not found.`,
-                    ephemeral: true
-                });
+                // Check if already acknowledged before responding
+                if (!interaction.deferred && !interaction.replied) {
+                    await interaction.reply({
+                        content: `❌ List "${listName}" not found.`,
+                        ephemeral: true
+                    });
+                } else {
+                    await interaction.followUp({
+                        content: `❌ List "${listName}" not found.`,
+                        ephemeral: true
+                    });
+                }
                 return;
             }
 
@@ -121,10 +147,18 @@ export async function handleListButton(interaction: ButtonInteraction<CacheType>
                 await list.save();
             }
 
-            await interaction.followUp({
-                content: `🧹 Cleared ${cleared} completed items from "${listName}".`,
-                ephemeral: true
-            });
+            // Check if already acknowledged before responding
+            if (!interaction.deferred && !interaction.replied) {
+                await interaction.reply({
+                    content: `🧹 Cleared ${cleared} completed items from "${listName}".`,
+                    ephemeral: true
+                });
+            } else {
+                await interaction.followUp({
+                    content: `🧹 Cleared ${cleared} completed items from "${listName}".`,
+                    ephemeral: true
+                });
+            }
             return;
         }
 

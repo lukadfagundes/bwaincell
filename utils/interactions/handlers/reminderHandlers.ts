@@ -12,7 +12,12 @@ export async function handleReminderButton(interaction: ButtonInteraction<CacheT
     const guildId = interaction.guild?.id;
 
     if (!guildId) {
-        await interaction.followUp({ content: '❌ This command can only be used in a server.', ephemeral: true });
+        // Check if already acknowledged before responding
+        if (!interaction.deferred && !interaction.replied) {
+            await interaction.reply({ content: '❌ This command can only be used in a server.', ephemeral: true });
+        } else {
+            await interaction.followUp({ content: '❌ This command can only be used in a server.', ephemeral: true });
+        }
         return;
     }
 
@@ -23,26 +28,49 @@ export async function handleReminderButton(interaction: ButtonInteraction<CacheT
         if (customId.startsWith('reminder_delete_')) {
             const reminderId = parseInt(customId.split('_')[2]);
             const deleted = await Reminder.deleteReminder(reminderId, userId, guildId);
-            if (deleted) {
-                await interaction.followUp({
-                    content: `🗑️ Reminder #${reminderId} has been cancelled.`,
-                    ephemeral: true
-                });
+            // Check if already acknowledged before responding
+            if (!interaction.deferred && !interaction.replied) {
+                if (deleted) {
+                    await interaction.reply({
+                        content: `🗑️ Reminder #${reminderId} has been cancelled.`,
+                        ephemeral: true
+                    });
+                } else {
+                    await interaction.reply({
+                        content: `❌ Reminder #${reminderId} not found.`,
+                        ephemeral: true
+                    });
+                }
             } else {
-                await interaction.followUp({
-                    content: `❌ Reminder #${reminderId} not found.`,
-                    ephemeral: true
-                });
+                if (deleted) {
+                    await interaction.followUp({
+                        content: `🗑️ Reminder #${reminderId} has been cancelled.`,
+                        ephemeral: true
+                    });
+                } else {
+                    await interaction.followUp({
+                        content: `❌ Reminder #${reminderId} not found.`,
+                        ephemeral: true
+                    });
+                }
             }
             return;
         }
 
         // Add new reminder
         if (customId === 'reminder_add_new' || customId === 'reminder_add_another') {
-            await interaction.followUp({
-                content: '⏰ Use `/remind me`, `/remind daily`, or `/remind weekly` to create a new reminder!',
-                ephemeral: true
-            });
+            // Check if already acknowledged before responding
+            if (!interaction.deferred && !interaction.replied) {
+                await interaction.reply({
+                    content: '⏰ Use `/remind me`, `/remind daily`, or `/remind weekly` to create a new reminder!',
+                    ephemeral: true
+                });
+            } else {
+                await interaction.followUp({
+                    content: '⏰ Use `/remind me`, `/remind daily`, or `/remind weekly` to create a new reminder!',
+                    ephemeral: true
+                });
+            }
             return;
         }
 
@@ -65,10 +93,18 @@ export async function handleReminderButton(interaction: ButtonInteraction<CacheT
         // Create reminder of specific type
         if (customId.startsWith('reminder_create_')) {
             const type = customId.split('_')[2];
-            await interaction.followUp({
-                content: `⏰ Use \`/remind ${type === 'once' ? 'me' : type}\` to create a ${type} reminder!`,
-                ephemeral: true
-            });
+            // Check if already acknowledged before responding
+            if (!interaction.deferred && !interaction.replied) {
+                await interaction.reply({
+                    content: `⏰ Use \`/remind ${type === 'once' ? 'me' : type}\` to create a ${type} reminder!`,
+                    ephemeral: true
+                });
+            } else {
+                await interaction.followUp({
+                    content: `⏰ Use \`/remind ${type === 'once' ? 'me' : type}\` to create a ${type} reminder!`,
+                    ephemeral: true
+                });
+            }
             return;
         }
     } catch (error) {

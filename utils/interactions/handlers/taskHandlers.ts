@@ -40,7 +40,12 @@ export async function handleTaskButton(interaction: ButtonInteraction<CacheType>
     const guildId = interaction.guild?.id;
 
     if (!guildId) {
-        await interaction.followUp({ content: '❌ This command can only be used in a server.', ephemeral: true });
+        // Check if already acknowledged before responding
+        if (!interaction.deferred && !interaction.replied) {
+            await interaction.reply({ content: '❌ This command can only be used in a server.', ephemeral: true });
+        } else {
+            await interaction.followUp({ content: '❌ This command can only be used in a server.', ephemeral: true });
+        }
         return;
     }
 
@@ -79,7 +84,12 @@ export async function handleTaskButton(interaction: ButtonInteraction<CacheType>
         if (customId === 'task_quick_complete') {
             const tasks = await Task.getUserTasks(userId, guildId, 'pending');
             if (!tasks || tasks.length === 0) {
-                await interaction.followUp({ content: '❌ No pending tasks to complete!', ephemeral: true });
+                // Check if already acknowledged before responding
+                if (!interaction.deferred && !interaction.replied) {
+                    await interaction.reply({ content: '❌ No pending tasks to complete!', ephemeral: true });
+                } else {
+                    await interaction.followUp({ content: '❌ No pending tasks to complete!', ephemeral: true });
+                }
                 return;
             }
 
@@ -93,11 +103,20 @@ export async function handleTaskButton(interaction: ButtonInteraction<CacheType>
                 })));
 
             const row = new ActionRowBuilder<StringSelectMenuBuilder>().addComponents(selectMenu);
-            await interaction.followUp({
-                content: '✅ Select a task to mark as complete:',
-                components: [row],
-                ephemeral: true
-            });
+            // Check if already acknowledged before responding
+            if (!interaction.deferred && !interaction.replied) {
+                await interaction.reply({
+                    content: '✅ Select a task to mark as complete:',
+                    components: [row],
+                    ephemeral: true
+                });
+            } else {
+                await interaction.followUp({
+                    content: '✅ Select a task to mark as complete:',
+                    components: [row],
+                    ephemeral: true
+                });
+            }
             return;
         }
 
@@ -105,16 +124,31 @@ export async function handleTaskButton(interaction: ButtonInteraction<CacheType>
         if (customId.startsWith('task_done_')) {
             const taskId = parseInt(customId.split('_')[2]);
             const task = await Task.completeTask(taskId, userId, guildId);
-            if (task) {
-                await interaction.followUp({
-                    content: `✅ Task #${taskId}: "${task.description}" marked as complete!`,
-                    ephemeral: true
-                });
+            // Check if already acknowledged before responding
+            if (!interaction.deferred && !interaction.replied) {
+                if (task) {
+                    await interaction.reply({
+                        content: `✅ Task #${taskId}: "${task.description}" marked as complete!`,
+                        ephemeral: true
+                    });
+                } else {
+                    await interaction.reply({
+                        content: `❌ Task #${taskId} not found.`,
+                        ephemeral: true
+                    });
+                }
             } else {
-                await interaction.followUp({
-                    content: `❌ Task #${taskId} not found.`,
-                    ephemeral: true
-                });
+                if (task) {
+                    await interaction.followUp({
+                        content: `✅ Task #${taskId}: "${task.description}" marked as complete!`,
+                        ephemeral: true
+                    });
+                } else {
+                    await interaction.followUp({
+                        content: `❌ Task #${taskId} not found.`,
+                        ephemeral: true
+                    });
+                }
             }
             return;
         }
@@ -127,10 +161,18 @@ export async function handleTaskButton(interaction: ButtonInteraction<CacheType>
             });
 
             if (!task) {
-                await interaction.followUp({
-                    content: `❌ Task #${taskId} not found.`,
-                    ephemeral: true
-                });
+                // Check if already acknowledged before responding
+                if (!interaction.deferred && !interaction.replied) {
+                    await interaction.reply({
+                        content: `❌ Task #${taskId} not found.`,
+                        ephemeral: true
+                    });
+                } else {
+                    await interaction.followUp({
+                        content: `❌ Task #${taskId} not found.`,
+                        ephemeral: true
+                    });
+                }
                 return;
             }
 
@@ -156,16 +198,31 @@ export async function handleTaskButton(interaction: ButtonInteraction<CacheType>
         if (customId.startsWith('task_delete_')) {
             const taskId = parseInt(customId.split('_')[2]);
             const deleted = await Task.deleteTask(taskId, userId, guildId);
-            if (deleted) {
-                await interaction.followUp({
-                    content: `🗑️ Task #${taskId} has been deleted.`,
-                    ephemeral: true
-                });
+            // Check if already acknowledged before responding
+            if (!interaction.deferred && !interaction.replied) {
+                if (deleted) {
+                    await interaction.reply({
+                        content: `🗑️ Task #${taskId} has been deleted.`,
+                        ephemeral: true
+                    });
+                } else {
+                    await interaction.reply({
+                        content: `❌ Task #${taskId} not found.`,
+                        ephemeral: true
+                    });
+                }
             } else {
-                await interaction.followUp({
-                    content: `❌ Task #${taskId} not found.`,
-                    ephemeral: true
-                });
+                if (deleted) {
+                    await interaction.followUp({
+                        content: `🗑️ Task #${taskId} has been deleted.`,
+                        ephemeral: true
+                    });
+                } else {
+                    await interaction.followUp({
+                        content: `❌ Task #${taskId} not found.`,
+                        ephemeral: true
+                    });
+                }
             }
             return;
         }

@@ -87,23 +87,8 @@ async function handleButtonInteractionInternal(interaction: ButtonInteraction<Ca
         return;
     }
 
-    // Determine if this is a modal button (modals can't be shown after deferring)
-    const isModalButton = customId.includes('_add_new') ||
-                         customId.includes('_edit_') ||
-                         (customId.includes('list_add_') && !customId.includes('list_add_item_modal'));
-
-    // Defer non-modal interactions immediately
-    if (!isModalButton) {
-        try {
-            await interaction.deferUpdate();
-        } catch {
-            try {
-                await interaction.deferReply({ ephemeral: true });
-            } catch {
-                // Already deferred or replied
-            }
-        }
-    }
+    // Note: Interaction already deferred by bot.js - no need to defer here
+    // (bot.js handles immediate acknowledgment for all button interactions)
 
     try {
         // Route to appropriate handler based on prefix
