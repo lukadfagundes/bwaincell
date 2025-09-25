@@ -3,21 +3,32 @@ module.exports = {
   plugins: ['@typescript-eslint'],
   extends: [
     'eslint:recommended',
-    '@typescript-eslint/recommended',
+    'plugin:@typescript-eslint/recommended',
     'prettier'
   ],
   rules: {
-    '@typescript-eslint/no-unused-vars': 'error',
+    '@typescript-eslint/no-unused-vars': ['error', {
+      'argsIgnorePattern': '^_',
+      'varsIgnorePattern': '^_'
+    }],
     '@typescript-eslint/no-explicit-any': 'warn',
-    'no-console': process.env.NODE_ENV === 'production' ? 'error' : 'warn',
+    'no-console': 'off', // Using logger instead
     '@typescript-eslint/explicit-function-return-type': 'off',
     '@typescript-eslint/explicit-module-boundary-types': 'off',
-    '@typescript-eslint/no-empty-function': 'warn'
+    '@typescript-eslint/no-empty-function': 'warn',
+    'no-unused-vars': 'off' // Use @typescript-eslint/no-unused-vars instead
   },
   env: {
     node: true,
-    es6: true,
+    es2020: true,
     jest: true
+  },
+  globals: {
+    'process': true,
+    'module': true,
+    'require': true,
+    '__dirname': true,
+    '__filename': true
   },
   parserOptions: {
     ecmaVersion: 2020,
@@ -28,6 +39,7 @@ module.exports = {
     'node_modules/',
     'coverage/',
     '*.js',
-    '!.eslintrc.js'
+    'jest.config.js',
+    '.eslintrc.js'
   ]
 };

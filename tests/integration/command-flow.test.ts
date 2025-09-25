@@ -277,7 +277,7 @@ describe('Command Integration Tests', () => {
         // Commit if all succeed
         await transaction.commit();
         expect(transaction.commit).toHaveBeenCalled();
-      } catch (error) {
+      } catch {
         // Rollback on error
         await transaction.rollback();
         expect(transaction.rollback).toHaveBeenCalled();
@@ -297,7 +297,7 @@ describe('Command Integration Tests', () => {
         await mockTask.create({ task: 'Task 1' }, { transaction });
         await mockList.create({ name: null }, { transaction }); // This fails
         await transaction.commit();
-      } catch (error) {
+      } catch {
         await transaction.rollback();
         expect(transaction.rollback).toHaveBeenCalled();
         expect(transaction.commit).not.toHaveBeenCalled();

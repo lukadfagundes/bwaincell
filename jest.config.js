@@ -42,12 +42,8 @@ module.exports = {
         esModuleInterop: true,
         allowJs: true,
         moduleResolution: 'node',
+        isolatedModules: true
       }
     }]
-  },
-  globals: {
-    'ts-jest': {
-      isolatedModules: true,
-    }
   },
 };
