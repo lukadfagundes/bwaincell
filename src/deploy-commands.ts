@@ -2,12 +2,12 @@ import { REST, Routes } from 'discord.js';
 import fs from 'fs';
 import path from 'path';
 import dotenv from 'dotenv';
-import { logger } from './shared/utils/logger';
+import { logger } from '../shared/utils/logger';
 
 dotenv.config();
 
 const commands: any[] = [];
-const commandsPath = path.join(__dirname, 'commands');
+const commandsPath = path.join(__dirname, '..', 'commands');
 
 if (!fs.existsSync(commandsPath)) {
     logger.error('Commands directory not found. Run build first.');

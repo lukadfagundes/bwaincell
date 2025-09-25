@@ -7,7 +7,7 @@ import { existsSync } from 'fs';
 import path from 'path';
 import { validateEnv } from '@shared/validation/env';
 import { logger, logBotEvent, logError } from '@shared/utils/logger';
-import { handleButtonInteraction, handleSelectMenuInteraction, handleModalSubmit } from '../utils/interactionHandler';
+import { handleButtonInteraction, handleSelectMenuInteraction, handleModalSubmit } from '../utils/interactions';
 // Import the properly configured database with all models
 import { sequelize } from '../database';
 
@@ -33,15 +33,25 @@ async function loadModels() {
 
 async function loadCommands() {
     const commandsPath = path.join(__dirname, '..', 'commands');
-    const commandFiles = (await fs.readdir(commandsPath)).filter(file => file.endsWith('.js'));
+    const commandFiles = (await fs.readdir(commandsPath))
+        .filter(file => file.endsWith('.js') && !file.endsWith('.d.ts'));
 
     for (const file of commandFiles) {
-        const command = require(path.join(commandsPath, file));
-        if ('data' in command && 'execute' in command) {
-            client.commands.set(command.data.name, command);
-            logger.info(`Loaded command: ${command.data.name}`);
+        const filePath = path.join(commandsPath, file);
+        const command = require(filePath);
+
+        // Handle both default and module.exports
+        const commandModule = command.default || command;
+
+        if ('data' in commandModule && 'execute' in commandModule) {
+            client.commands.set(commandModule.data.name, commandModule);
+            logger.info(`Loaded command: ${commandModule.data.name}`);
+        } else {
+            logger.error(`Failed to load command from ${file}: Missing data or execute`);
         }
     }
+
+    logger.info(`Total commands loaded: ${client.commands.size}`);
 }
 
 async function setupScheduler() {

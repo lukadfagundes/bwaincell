@@ -7,14 +7,15 @@
     "rootDir": "./",
     "strict": true,
     "esModuleInterop": true,
-    "skipLibCheck": true,
+    "skipLibCheck": false,
     "forceConsistentCasingInFileNames": true,
     "resolveJsonModule": true,
     "declaration": true,
     "declarationMap": true,
     "sourceMap": true,
     "allowJs": true,
-    "checkJs": false,
+    "checkJs": true,
+    "isolatedModules": true,
     "noUnusedLocals": true,
     "noUnusedParameters": true,
     "noImplicitReturns": true,
@@ -30,6 +31,6 @@
       "@database/*": ["database/*"]
     }
   },
-  "include": ["**/*.ts", "**/*.js"],
-  "exclude": ["node_modules", "dist", "tests", "backup"]
+  "include": ["**/*"],
+  "exclude": ["node_modules", "dist", "coverage", "scripts", "eslint.config.js", ".eslintrc.js"]
 }

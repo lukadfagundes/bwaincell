@@ -173,7 +173,9 @@
       "Bash(cut:*)",
       "WebFetch(domain:discordjs.guide)",
       "WebFetch(domain:discord.com)",
-      "Bash(export:*)"
+      "Bash(export:*)",
+      "Bash(npx coverage-badge-creator:*)",
+      "Bash(while read file)"
     ],
     "deny": [],
     "ask": [],
