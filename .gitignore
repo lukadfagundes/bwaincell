@@ -45,10 +45,6 @@ USER_GUIDE.md
 trinity/
 CLAUDE.md
 
-#Github
-.github/
-.gitignore
-
 # Testing
 TESTING_CHECKLIST.md
 USER_GUIDE.md
