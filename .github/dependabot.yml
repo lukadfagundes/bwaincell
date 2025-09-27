@@ -1,119 +1,23 @@
 version: 2
 updates:
-  # JavaScript/npm dependencies
-  - package-ecosystem: 'npm'
-    directory: '/'
-    schedule:
-      interval: 'weekly'
-      day: 'monday'
-      time: '04:00'
-    open-pull-requests-limit: 5
-    assignees:
-      - 'trinity-method/developers'
-    labels:
-      - 'dependencies'
-      - 'javascript'
-    commit-message:
-      prefix: 'npm'
-      include: 'scope'
-    pull-request-branch-name:
-      separator: '-'
-    allow:
-      - dependency-type: 'all'
-    ignore:
-      # Ignore major version updates for critical packages
-      - dependency-name: 'react'
-        update-types: ['version-update:semver-major']
-      - dependency-name: 'react-dom'
-        update-types: ['version-update:semver-major']
-    groups:
-      # Group all non-major development dependency updates
-      dev-dependencies:
-        patterns:
-          - '*'
-        dependency-type: 'development'
-        update-types:
-          - 'minor'
-          - 'patch'
-      # Group all ESLint related updates
-      eslint:
-        patterns:
-          - 'eslint*'
-          - '@typescript-eslint/*'
-
-  # Python/pip dependencies (if requirements.txt exists)
-  - package-ecosystem: 'pip'
-    directory: '/'
-    schedule:
-      interval: 'weekly'
-      day: 'monday'
-      time: '05:00'
-    open-pull-requests-limit: 3
-    assignees:
-      - 'trinity-method/developers'
-    labels:
-      - 'dependencies'
-      - 'python'
-    commit-message:
-      prefix: 'pip'
-      include: 'scope'
-    allow:
-      - dependency-type: 'all'
-
-  # Rust/Cargo dependencies (if Cargo.toml exists)
-  - package-ecosystem: 'cargo'
-    directory: '/'
-    schedule:
-      interval: 'weekly'
-      day: 'monday'
-      time: '06:00'
-    open-pull-requests-limit: 3
-    assignees:
-      - 'trinity-method/developers'
-    labels:
-      - 'dependencies'
-      - 'rust'
-    commit-message:
-      prefix: 'cargo'
-      include: 'scope'
-    allow:
-      - dependency-type: 'all'
-
-  # GitHub Actions
+  # Enable version updates for GitHub Actions
   - package-ecosystem: 'github-actions'
     directory: '/'
     schedule:
       interval: 'weekly'
-      day: 'monday'
-      time: '07:00'
-    open-pull-requests-limit: 3
-    assignees:
-      - 'trinity-method/developers'
+    reviewers:
+      - 'lukaf'
     labels:
       - 'dependencies'
       - 'github-actions'
-      - 'ci/cd'
-    commit-message:
-      prefix: 'ci'
-      include: 'scope'
-    allow:
-      - dependency-type: 'all'
 
-  # Docker dependencies (if Dockerfile exists)
-  - package-ecosystem: 'docker'
+  # Enable version updates for npm
+  - package-ecosystem: 'npm'
     directory: '/'
     schedule:
       interval: 'weekly'
-      day: 'tuesday'
-      time: '04:00'
-    open-pull-requests-limit: 2
-    assignees:
-      - 'trinity-method/developers'
+    reviewers:
+      - 'lukaf'
     labels:
       - 'dependencies'
-      - 'docker'
-    commit-message:
-      prefix: 'docker'
-      include: 'scope'
-# Security updates configuration
-# These are handled separately with higher priority
+      - 'npm'

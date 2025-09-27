@@ -20,15 +20,15 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout code
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
 
       - name: Setup Node.js
-        uses: actions/setup-node@v3
+        uses: actions/setup-node@v4
         with:
           node-version: ${{ env.NODE_VERSION }}
 
       - name: Cache node modules
-        uses: actions/cache@v3
+        uses: actions/cache@v4
         with:
           path: ~/.npm
           key: ${{ runner.os }}-node-${{ env.CACHE_VERSION }}-${{ hashFiles('**/package-lock.json') }}
@@ -112,7 +112,7 @@ jobs:
 
       - name: Annotate PR with Coverage
         if: github.event_name == 'pull_request' && always()
-        uses: actions/github-script@v6
+        uses: actions/github-script@v7
         with:
           script: |
             const fs = require('fs');
@@ -170,7 +170,7 @@ jobs:
 
       - name: Update PR Description with Badge
         if: github.event_name == 'pull_request' && steps.readiness.outputs.score
-        uses: actions/github-script@v6
+        uses: actions/github-script@v7
         with:
           script: |
             const score = '${{ steps.readiness.outputs.score }}';
@@ -212,33 +212,39 @@ jobs:
 
       - name: Upload Coverage Artifacts
         if: always()
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
-          name: coverage-report
+          name: coverage-report-${{ github.run_id }}-${{ github.run_attempt }}
           path: |
             coverage/
             coverage-summary.json
             test-results.json
+          retention-days: 30
+          overwrite: false
 
       - name: Upload Dashboard Data
         if: always()
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
-          name: dashboard-data
+          name: dashboard-data-${{ github.run_id }}-${{ github.run_attempt }}
           path: |
             dashboard-data.json
             dashboard-data-minimal.json
             dashboard-history.json
             readiness-report.json
+          retention-days: 30
+          overwrite: false
 
       - name: Upload Security Reports
         if: always()
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
-          name: security-reports
+          name: security-reports-${{ github.run_id }}-${{ github.run_attempt }}
           path: |
             npm-audit.json
             eslint-report.json
+          retention-days: 30
+          overwrite: false
 
   # Python Job (if needed)
   python-ci:
@@ -247,10 +253,10 @@ jobs:
     if: false # DISABLED - No Python in this project
     steps:
       - name: Checkout code
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
 
       - name: Setup Python
-        uses: actions/setup-python@v4
+        uses: actions/setup-python@v5
         with:
           python-version: ${{ env.PYTHON_VERSION }}
 
@@ -273,12 +279,14 @@ jobs:
 
       - name: Upload Python Coverage
         if: always()
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
-          name: python-coverage
+          name: python-coverage-${{ github.run_id }}-${{ github.run_attempt }}
           path: |
             htmlcov/
             python-coverage.json
+          retention-days: 30
+          overwrite: false
 
   # Deploy Dashboard Data to GitHub Pages
   deploy-dashboard-data:
@@ -289,18 +297,18 @@ jobs:
 
     steps:
       - name: Checkout code
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
 
       - name: Download Dashboard Data
-        uses: actions/download-artifact@v3
+        uses: actions/download-artifact@v4
         with:
-          name: dashboard-data
+          name: dashboard-data-${{ github.run_id }}-${{ github.run_attempt }}
           path: ./data
 
       - name: Download Coverage Report
-        uses: actions/download-artifact@v3
+        uses: actions/download-artifact@v4
         with:
-          name: coverage-report
+          name: coverage-report-${{ github.run_id }}-${{ github.run_attempt }}
           path: ./data/coverage
 
       - name: Prepare Deployment
@@ -318,7 +326,7 @@ jobs:
           echo '{"updated": "'$(date -Iseconds)'"}' > public/data/index.json
 
       - name: Deploy to GitHub Pages
-        uses: peaceiris/actions-gh-pages@v3
+        uses: peaceiris/actions-gh-pages@v4
         with:
           github_token: ${{ secrets.GITHUB_TOKEN }}
           publish_dir: ./public
@@ -334,7 +342,7 @@ jobs:
 
     steps:
       - name: Download All Artifacts
-        uses: actions/download-artifact@v3
+        uses: actions/download-artifact@v4
 
       - name: Generate Summary
         run: |
