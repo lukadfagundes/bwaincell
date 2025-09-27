@@ -212,7 +212,7 @@ jobs:
 
       - name: Upload Coverage Artifacts
         if: always()
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
           name: coverage-report
           path: |
@@ -222,7 +222,7 @@ jobs:
 
       - name: Upload Dashboard Data
         if: always()
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
           name: dashboard-data
           path: |
@@ -233,7 +233,7 @@ jobs:
 
       - name: Upload Security Reports
         if: always()
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
           name: security-reports
           path: |
@@ -273,7 +273,7 @@ jobs:
 
       - name: Upload Python Coverage
         if: always()
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
           name: python-coverage
           path: |

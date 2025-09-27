@@ -58,7 +58,7 @@ jobs:
 
       - name: Upload CodeQL results
         if: always()
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
           name: codeql-results-${{ matrix.language }}
           path: |
@@ -165,7 +165,7 @@ jobs:
 
       - name: Upload OWASP results
         if: always() && steps.check_npm.outputs.npm_lock_exists == 'true'
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
           name: owasp-dependency-check-results
           path: reports/
@@ -235,7 +235,7 @@ jobs:
           cat security-summary.md
 
       - name: Upload security summary
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
           name: security-summary
           path: security-summary.md
