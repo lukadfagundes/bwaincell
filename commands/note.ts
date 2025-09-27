@@ -203,14 +203,14 @@ export default {
                     if (!deleted) {
                         await interaction.editReply({
                             content: `Note #${noteId} not found or doesn't belong to you.`,
-                            
+
                         });
                         return;
                     }
 
                     await interaction.editReply({
                         content: `Note #${noteId} has been deleted.`,
-                        
+
                     });
                     break;
                 }
@@ -257,7 +257,7 @@ export default {
                     if (Object.keys(updates).length === 0) {
                         await interaction.editReply({
                             content: 'No changes provided.',
-                            
+
                         });
                         return;
                     }const note = await Note.updateNote(noteId, userId, guildId, updates);
@@ -318,7 +318,7 @@ export default {
                     if (tags.length === 0) {
                         await interaction.editReply({
                             content: 'No tags found in your notes.',
-                            
+
                         });
                         return;
                     }
@@ -349,7 +349,7 @@ export default {
 
             const replyMessage = {
                 content: 'An error occurred while processing your request.',
-                
+
             };
 
             if (interaction.replied || interaction.deferred) {

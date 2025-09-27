@@ -435,7 +435,7 @@ export default {
 
             const replyMessage = {
                 content: 'An error occurred while processing your request.',
-                
+
             };
 
             if (interaction.replied || interaction.deferred) {

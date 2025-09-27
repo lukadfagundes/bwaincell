@@ -33,7 +33,9 @@ utils/interactions/
 ## Architecture Principles
 
 ### 1. Separation of Concerns
+
 Each handler file manages a specific feature domain:
+
 - **taskHandlers.ts**: All task-related interactions
 - **listHandlers.ts**: List management operations
 - **reminderHandlers.ts**: Reminder CRUD operations
@@ -56,7 +58,9 @@ graph TD
 ```
 
 ### 3. Error Handling
+
 All handlers implement consistent error handling:
+
 - Errors are caught and logged
 - User-friendly messages are displayed
 - Bot stability is maintained
@@ -64,6 +68,7 @@ All handlers implement consistent error handling:
 ## Adding New Handlers
 
 ### Step 1: Create Handler File
+
 Create a new file in `handlers/` directory:
 
 ```typescript
@@ -72,32 +77,33 @@ import { ButtonInteraction, CacheType } from 'discord.js';
 import { handleInteractionError } from '../responses/errorResponses';
 
 export async function handleNewFeatureButton(
-    interaction: ButtonInteraction<CacheType>
+  interaction: ButtonInteraction<CacheType>
 ): Promise<void> {
-    const customId = interaction.customId;
-    const userId = interaction.user.id;
-    const guildId = interaction.guild?.id;
+  const customId = interaction.customId;
+  const userId = interaction.user.id;
+  const guildId = interaction.guild?.id;
 
-    if (!guildId) {
-        await interaction.followUp({
-            content: '❌ Server only command.',
-            ephemeral: true
-        });
-        return;
-    }
+  if (!guildId) {
+    await interaction.followUp({
+      content: '❌ Server only command.',
+      ephemeral: true,
+    });
+    return;
+  }
 
-    try {
-        // Handle specific actions based on customId
-        if (customId === 'newfeature_action') {
-            // Implementation
-        }
-    } catch (error) {
-        await handleInteractionError(interaction, error, 'new feature');
+  try {
+    // Handle specific actions based on customId
+    if (customId === 'newfeature_action') {
+      // Implementation
     }
+  } catch (error) {
+    await handleInteractionError(interaction, error, 'new feature');
+  }
 }
 ```
 
 ### Step 2: Register in Router
+
 Add to `index.ts`:
 
 ```typescript
@@ -105,67 +111,69 @@ import { handleNewFeatureButton } from './handlers/newFeatureHandlers';
 
 // In handleButtonInteraction function:
 if (customId.startsWith('newfeature_')) {
-    await handleNewFeatureButton(interaction);
+  await handleNewFeatureButton(interaction);
 }
 ```
 
 ### Step 3: Add Types (if needed)
+
 Define interfaces in `types/interactions.ts`:
 
 ```typescript
 export interface NewFeatureData {
-    id: string;
-    // ... other properties
+  id: string;
+  // ... other properties
 }
 ```
 
 ## Common Patterns
 
 ### Modal Creation Pattern
+
 ```typescript
-const modal = new ModalBuilder()
-    .setCustomId('feature_modal')
-    .setTitle('Modal Title');
+const modal = new ModalBuilder().setCustomId('feature_modal').setTitle('Modal Title');
 
 const input = new TextInputBuilder()
-    .setCustomId('input_field')
-    .setLabel('Field Label')
-    .setStyle(TextInputStyle.Short)
-    .setRequired(true);
+  .setCustomId('input_field')
+  .setLabel('Field Label')
+  .setStyle(TextInputStyle.Short)
+  .setRequired(true);
 
-const row = new ActionRowBuilder<TextInputBuilder>()
-    .addComponents(input);
+const row = new ActionRowBuilder<TextInputBuilder>().addComponents(input);
 
 modal.addComponents(row);
 await interaction.showModal(modal);
 ```
 
 ### Database Operation Pattern
+
 ```typescript
 const { ModelName } = await getModels();
 const result = await ModelName.findOne({
-    where: { user_id: userId, guild_id: guildId }
+  where: { user_id: userId, guild_id: guildId },
 });
 ```
 
 ### Embed Response Pattern
+
 ```typescript
 const embed = createSuccessEmbed('Title', 'Description');
 const buttons = createActionButtons([
-    { customId: 'action_1', label: 'Action 1' },
-    { customId: 'action_2', label: 'Action 2' }
+  { customId: 'action_1', label: 'Action 1' },
+  { customId: 'action_2', label: 'Action 2' },
 ]);
 
 await interaction.followUp({
-    embeds: [embed],
-    components: [buttons],
-    ephemeral: true
+  embeds: [embed],
+  components: [buttons],
+  ephemeral: true,
 });
 ```
 
 ## Testing
 
 ### Running Tests
+
 ```bash
 npm test                  # Run all tests
 npm run test:watch       # Watch mode
@@ -173,51 +181,59 @@ npm run test:coverage    # Generate coverage report
 ```
 
 ### Test Structure
+
 Tests are located in `tests/unit/handlers/`:
+
 - Each handler has a corresponding test file
 - Mocks are provided for Discord.js and database operations
 - Focus on business logic and error handling
 
 ### Writing Tests
+
 ```typescript
 describe('FeatureHandler', () => {
-    it('should handle valid interaction', async () => {
-        const interaction = createMockButtonInteraction('feature_action');
-        await handleFeatureButton(interaction);
-        expect(interaction.followUp).toHaveBeenCalledWith(
-            expect.objectContaining({ content: expect.stringContaining('Success') })
-        );
-    });
+  it('should handle valid interaction', async () => {
+    const interaction = createMockButtonInteraction('feature_action');
+    await handleFeatureButton(interaction);
+    expect(interaction.followUp).toHaveBeenCalledWith(
+      expect.objectContaining({ content: expect.stringContaining('Success') })
+    );
+  });
 });
 ```
 
 ## Performance Considerations
 
 ### Deferral Strategy
+
 - Modal buttons: Never defer (modals can't be shown after deferring)
 - Data operations: Defer immediately to prevent timeout
 - Quick responses: No deferral needed
 
 ### Caching
+
 Database models are cached after first load:
+
 ```typescript
 let modelsCache: Models | null = null;
 export async function getModels(): Promise<Models> {
-    if (!modelsCache) {
-        modelsCache = await loadModels();
-    }
-    return modelsCache;
+  if (!modelsCache) {
+    modelsCache = await loadModels();
+  }
+  return modelsCache;
 }
 ```
 
 ## Security
 
 ### Input Validation
+
 - All user inputs are validated before processing
 - SQL injection prevention through Sequelize ORM
 - XSS prevention through Discord.js sanitization
 
 ### Permission Checking
+
 - Guild-only commands verify guild presence
 - User-specific operations verify ownership
 - Role-based permissions for admin commands
@@ -225,13 +241,15 @@ export async function getModels(): Promise<Models> {
 ## Debugging
 
 ### Logging
+
 All interactions are logged with contextual information:
+
 ```typescript
 logger.info('Button interaction', {
-    customId,
-    userId,
-    guildId,
-    action: 'task_complete'
+  customId,
+  userId,
+  guildId,
+  action: 'task_complete',
 });
 ```
 
@@ -252,21 +270,25 @@ logger.info('Button interaction', {
 ## Future Enhancements
 
 ### Middleware System
+
 Planned middleware for v2.0:
+
 - Authentication middleware
 - Rate limiting middleware
 - Validation middleware
 - Logging middleware
 
 ### Command Builders
+
 Declarative command registration:
+
 ```typescript
 @InteractionHandler('task_*')
 class TaskHandler {
-    @ButtonHandler('task_done_:id')
-    async completeTask(interaction: ButtonInteraction, id: string) {
-        // Implementation
-    }
+  @ButtonHandler('task_done_:id')
+  async completeTask(interaction: ButtonInteraction, id: string) {
+    // Implementation
+  }
 }
 ```
 
@@ -281,6 +303,7 @@ class TaskHandler {
 ## Support
 
 For issues or questions about the interaction system:
+
 1. Check the error logs in `logs/` directory
 2. Review this documentation
 3. Check existing handler implementations

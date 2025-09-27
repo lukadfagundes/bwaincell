@@ -1,7 +1,13 @@
 module.exports = {
   preset: 'ts-jest',
   testEnvironment: 'node',
-  roots: ['<rootDir>/src', '<rootDir>/tests', '<rootDir>/commands', '<rootDir>/database', '<rootDir>/utils'],
+  roots: [
+    '<rootDir>/src',
+    '<rootDir>/tests',
+    '<rootDir>/commands',
+    '<rootDir>/database',
+    '<rootDir>/utils',
+  ],
   testMatch: ['**/*.test.ts', '**/*.test.js'],
   collectCoverageFrom: [
     'src/**/*.ts',
@@ -32,18 +38,21 @@ module.exports = {
       branches: 25,
       functions: 25,
       lines: 25,
-      statements: 25
-    }
+      statements: 25,
+    },
   },
   testTimeout: 10000,
   transform: {
-    '^.+\\.ts$': ['ts-jest', {
-      tsconfig: {
-        esModuleInterop: true,
-        allowJs: true,
-        moduleResolution: 'node',
-        isolatedModules: true
-      }
-    }]
+    '^.+\\.ts$': [
+      'ts-jest',
+      {
+        tsconfig: {
+          esModuleInterop: true,
+          allowJs: true,
+          moduleResolution: 'node',
+          isolatedModules: true,
+        },
+      },
+    ],
   },
 };

@@ -109,7 +109,7 @@ export default {
                     if (!stats) {
                         await interaction.editReply({
                             content: `No data found for metric "${metric}".`,
-                            
+
                         });
                         return;
                     }
@@ -145,7 +145,7 @@ export default {
                     if (metrics.length === 0) {
                         await interaction.editReply({
                             content: 'You are not tracking any metrics.',
-                            
+
                         });
                         return;
                     }
@@ -168,14 +168,14 @@ export default {
                     if (!deleted) {
                         await interaction.editReply({
                             content: `Metric "${metric}" not found.`,
-                            
+
                         });
                         return;
                     }
 
                     await interaction.editReply({
                         content: `All data for metric "${metric}" has been deleted.`,
-                        
+
                     });
                     break;
                 }
@@ -192,7 +192,7 @@ export default {
 
             const replyMessage = {
                 content: 'An error occurred while processing your request.',
-                
+
             };
 
             if (interaction.replied || interaction.deferred) {

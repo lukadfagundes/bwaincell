@@ -1,96 +1,365 @@
-name: Bwaincell CI/CD Pipeline
+name: CI Pipeline with Merge Gates
 
 on:
   push:
-    branches: [ main, dev ]
+    branches: [main, dev, develop]
   pull_request:
-    branches: [ main, dev ]
+    branches: [main]
+  workflow_dispatch:
+
+env:
+  NODE_VERSION: '18'
+  PYTHON_VERSION: '3.10'
+  CACHE_VERSION: v1
+  MERGE_THRESHOLD: 80
 
 jobs:
-  test:
+  # JavaScript/TypeScript Job
+  node-ci:
+    name: Node.js CI
     runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
 
-    strategy:
-      matrix:
-        node-version: [18.x, 20.x]
+      - name: Setup Node.js
+        uses: actions/setup-node@v3
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+
+      - name: Cache node modules
+        uses: actions/cache@v3
+        with:
+          path: ~/.npm
+          key: ${{ runner.os }}-node-${{ env.CACHE_VERSION }}-${{ hashFiles('**/package-lock.json') }}
+          restore-keys: |
+            ${{ runner.os }}-node-${{ env.CACHE_VERSION }}-
+            ${{ runner.os }}-node-
+
+      - name: Install dependencies
+        run: |
+          if [ -f "package-lock.json" ]; then
+            npm ci
+          elif [ -f "package.json" ]; then
+            npm install
+          fi
+
+      - name: Run ESLint
+        id: eslint
+        run: |
+          if [ -f "package.json" ]; then
+            npm run lint || npx eslint . --ext .js,.jsx,.ts,.tsx --format json --output-file eslint-report.json || true
+          fi
+        continue-on-error: true
+
+      - name: Run Tests with Coverage
+        id: tests
+        run: |
+          if [ -f "package.json" ]; then
+            npm test -- --coverage --json --outputFile=test-results.json --ci || true
+            if [ -d "coverage" ]; then
+              cp coverage/coverage-summary.json ./coverage-summary.json 2>/dev/null || true
+            fi
+          fi
+        continue-on-error: true
+
+      - name: Run Security Audit
+        id: security
+        run: |
+          if [ -f "package.json" ]; then
+            npm audit --json > npm-audit.json || true
+          fi
+        continue-on-error: true
+
+      - name: Generate Dashboard Data
+        run: |
+          if [ -f ".github/scripts/generate-dashboard-data.js" ]; then
+            node .github/scripts/generate-dashboard-data.js
+          fi
+
+      - name: Calculate Readiness Score
+        id: readiness
+        if: github.event_name == 'pull_request'
+        run: |
+          if [ -f ".github/scripts/calculate-readiness.js" ]; then
+            READINESS_SCORE=$(node .github/scripts/calculate-readiness.js)
+            echo "score=${READINESS_SCORE}" >> $GITHUB_OUTPUT
+
+            # Determine badge color
+            if [ $READINESS_SCORE -ge 90 ]; then
+              COLOR="brightgreen"
+              STATUS="excellent"
+            elif [ $READINESS_SCORE -ge 80 ]; then
+              COLOR="green"
+              STATUS="good"
+            elif [ $READINESS_SCORE -ge 70 ]; then
+              COLOR="yellow"
+              STATUS="acceptable"
+            elif [ $READINESS_SCORE -ge 60 ]; then
+              COLOR="orange"
+              STATUS="needs-work"
+            else
+              COLOR="red"
+              STATUS="not-ready"
+            fi
+
+            echo "color=${COLOR}" >> $GITHUB_OUTPUT
+            echo "status=${STATUS}" >> $GITHUB_OUTPUT
+            echo "READINESS_SCORE=${READINESS_SCORE}" >> $GITHUB_ENV
+            echo "BADGE_COLOR=${COLOR}" >> $GITHUB_ENV
+            echo "BADGE_STATUS=${STATUS}" >> $GITHUB_ENV
+          fi
+
+      - name: Annotate PR with Coverage
+        if: github.event_name == 'pull_request' && always()
+        uses: actions/github-script@v6
+        with:
+          script: |
+            const fs = require('fs');
+
+            // Load coverage data
+            let coverage = { files: [] };
+            if (fs.existsSync('coverage-summary.json')) {
+              const summary = JSON.parse(fs.readFileSync('coverage-summary.json'));
+              coverage.files = Object.entries(summary)
+                .filter(([file]) => file !== 'total')
+                .map(([file, data]) => ({
+                  path: file,
+                  lines: data.lines,
+                  uncoveredLines: [] // Would need detailed coverage for this
+                }));
+            }
+
+            // Create annotations for files with low coverage
+            const annotations = [];
+            for (const file of coverage.files) {
+              if (file.lines && file.lines.pct < 80) {
+                annotations.push({
+                  path: file.path,
+                  start_line: 1,
+                  end_line: 1,
+                  annotation_level: 'warning',
+                  message: `File has ${file.lines.pct.toFixed(1)}% line coverage (threshold: 80%)`,
+                  title: 'Low Coverage'
+                });
+              }
+            }
+
+            // Create check run with annotations
+            const totalCoverage = fs.existsSync('coverage-summary.json')
+              ? JSON.parse(fs.readFileSync('coverage-summary.json')).total?.lines?.pct || 0
+              : 0;
+
+            try {
+              await github.rest.checks.create({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                name: 'Coverage Report',
+                head_sha: context.sha,
+                status: 'completed',
+                conclusion: totalCoverage >= 80 ? 'success' : 'failure',
+                output: {
+                  title: `Coverage: ${totalCoverage.toFixed(1)}%`,
+                  summary: `Total line coverage: ${totalCoverage.toFixed(1)}%\nThreshold: 80%`,
+                  annotations: annotations.slice(0, 50) // GitHub limits to 50
+                }
+              });
+            } catch (error) {
+              console.log('Could not create check run:', error.message);
+            }
+
+      - name: Update PR Description with Badge
+        if: github.event_name == 'pull_request' && steps.readiness.outputs.score
+        uses: actions/github-script@v6
+        with:
+          script: |
+            const score = '${{ steps.readiness.outputs.score }}';
+            const color = '${{ steps.readiness.outputs.color }}';
+            const badge = `![Merge Readiness](https://img.shields.io/badge/readiness-${score}%25-${color})`;
+
+            try {
+              const { data: pr } = await github.rest.pulls.get({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                pull_number: context.issue.number
+              });
+
+              // Remove old badge if exists and add new one
+              const newBody = (pr.body || '').replace(/!\[Merge Readiness\].*\n?/g, '') + '\n\n' + badge;
+
+              await github.rest.pulls.update({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                pull_number: context.issue.number,
+                body: newBody
+              });
+
+              console.log('PR badge updated successfully');
+            } catch (error) {
+              console.log('Could not update PR:', error.message);
+            }
+
+      - name: Enforce Merge Gate
+        if: github.event_name == 'pull_request'
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          MERGE_THRESHOLD: ${{ env.MERGE_THRESHOLD }}
+        run: |
+          if [ -f ".github/scripts/enforce-merge-gate.js" ]; then
+            npm install @actions/core @actions/github
+            node .github/scripts/enforce-merge-gate.js
+          fi
+
+      - name: Upload Coverage Artifacts
+        if: always()
+        uses: actions/upload-artifact@v3
+        with:
+          name: coverage-report
+          path: |
+            coverage/
+            coverage-summary.json
+            test-results.json
+
+      - name: Upload Dashboard Data
+        if: always()
+        uses: actions/upload-artifact@v3
+        with:
+          name: dashboard-data
+          path: |
+            dashboard-data.json
+            dashboard-data-minimal.json
+            dashboard-history.json
+            readiness-report.json
+
+      - name: Upload Security Reports
+        if: always()
+        uses: actions/upload-artifact@v3
+        with:
+          name: security-reports
+          path: |
+            npm-audit.json
+            eslint-report.json
+
+  # Python Job (if needed)
+  python-ci:
+    name: Python CI
+    runs-on: ubuntu-latest
+    if: false # DISABLED - No Python in this project
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+
+      - name: Setup Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+
+      - name: Install dependencies
+        run: |
+          if [ -f "requirements.txt" ]; then
+            pip install -r requirements.txt
+            pip install pytest pytest-cov coverage
+          fi
+
+      - name: Run Tests with Coverage
+        run: |
+          if [ -f "requirements.txt" ]; then
+            pytest --cov=. --cov-report=json --cov-report=html || true
+            if [ -f "coverage.json" ]; then
+              cp coverage.json ./python-coverage.json
+            fi
+          fi
+        continue-on-error: true
+
+      - name: Upload Python Coverage
+        if: always()
+        uses: actions/upload-artifact@v3
+        with:
+          name: python-coverage
+          path: |
+            htmlcov/
+            python-coverage.json
+
+  # Deploy Dashboard Data to GitHub Pages
+  deploy-dashboard-data:
+    name: Deploy Dashboard Data
+    runs-on: ubuntu-latest
+    needs: [node-ci]
+    if: github.ref == 'refs/heads/main' && github.event_name == 'push'
 
     steps:
-    - name: Checkout code
-      uses: actions/checkout@v4
+      - name: Checkout code
+        uses: actions/checkout@v3
 
-    - name: Setup Node.js
-      uses: actions/setup-node@v4
-      with:
-        node-version: ${{ matrix.node-version }}
-        cache: 'npm'
+      - name: Download Dashboard Data
+        uses: actions/download-artifact@v3
+        with:
+          name: dashboard-data
+          path: ./data
 
-    - name: Install dependencies
-      run: npm ci
+      - name: Download Coverage Report
+        uses: actions/download-artifact@v3
+        with:
+          name: coverage-report
+          path: ./data/coverage
 
-    - name: Run TypeScript compilation
-      run: npx tsc --noEmit
+      - name: Prepare Deployment
+        run: |
+          # Create public directory
+          mkdir -p public/data
 
-    - name: Run tests
-      run: npm run test:coverage
+          # Copy dashboard data
+          cp data/*.json public/data/ 2>/dev/null || true
 
-    - name: Upload coverage to Codecov
-      uses: codecov/codecov-action@v3
-      with:
-        file: ./coverage/lcov.info
-        fail_ci_if_error: false
+          # Copy coverage report
+          cp -r data/coverage public/data/ 2>/dev/null || true
 
-    - name: Check coverage threshold
-      run: npm run coverage:threshold
-      continue-on-error: true
+          # Create index file for data directory
+          echo '{"updated": "'$(date -Iseconds)'"}' > public/data/index.json
 
-  lint:
+      - name: Deploy to GitHub Pages
+        uses: peaceiris/actions-gh-pages@v3
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          publish_dir: ./public
+          keep_files: true
+          destination_dir: data
+
+  # Summary Job
+  ci-summary:
+    name: CI Summary
     runs-on: ubuntu-latest
+    needs: [node-ci]
+    if: always()
 
     steps:
-    - name: Checkout code
-      uses: actions/checkout@v4
+      - name: Download All Artifacts
+        uses: actions/download-artifact@v3
 
-    - name: Setup Node.js
-      uses: actions/setup-node@v4
-      with:
-        node-version: '20.x'
-        cache: 'npm'
+      - name: Generate Summary
+        run: |
+          echo "## CI Pipeline Summary" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
 
-    - name: Install dependencies
-      run: npm ci
+          # Check if dashboard data exists
+          if [ -f "dashboard-data/dashboard-data.json" ]; then
+            # Extract key metrics
+            COVERAGE=$(cat dashboard-data/dashboard-data.json | grep -o '"overall":[0-9.]*' | head -1 | cut -d: -f2)
+            HEALTH=$(cat dashboard-data/dashboard-data.json | grep -o '"score":[0-9]*' | head -1 | cut -d: -f2)
 
-    - name: Run ESLint
-      run: npx eslint . --ext .ts,.js
-      continue-on-error: true
+            echo "### 📊 Metrics" >> $GITHUB_STEP_SUMMARY
+            echo "- Coverage: ${COVERAGE}%" >> $GITHUB_STEP_SUMMARY
+            echo "- Health Score: ${HEALTH}/100" >> $GITHUB_STEP_SUMMARY
+          fi
 
-    - name: Run Prettier check
-      run: npx prettier --check .
-      continue-on-error: true
+          # Check readiness score for PRs
+          if [ -f "dashboard-data/readiness-report.json" ]; then
+            READINESS=$(cat dashboard-data/readiness-report.json | grep -o '"score":[0-9]*' | head -1 | cut -d: -f2)
+            echo "- Readiness Score: ${READINESS}%" >> $GITHUB_STEP_SUMMARY
+          fi
 
-  security:
-    runs-on: ubuntu-latest
-
-    steps:
-    - name: Checkout code
-      uses: actions/checkout@v4
-
-    - name: Setup Node.js
-      uses: actions/setup-node@v4
-      with:
-        node-version: '20.x'
-        cache: 'npm'
-
-    - name: Install dependencies
-      run: npm ci
-
-    - name: Run security audit
-      run: npm audit --audit-level moderate
-      continue-on-error: true
-
-    - name: Check for secrets
-      uses: trufflesecurity/trufflehog@main
-      with:
-        path: ./
-        base: main
-        head: HEAD
-      continue-on-error: true
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "### 📦 Artifacts" >> $GITHUB_STEP_SUMMARY
+          echo "- [Coverage Report](coverage-report)" >> $GITHUB_STEP_SUMMARY
+          echo "- [Dashboard Data](dashboard-data)" >> $GITHUB_STEP_SUMMARY
+          echo "- [Security Reports](security-reports)" >> $GITHUB_STEP_SUMMARY

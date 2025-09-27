@@ -9,6 +9,7 @@ All commands start with `/` - just type `/` in Discord and you'll see all availa
 ### ✨ New Interactive Features
 
 Bwaincell now includes rich interactive elements for a premium experience:
+
 - **Autocomplete** - Start typing and see suggestions for lists, tasks, and reminders
 - **Buttons** - Quick actions without typing new commands
 - **Dropdown Menus** - Select from your items easily
@@ -21,7 +22,8 @@ Bwaincell now includes rich interactive elements for a premium experience:
 
 Keep track of your to-dos with the task system.
 
-### Commands:
+### Commands
+
 - **`/task add`** - Create a new task
   - Example: `/task add description:"Buy groceries" due_date:"2025-12-25 14:00"`
   - Due date is optional
@@ -46,13 +48,15 @@ Keep track of your to-dos with the task system.
   - Example: `/task delete task_id:1`
   - 🆕 Autocomplete shows all your tasks
 
-### Interactive Features:
+### Interactive Features
+
 - ✨ **Autocomplete** - When typing task IDs, see your tasks with status emojis (✅ done, ⏳ pending)
 - 🔘 **Quick Actions** - Buttons appear after commands for common next steps
 - 📝 **Forms** - Click "Add New Task" button to open a form instead of typing commands
 - 📋 **Select Menu** - Pick a task from a dropdown to view details and actions
 
-### Tips:
+### Tips
+
 - Tasks are numbered with IDs (#1, #2, etc.)
 - Due dates help you stay organized
 - Use the "Refresh" button to update your task list
@@ -64,7 +68,8 @@ Keep track of your to-dos with the task system.
 
 Create and manage multiple lists for shopping, movies to watch, or anything else!
 
-### Commands:
+### Commands
+
 - **`/list create`** - Make a new list
   - Example: `/list create name:"Shopping"`
   - Each list needs a unique name
@@ -103,13 +108,15 @@ Create and manage multiple lists for shopping, movies to watch, or anything else
   - Example: `/list delete list_name:"Shopping"`
   - 🆕 Confirmation through buttons
 
-### Interactive Features:
+### Interactive Features
+
 - ✨ **Smart Autocomplete** - Shows list names with item counts (e.g., "Shopping (5 items)")
 - 🔘 **Quick Buttons** - Add items, clear completed, or delete without new commands
 - 📝 **Item Forms** - Click "Add Item" to use a pop-up form
 - 📋 **List Selector** - Dropdown menu in `/list all` for quick access
 
-### Tips:
+### Tips
+
 - Use lists for shopping, movies to watch, books to read, gift ideas, etc.
 - The autocomplete feature makes it easy to select from existing lists
 - The "Save to List" button in `/random dinner` automatically creates a "Meal Ideas" list
@@ -120,7 +127,8 @@ Create and manage multiple lists for shopping, movies to watch, or anything else
 
 Never forget important things with automated reminders.
 
-### Commands:
+### Commands
+
 - **`/remind me`** - One-time reminder
   - Example: `/remind me message:"Take medication" time:"14:30"`
   - Uses 24-hour time format (14:30 = 2:30 PM)
@@ -146,13 +154,15 @@ Never forget important things with automated reminders.
   - Example: `/remind delete reminder_id:3`
   - 🆕 Autocomplete shows all your reminders with details
 
-### Interactive Features:
+### Interactive Features
+
 - ✨ **Smart Autocomplete** - See reminder messages, frequency, and times while typing
 - 🔘 **Quick Cancel** - Delete button appears with each reminder
 - 📋 **Reminder Selector** - Dropdown menu for managing multiple reminders
 - 🔄 **Refresh** - Update your reminder list with one click
 
-### Tips:
+### Tips
+
 - All times are in 24-hour format (00:00 to 23:59)
 - Daily reminders are great for medications or routines
 - Weekly reminders perfect for trash day, meetings, etc.
@@ -165,7 +175,8 @@ Never forget important things with automated reminders.
 
 Fun randomizers for decisions and entertainment.
 
-### Commands:
+### Commands
+
 - **`/random dinner`** - Get dinner suggestion with recipe
   - 🖼️ Shows actual food photos
   - ⏱️ Displays prep time and difficulty
@@ -207,13 +218,15 @@ Fun randomizers for decisions and entertainment.
   - Customize number of sides and dice
   - Shows individual rolls and total
 
-### Interactive Features:
+### Interactive Features
+
 - 🖼️ **Rich Media** - Dinner suggestions include appetizing photos
 - 🔗 **Direct Links** - Recipe and IMDb links open in browser
 - 💾 **Smart Saving** - "Save to List" creates lists automatically
 - 🎲 **Instant Rerolls** - All random commands have "Pick Another" buttons
 
-### Tips:
+### Tips
+
 - Dinner suggestions include real recipes from popular food sites
 - The "Save to List" button automatically manages your "Meal Ideas" list
 - Movie selections include IMDb ratings to help you choose
@@ -225,7 +238,8 @@ Fun randomizers for decisions and entertainment.
 
 Track any metric over time - weight, mood, hours slept, etc.
 
-### Commands:
+### Commands
+
 - **`/track add`** - Log a data point
   - Example: `/track add metric:"weight" value:150`
   - Can track any number-based metric
@@ -242,7 +256,8 @@ Track any metric over time - weight, mood, hours slept, etc.
   - Example: `/track delete metric:"weight"`
   - Deletes all data for that metric
 
-### Tips:
+### Tips
+
 - Track weight, mood (1-10), hours slept, water intake, etc.
 - Check weekly or monthly trends
 - Great for health and fitness goals
@@ -254,7 +269,8 @@ Track any metric over time - weight, mood, hours slept, etc.
 
 Keep track of events and appointments.
 
-### Commands:
+### Commands
+
 - **`/schedule add`** - Add an event
   - Example: `/schedule add event:"Doctor appointment" date:"2025-01-15" time:"14:30" description:"Annual checkup"`
 
@@ -275,7 +291,8 @@ Keep track of events and appointments.
 - **`/schedule delete`** - Remove an event
   - Example: `/schedule delete event_id:2`
 
-### Tips:
+### Tips
+
 - Add doctor appointments, birthdays, meetings
 - Use countdown for exciting events
 - Check `/schedule today` each morning
@@ -287,7 +304,8 @@ Keep track of events and appointments.
 
 Track income and expenses to manage your finances.
 
-### Commands:
+### Commands
+
 - **`/budget add`** - Record an expense
   - Example: `/budget add category:"Groceries" amount:87.50 description:"Weekly shopping"`
 
@@ -311,7 +329,8 @@ Track income and expenses to manage your finances.
   - Example: `/budget trend months:6`
   - See patterns over time
 
-### Tips:
+### Tips
+
 - Categories help you understand spending habits
 - Check summary at month end
 - Track trends to spot problem areas
@@ -323,7 +342,8 @@ Track income and expenses to manage your finances.
 
 Store important information and thoughts.
 
-### Commands:
+### Commands
+
 - **`/note add`** - Create a note
   - Example: `/note add title:"Recipe ideas" content:"Lasagna, Tacos, Stir-fry" tags:"cooking,dinner"`
 
@@ -348,7 +368,8 @@ Store important information and thoughts.
 - **`/note delete`** - Remove a note
   - Example: `/note delete note_id:1`
 
-### Tips:
+### Tips
+
 - Use tags to organize notes (recipes, ideas, passwords, etc.)
 - Search makes finding old notes easy
 - Great for storing recipes, gift ideas, important info
@@ -358,7 +379,8 @@ Store important information and thoughts.
 
 ## 🎯 Pro Tips
 
-### General Usage:
+### General Usage
+
 1. **Autocomplete is your friend** - Start typing and see suggestions with helpful details
 2. **Buttons save time** - Use quick action buttons instead of typing new commands
 3. **Forms are easier** - Click "Add New" buttons to use pop-up forms
@@ -367,7 +389,8 @@ Store important information and thoughts.
 6. **24-hour time** - Use military time (14:00 instead of 2:00 PM)
 7. **Dates format** - YYYY-MM-DD (2025-01-15 for January 15, 2025)
 
-### Best Practices:
+### Best Practices
+
 - **Daily Routine**: Check `/task list filter:pending` and use Quick Complete button
 - **Weekly Planning**: Use `/schedule week` with interactive event cards
 - **Shopping**: Create lists with autocomplete, toggle items as you shop
@@ -377,14 +400,16 @@ Store important information and thoughts.
 - **Reminders**: Set with autocomplete, manage with dropdown menus
 - **Quick Actions**: Always look for buttons after commands - they're shortcuts!
 
-### Quick Start Suggestions:
+### Quick Start Suggestions
+
 1. Create your first list: `/list create name:"Shopping"` - then use buttons to add items
 2. Add a task: `/task add description:"Learn Bwaincell commands"` - try the buttons that appear!
 3. Set a daily reminder: `/remind daily message:"Check tasks" time:"09:00"` - manage with dropdown
 4. Try the dinner picker: `/random dinner` - use "Save to List" to build a meal plan
 5. Start tracking something: `/track add metric:"mood" value:7` - view stats with graphs
 
-### Troubleshooting:
+### Troubleshooting
+
 - **Autocomplete not showing?** Start typing - it appears after 1-2 characters
 - **Buttons not working?** Make sure the bot is online and has permissions
 - **Forms not opening?** Check if Discord is up to date

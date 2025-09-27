@@ -96,7 +96,7 @@ export default {
         if (!channelId) {
             await interaction.editReply({
                 content: 'Unable to determine channel ID.',
-                
+
             });
             return;
         }
@@ -110,7 +110,7 @@ export default {
                     if (!time.match(/^\d{1,2}:\d{2}$/)) {
                         await interaction.editReply({
                             content: '❌ Invalid time format. Use HH:MM (24-hour format).',
-                            
+
                         });
                         return;
                     }const reminder= await Reminder.createReminder(
@@ -158,7 +158,7 @@ export default {
                     if (!time.match(/^\d{1,2}:\d{2}$/)) {
                         await interaction.editReply({
                             content: '❌ Invalid time format. Use HH:MM (24-hour format).',
-                            
+
                         });
                         return;
                     }const reminder= await Reminder.createReminder(
@@ -207,7 +207,7 @@ export default {
                     if (!time.match(/^\d{1,2}:\d{2}$/)) {
                         await interaction.editReply({
                             content: '❌ Invalid time format. Use HH:MM (24-hour format).',
-                            
+
                         });
                         return;
                     }const reminder= await Reminder.createReminder(
@@ -369,7 +369,7 @@ export default {
                     if (!deleted) {
                         await interaction.editReply({
                             content: `❌ Reminder #${reminderId} not found or doesn't belong to you.`,
-                            
+
                         });
                         return;
                     }
@@ -413,7 +413,7 @@ export default {
 
             const replyMessage = {
                 content: '❌ An error occurred while processing your request.',
-                
+
             };
 
             if (interaction.replied || interaction.deferred) {

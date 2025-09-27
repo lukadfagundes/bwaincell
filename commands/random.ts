@@ -238,7 +238,7 @@ export default {
                     if (options.length < 2) {
                         await interaction.editReply({
                             content: 'Please provide at least 2 options separated by commas.',
-                            
+
                         });
                         return;
                     }
@@ -258,7 +258,7 @@ export default {
                     if (min >= max) {
                         await interaction.editReply({
                             content: 'Minimum must be less than maximum.',
-                            
+
                         });
                         return;
                     }
@@ -322,7 +322,7 @@ export default {
 
             await interaction.editReply({
                 content: 'An error occurred while processing your request.',
-                
+
             });
         }
     }

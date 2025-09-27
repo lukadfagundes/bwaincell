@@ -109,7 +109,7 @@ export default {
                     if (!dateStr.match(/^\d{4}-\d{2}-\d{2}$/)) {
                         await interaction.editReply({
                             content: 'Invalid date format. Use YYYY-MM-DD.',
-                            
+
                         });
                         return;
                     }
@@ -117,7 +117,7 @@ export default {
                     if (!timeStr.match(/^\d{1,2}:\d{2}$/)) {
                         await interaction.editReply({
                             content: 'Invalid time format. Use HH:MM (24-hour format).',
-                            
+
                         });
                         return;
                     }
@@ -126,7 +126,7 @@ export default {
                     if (isNaN(eventDate.getTime())) {
                         await interaction.editReply({
                             content: 'Invalid date or time.',
-                            
+
                         });
                         return;
                     }
@@ -189,14 +189,14 @@ export default {
                     if (!deleted) {
                         await interaction.editReply({
                             content: `Event #${eventId} not found or doesn't belong to you.`,
-                            
+
                         });
                         return;
                     }
 
                     await interaction.editReply({
                         content: `Event #${eventId} has been deleted.`,
-                        
+
                     });
                     break;
                 }
@@ -208,7 +208,7 @@ export default {
                     if (!result) {
                         await interaction.editReply({
                             content: `No event found matching "${eventName}".`,
-                            
+
                         });
                         return;
                     }
@@ -311,7 +311,7 @@ export default {
 
             const replyMessage = {
                 content: 'An error occurred while processing your request.',
-                
+
             };
 
             if (interaction.replied || interaction.deferred) {

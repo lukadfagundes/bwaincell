@@ -1,0 +1,266 @@
+name: CodeQL Analysis
+
+on:
+  push:
+    branches: [main, dev, develop]
+  pull_request:
+    branches: [main]
+  schedule:
+    - cron: '0 0 * * 0' # Weekly on Sunday at midnight UTC
+  workflow_dispatch:
+
+jobs:
+  analyze:
+    name: Analyze (${{ matrix.language }})
+    runs-on: ubuntu-latest
+    permissions:
+      actions: read
+      contents: read
+      security-events: write
+
+    strategy:
+      fail-fast: false
+      matrix:
+        language: ['javascript']
+        # Add more languages as needed: 'python', 'java', 'go', 'cpp', 'csharp'
+        # For Python, uncomment and add to matrix when Python files exist:
+        # include:
+        #   - language: python
+        #     build-mode: none
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v3
+
+      - name: Initialize CodeQL
+        uses: github/codeql-action/init@v2
+        with:
+          languages: ${{ matrix.language }}
+          # If you wish to specify custom queries, you can do so here
+          # queries: security-extended,security-and-quality
+          queries: security-and-quality
+
+      # Autobuild attempts to build any compiled languages
+      - name: Autobuild
+        uses: github/codeql-action/autobuild@v2
+
+      # If autobuild fails, you can remove it and manually build:
+      # - name: Build JavaScript/TypeScript
+      #   if: matrix.language == 'javascript'
+      #   run: |
+      #     npm ci
+      #     npm run build
+
+      - name: Perform CodeQL Analysis
+        uses: github/codeql-action/analyze@v2
+        with:
+          category: '/language:${{ matrix.language }}'
+
+      - name: Upload CodeQL results
+        if: always()
+        uses: actions/upload-artifact@v3
+        with:
+          name: codeql-results-${{ matrix.language }}
+          path: |
+            ../results/
+            **/*.sarif
+          retention-days: 7
+
+  # Additional security checks
+  dependency-check:
+    name: Dependency Security Check
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      security-events: write
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+
+      - name: Run Trivy vulnerability scanner
+        uses: aquasecurity/trivy-action@master
+        with:
+          scan-type: 'fs'
+          scan-ref: '.'
+          format: 'sarif'
+          output: 'trivy-results.sarif'
+          severity: 'CRITICAL,HIGH'
+          ignore-unfixed: true
+
+      - name: Upload Trivy results to GitHub Security
+        uses: github/codeql-action/upload-sarif@v2
+        if: always()
+        with:
+          sarif_file: 'trivy-results.sarif'
+
+      - name: Run Trivy in table format for summary
+        uses: aquasecurity/trivy-action@master
+        with:
+          scan-type: 'fs'
+          scan-ref: '.'
+          format: 'table'
+          severity: 'CRITICAL,HIGH,MEDIUM'
+          exit-code: '0' # Don't fail the build, just report
+
+  # Secret scanning
+  secret-scan:
+    name: Secret Scanning
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      security-events: write
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+        with:
+          fetch-depth: 0 # Fetch all history for better detection
+
+      - name: Run Gitleaks
+        uses: gitleaks/gitleaks-action@v2
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      # Alternative secret scanner
+      - name: TruffleHog OSS
+        uses: trufflesecurity/trufflehog@main
+        with:
+          path: ./
+          base: ${{ github.event.repository.default_branch }}
+          head: HEAD
+          extra_args: --debug --only-verified
+
+  # OWASP Dependency Check (for JavaScript)
+  owasp-check:
+    name: OWASP Dependency Check
+    runs-on: ubuntu-latest
+    # Job will run but skip steps if no package-lock.json
+    if: always()
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+
+      - name: Check for package-lock.json
+        id: check_npm
+        run: |
+          if [ -f "package-lock.json" ]; then
+            echo "npm_lock_exists=true" >> $GITHUB_OUTPUT
+          else
+            echo "npm_lock_exists=false" >> $GITHUB_OUTPUT
+            echo "Skipping OWASP check - no package-lock.json found"
+          fi
+
+      - name: Run OWASP Dependency Check
+        if: steps.check_npm.outputs.npm_lock_exists == 'true'
+        uses: dependency-check/Dependency-Check_Action@main
+        with:
+          project: 'trinity-dashboard'
+          path: '.'
+          format: 'ALL'
+          args: >
+            --enableRetired
+            --enableExperimental
+
+      - name: Upload OWASP results
+        if: always() && steps.check_npm.outputs.npm_lock_exists == 'true'
+        uses: actions/upload-artifact@v3
+        with:
+          name: owasp-dependency-check-results
+          path: reports/
+          retention-days: 7
+
+  # Security Summary
+  security-summary:
+    name: Security Summary
+    needs: [analyze, dependency-check, secret-scan, owasp-check]
+    if: always()
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Create security summary
+        run: |
+          echo "# Security Scan Summary" > security-summary.md
+          echo "" >> security-summary.md
+          echo "## Scan Results" >> security-summary.md
+          echo "" >> security-summary.md
+
+          echo "### CodeQL Analysis" >> security-summary.md
+          if [ "${{ needs.analyze.result }}" = "success" ]; then
+            echo "✅ **Status**: Passed" >> security-summary.md
+          elif [ "${{ needs.analyze.result }}" = "failure" ]; then
+            echo "❌ **Status**: Failed - Security vulnerabilities found" >> security-summary.md
+          else
+            echo "⚠️ **Status**: ${{ needs.analyze.result }}" >> security-summary.md
+          fi
+          echo "" >> security-summary.md
+
+          echo "### Dependency Security" >> security-summary.md
+          if [ "${{ needs.dependency-check.result }}" = "success" ]; then
+            echo "✅ **Status**: No critical vulnerabilities" >> security-summary.md
+          elif [ "${{ needs.dependency-check.result }}" = "failure" ]; then
+            echo "❌ **Status**: Vulnerabilities detected" >> security-summary.md
+          else
+            echo "⚠️ **Status**: ${{ needs.dependency-check.result }}" >> security-summary.md
+          fi
+          echo "" >> security-summary.md
+
+          echo "### Secret Scanning" >> security-summary.md
+          if [ "${{ needs.secret-scan.result }}" = "success" ]; then
+            echo "✅ **Status**: No secrets detected" >> security-summary.md
+          elif [ "${{ needs.secret-scan.result }}" = "failure" ]; then
+            echo "🔐 **Status**: Potential secrets found - Review required" >> security-summary.md
+          else
+            echo "⚠️ **Status**: ${{ needs.secret-scan.result }}" >> security-summary.md
+          fi
+          echo "" >> security-summary.md
+
+          echo "### OWASP Dependency Check" >> security-summary.md
+          if [ "${{ needs.owasp-check.result }}" = "success" ]; then
+            echo "✅ **Status**: Dependencies checked" >> security-summary.md
+          elif [ "${{ needs.owasp-check.result }}" = "skipped" ]; then
+            echo "⏭️ **Status**: Skipped (no package-lock.json)" >> security-summary.md
+          else
+            echo "⚠️ **Status**: ${{ needs.owasp-check.result }}" >> security-summary.md
+          fi
+          echo "" >> security-summary.md
+
+          echo "---" >> security-summary.md
+          echo "*Generated: $(date -u '+%Y-%m-%d %H:%M:%S UTC')*" >> security-summary.md
+          echo "*Repository: ${{ github.repository }}*" >> security-summary.md
+          echo "*Branch: ${{ github.ref_name }}*" >> security-summary.md
+          echo "*Commit: ${{ github.sha }}*" >> security-summary.md
+
+          cat security-summary.md
+
+      - name: Upload security summary
+        uses: actions/upload-artifact@v3
+        with:
+          name: security-summary
+          path: security-summary.md
+          retention-days: 30
+
+      - name: Comment on PR (if applicable)
+        if: github.event_name == 'pull_request'
+        uses: actions/github-script@v6
+        with:
+          script: |
+            const fs = require('fs');
+            const summary = fs.readFileSync('security-summary.md', 'utf8');
+
+            github.rest.issues.createComment({
+              issue_number: context.issue.number,
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              body: summary
+            });
+
+      - name: Set final status
+        run: |
+          if [ "${{ contains(needs.*.result, 'failure') }}" = "true" ]; then
+            echo "::error::Security scans detected issues"
+            exit 1
+          else
+            echo "::notice::All security scans completed"
+          fi

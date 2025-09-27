@@ -122,7 +122,7 @@ export default {
                     if (amount <= 0) {
                         await interaction.editReply({
                             content: 'Amount must be greater than 0.',
-                            
+
                         });
                         return;
                     }
@@ -154,7 +154,7 @@ export default {
                     if (amount <= 0) {
                         await interaction.editReply({
                             content: 'Amount must be greater than 0.',
-                            
+
                         });
                         return;
                     }
@@ -213,7 +213,7 @@ export default {
                     if (categories.length === 0) {
                         await interaction.editReply({
                             content: 'No expense categories found.',
-                            
+
                         });
                         return;
                     }
@@ -305,7 +305,7 @@ export default {
 
             const replyMessage = {
                 content: 'An error occurred while processing your request.',
-                
+
             };
 
             if (interaction.replied || interaction.deferred) {
