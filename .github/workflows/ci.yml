@@ -7,6 +7,14 @@ on:
     branches: [main]
   workflow_dispatch:
 
+permissions:
+  contents: read
+  actions: read
+  checks: write
+  issues: write
+  pull-requests: write
+  security-events: write
+
 env:
   NODE_VERSION: '18'
   PYTHON_VERSION: '3.10'
