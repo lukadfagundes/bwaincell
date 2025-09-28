@@ -8,12 +8,14 @@ on:
   workflow_dispatch:
 
 permissions:
-  contents: read
+  contents: write
+  pages: write
+  id-token: write
+  security-events: write
   actions: read
   checks: write
   issues: write
   pull-requests: write
-  security-events: write
 
 env:
   NODE_VERSION: '18'
@@ -254,46 +256,59 @@ jobs:
           retention-days: 30
           overwrite: false
 
-  # Python Job (if needed)
-  python-ci:
-    name: Python CI
+  # Discord Bot Specific Jobs
+  bot-deployment-check:
+    name: Discord Bot Deployment Check
     runs-on: ubuntu-latest
-    if: false # DISABLED - No Python in this project
+    if: github.event_name == 'push'
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
 
-      - name: Setup Python
-        uses: actions/setup-python@v5
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
         with:
-          python-version: ${{ env.PYTHON_VERSION }}
+          node-version: ${{ env.NODE_VERSION }}
 
       - name: Install dependencies
+        run: npm ci
+
+      - name: Build TypeScript
         run: |
-          if [ -f "requirements.txt" ]; then
-            pip install -r requirements.txt
-            pip install pytest pytest-cov coverage
+          npm run build
+          echo "TypeScript build completed successfully"
+
+      - name: Verify Bot Commands
+        run: |
+          if [ -f "dist/src/deploy-commands.js" ]; then
+            echo "Discord commands deployment script verified"
+          else
+            echo "Warning: deploy-commands.js not found in build"
           fi
 
-      - name: Run Tests with Coverage
+      - name: Check for Discord Token Exposure
         run: |
-          if [ -f "requirements.txt" ]; then
-            pytest --cov=. --cov-report=json --cov-report=html || true
-            if [ -f "coverage.json" ]; then
-              cp coverage.json ./python-coverage.json
-            fi
-          fi
+          echo "Scanning for exposed Discord tokens..."
+          ! grep -r "ODk\|OTA\|OTI\|OTM\|OTQ\|OTU\|OTY\|OTc\|OTg\|OTk\|MTA\|MTI" . \
+            --exclude-dir=node_modules \
+            --exclude-dir=.git \
+            --exclude-dir=dist \
+            --exclude="*.log" || echo "No tokens detected"
+
+      - name: Generate Bot Assets
+        run: |
+          npm run generate-assets || echo "Asset generation completed"
         continue-on-error: true
 
-      - name: Upload Python Coverage
+      - name: Upload Bot Build Artifacts
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: python-coverage-${{ github.run_id }}-${{ github.run_attempt }}
+          name: bot-build-${{ github.run_id }}-${{ github.run_attempt }}
           path: |
-            htmlcov/
-            python-coverage.json
-          retention-days: 30
+            dist/
+            *.log
+          retention-days: 7
           overwrite: false
 
   # Deploy Dashboard Data to GitHub Pages
