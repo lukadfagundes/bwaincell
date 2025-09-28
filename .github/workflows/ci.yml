@@ -335,13 +335,13 @@ jobs:
           token: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Download Dashboard Data
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@v5
         with:
           name: dashboard-data-${{ github.run_id }}-${{ github.run_attempt }}
           path: ./data
 
       - name: Download Coverage Report
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@v5
         with:
           name: coverage-report-${{ github.run_id }}-${{ github.run_attempt }}
           path: ./data/coverage
@@ -377,7 +377,7 @@ jobs:
 
     steps:
       - name: Download All Artifacts
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@v5
 
       - name: Generate Summary
         run: |
