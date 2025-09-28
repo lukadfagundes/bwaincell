@@ -34,7 +34,12 @@ function parseCoverage() {
 
   // Try to parse JavaScript/TypeScript coverage
   try {
-    const coverageSummaryPath = path.join('artifacts', 'coverage-report', 'coverage-summary.json');
+    const coverageSummaryPath = path.join(
+      process.cwd(),
+      'artifacts',
+      'coverage-report',
+      'coverage-summary.json'
+    );
     if (fs.existsSync(coverageSummaryPath)) {
       const summary = JSON.parse(fs.readFileSync(coverageSummaryPath, 'utf8'));
       if (summary.total) {

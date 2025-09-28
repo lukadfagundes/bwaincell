@@ -62,7 +62,7 @@ jobs:
         with:
           name: codeql-results-${{ matrix.language }}-${{ github.run_id }}-${{ github.run_attempt }}
           path: |
-            ../results/
+            ${{ runner.temp }}/codeql_databases/
             **/*.sarif
           retention-days: 7
           overwrite: false
@@ -174,7 +174,9 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: owasp-dependency-check-results-${{ github.run_id }}-${{ github.run_attempt }}
-          path: reports/
+          path: |
+            ./reports/
+            dependency-check-report.*
           retention-days: 7
           overwrite: false
 

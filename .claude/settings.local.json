@@ -190,7 +190,8 @@
       "Bash(pre-commit:*)",
       "Bash([ -f \".eslintrc.js\" ])",
       "Bash([ -f \"jest.config.js\" ])",
-      "Bash([ -f \".vscode/settings.json\" ])"
+      "Bash([ -f \".vscode/settings.json\" ])",
+      "Bash(PROJECT_NAME=\"Bwaincell\")"
     ],
     "deny": [],
     "ask": [],

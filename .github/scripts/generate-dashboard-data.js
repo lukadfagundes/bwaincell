@@ -34,7 +34,12 @@ function parseCoverage() {
 
   // Try to parse JavaScript/TypeScript coverage
   try {
-    const coverageSummaryPath = path.join('artifacts', 'coverage-report', 'coverage-summary.json');
+    const coverageSummaryPath = path.join(
+      process.cwd(),
+      'artifacts',
+      'coverage-report',
+      'coverage-summary.json'
+    );
     if (fs.existsSync(coverageSummaryPath)) {
       const summary = JSON.parse(fs.readFileSync(coverageSummaryPath, 'utf8'));
       if (summary.total) {
@@ -57,7 +62,7 @@ function parseCoverage() {
       });
     } else {
       // Try alternative coverage location
-      const altCoveragePath = path.join('coverage', 'coverage-summary.json');
+      const altCoveragePath = path.join(process.cwd(), 'coverage', 'coverage-summary.json');
       if (fs.existsSync(altCoveragePath)) {
         const summary = JSON.parse(fs.readFileSync(altCoveragePath, 'utf8'));
         if (summary.total) {
@@ -72,7 +77,12 @@ function parseCoverage() {
 
   // Try to parse Python coverage
   try {
-    const pythonCoveragePath = path.join('artifacts', 'python-coverage', 'coverage.json');
+    const pythonCoveragePath = path.join(
+      process.cwd(),
+      'artifacts',
+      'python-coverage',
+      'coverage.json'
+    );
     if (fs.existsSync(pythonCoveragePath)) {
       const pythonCov = JSON.parse(fs.readFileSync(pythonCoveragePath, 'utf8'));
       coverage.python = pythonCov.totals?.percent_covered || 0;
@@ -90,7 +100,12 @@ function parseCoverage() {
 
   // Try to parse Rust coverage (if using tarpaulin or similar)
   try {
-    const rustCoveragePath = path.join('artifacts', 'rust-coverage', 'cobertura.xml');
+    const rustCoveragePath = path.join(
+      process.cwd(),
+      'artifacts',
+      'rust-coverage',
+      'cobertura.xml'
+    );
     if (fs.existsSync(rustCoveragePath)) {
       // Basic XML parsing for line-rate attribute
       const rustCovXml = fs.readFileSync(rustCoveragePath, 'utf8');
@@ -186,7 +201,12 @@ function parseSecurityScans() {
 
   // Parse npm audit results
   try {
-    const npmAuditPath = path.join('artifacts', 'security-reports', 'npm-audit.json');
+    const npmAuditPath = path.join(
+      process.cwd(),
+      'artifacts',
+      'security-reports',
+      'npm-audit.json'
+    );
     if (fs.existsSync(npmAuditPath)) {
       const npmAudit = JSON.parse(fs.readFileSync(npmAuditPath, 'utf8'));
       if (npmAudit.metadata?.vulnerabilities) {
@@ -204,7 +224,12 @@ function parseSecurityScans() {
 
   // Parse pip-audit results
   try {
-    const pipAuditPath = path.join('artifacts', 'security-reports', 'pip-audit.json');
+    const pipAuditPath = path.join(
+      process.cwd(),
+      'artifacts',
+      'security-reports',
+      'pip-audit.json'
+    );
     if (fs.existsSync(pipAuditPath)) {
       const pipAudit = JSON.parse(fs.readFileSync(pipAuditPath, 'utf8'));
       if (Array.isArray(pipAudit)) {
@@ -225,7 +250,12 @@ function parseSecurityScans() {
 
   // Parse cargo audit results
   try {
-    const cargoAuditPath = path.join('artifacts', 'security-reports', 'cargo-audit.json');
+    const cargoAuditPath = path.join(
+      process.cwd(),
+      'artifacts',
+      'security-reports',
+      'cargo-audit.json'
+    );
     if (fs.existsSync(cargoAuditPath)) {
       const cargoAudit = JSON.parse(fs.readFileSync(cargoAuditPath, 'utf8'));
       if (cargoAudit.vulnerabilities?.list) {
