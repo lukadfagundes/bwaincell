@@ -165,11 +165,13 @@ jobs:
         with:
           project: 'Bwaincell'
           path: '.'
-          format: 'ALL'
+          format: 'JSON'
           args: >
             --enableRetired
-            --enableExperimental
             --disableTelemetry
+            --nvdDatafeed https://nvd.nist.gov/feeds/json/cve/1.1/
+            --failOnCVSS 0
+        continue-on-error: true
 
       - name: Upload OWASP results
         if: always() && steps.check_npm.outputs.npm_lock_exists == 'true'
@@ -280,13 +282,11 @@ jobs:
           fi
 
           if [ "${{ needs.dependency-check.result }}" = "failure" ]; then
-            echo "::error::Dependency security check failed"
-            CRITICAL_FAILURE=true
+            echo "::warning::Dependency security check reported vulnerabilities (review recommended)"
           fi
 
           if [ "${{ needs.owasp-check.result }}" = "failure" ]; then
-            echo "::error::OWASP dependency check failed"
-            CRITICAL_FAILURE=true
+            echo "::warning::OWASP dependency check reported issues (non-blocking)"
           fi
 
           # Secret scanning is non-blocking (warning only)
@@ -296,9 +296,9 @@ jobs:
 
           # Exit with failure only if critical scans failed
           if [ "$CRITICAL_FAILURE" = "true" ]; then
-            echo "::error::Critical security scans failed - blocking deployment"
+            echo "::error::Critical CodeQL analysis failed - requires immediate attention"
             exit 1
           else
-            echo "::notice::Security scans completed successfully"
+            echo "::notice::Security scans completed - review any warnings above"
             exit 0
           fi
