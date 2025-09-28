@@ -1,4 +1,4 @@
-import { createCanvas } from 'canvas';
+import { createCanvas } from '@napi-rs/canvas';
 import fs from 'fs';
 import path from 'path';
 import { logger } from './shared/utils/logger';
@@ -182,12 +182,12 @@ try {
 } catch (error) {
     if (isModuleNotFoundError(error)) {
         logger.warn('Canvas module not found', {
-            action: 'Run: npm install canvas',
-            note: 'Canvas requires additional system dependencies',
+            action: 'Run: npm install @napi-rs/canvas',
+            note: '@napi-rs/canvas is a modern drop-in replacement',
             platforms: {
-                windows: 'Should auto-install',
-                mac: 'brew install pkg-config cairo pango libpng jpeg giflib librsvg',
-                linux: 'sudo apt-get install build-essential libcairo2-dev libpango1.0-dev libjpeg-dev libgif-dev librsvg2-dev'
+                windows: 'Pre-built binaries, no dependencies needed',
+                mac: 'Pre-built binaries, no dependencies needed',
+                linux: 'Pre-built binaries, no dependencies needed'
             }
         });
     } else {

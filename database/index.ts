@@ -17,10 +17,11 @@ import Schedule from './models/Schedule';
 import Tracker from './models/Tracker';
 import List from './models/List';
 
-// Create Sequelize instance with proper database path
+// Create Sequelize instance with better-sqlite3
 const sequelize = new Sequelize({
     dialect: 'sqlite',
     storage: process.env.DATABASE_PATH || './data/bwaincell.sqlite',
+    dialectModule: require('better-sqlite3'),
     logging: process.env.NODE_ENV === 'development'
         ? (sql: string) => logger.debug('SQL Query', { query: sql })
         : false
