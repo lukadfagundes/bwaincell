@@ -9,8 +9,7 @@ import { Client } from 'discord.js';
 mockEssentials();
 
 describe('Bot Integration Tests', () => {
-    let client: Client;
-    let sequelize: Sequelize | null = null;
+    let sequelize: any = null;
 
     beforeAll(() => {
         // Mock environment

@@ -1,33 +1,39 @@
-import { jest } from '@jest/globals';
-
 // Mock Discord.js components
+const mockClient = {
+  login: jest.fn().mockResolvedValue('token'),
+  on: jest.fn(),
+  user: { id: 'bot-123', username: 'TestBot' },
+  guilds: {
+    cache: new Map([
+      ['guild-1', { id: 'guild-1', name: 'Test Guild' }]
+    ])
+  }
+};
+
 jest.mock('discord.js', () => ({
-  Client: jest.fn().mockImplementation(() => ({
-    login: jest.fn().mockResolvedValue('token'),
-    on: jest.fn(),
-    user: { id: 'bot-123', username: 'TestBot' },
-    guilds: {
-      cache: new Map([
-        ['guild-1', { id: 'guild-1', name: 'Test Guild' }]
-      ])
-    }
-  })),
+  Client: jest.fn(() => mockClient),
   GatewayIntentBits: {
     Guilds: 1,
     GuildMessages: 512,
     MessageContent: 32768
   },
-  SlashCommandBuilder: jest.fn().mockImplementation(() => ({
-    setName: jest.fn().mockReturnThis(),
-    setDescription: jest.fn().mockReturnThis(),
-    addStringOption: jest.fn().mockReturnThis(),
-    addIntegerOption: jest.fn().mockReturnThis(),
-    toJSON: jest.fn().mockReturnValue({})
-  })),
-  REST: jest.fn().mockImplementation(() => ({
-    setToken: jest.fn().mockReturnThis(),
-    put: jest.fn().mockResolvedValue([])
-  })),
+  SlashCommandBuilder: jest.fn(() => {
+    const builder: any = {
+      setName: jest.fn(() => builder),
+      setDescription: jest.fn(() => builder),
+      addStringOption: jest.fn(() => builder),
+      addIntegerOption: jest.fn(() => builder),
+      toJSON: jest.fn(() => ({}))
+    };
+    return builder;
+  }),
+  REST: jest.fn(() => {
+    const rest: any = {
+      setToken: jest.fn(() => rest),
+      put: jest.fn(() => Promise.resolve([]))
+    };
+    return rest;
+  }),
   Routes: {
     applicationGuildCommands: jest.fn().mockReturnValue('mock-route')
   }
@@ -38,9 +44,12 @@ const mockSequelize = {
   authenticate: jest.fn().mockResolvedValue(undefined),
   sync: jest.fn().mockResolvedValue(undefined),
   close: jest.fn().mockResolvedValue(undefined),
-  transaction: jest.fn().mockImplementation((callback) => {
+  transaction: jest.fn((callback?: any) => {
     const transaction = { commit: jest.fn(), rollback: jest.fn() };
-    return callback(transaction);
+    if (typeof callback === 'function') {
+      return callback(transaction);
+    }
+    return Promise.resolve(transaction);
   })
 };
 
@@ -75,7 +84,23 @@ const mockBudget = {
 jest.mock('../../database/models/Task', () => ({ __esModule: true, default: mockTask }));
 jest.mock('../../database/models/Budget', () => ({ __esModule: true, default: mockBudget }));
 
-import { mockInteraction } from '../mocks/discord.js';
+// Create mock interaction helper
+const createMockInteraction = () => ({
+  user: { id: 'user-1', username: 'TestUser' },
+  guild: { id: 'guild-1' },
+  guildId: 'guild-1',
+  channelId: 'channel-1',
+  commandName: '',
+  options: {
+    getSubcommand: jest.fn(),
+    getString: jest.fn(),
+    getInteger: jest.fn()
+  },
+  reply: jest.fn(),
+  deferReply: jest.fn(),
+  editReply: jest.fn(),
+  followUp: jest.fn()
+});
 
 describe('Command Execution Integration', () => {
   beforeEach(() => {
@@ -112,7 +137,7 @@ describe('Command Execution Integration', () => {
       mockTask.create.mockResolvedValue(mockTaskData);
 
       const interaction = {
-        ...mockInteraction,
+        ...createMockInteraction(),
         options: {
           getSubcommand: jest.fn().mockReturnValue('add'),
           getString: jest.fn()
@@ -175,7 +200,7 @@ describe('Command Execution Integration', () => {
 
     test('should handle validation errors gracefully', async () => {
       const interaction = {
-        ...mockInteraction,
+        ...createMockInteraction(),
         options: {
           getSubcommand: jest.fn().mockReturnValue('add'),
           getString: jest.fn()
@@ -230,7 +255,7 @@ describe('Command Execution Integration', () => {
       mockTask.create.mockRejectedValue(new Error('Database connection failed'));
 
       const interaction = {
-        ...mockInteraction,
+        ...createMockInteraction(),
         options: {
           getSubcommand: jest.fn().mockReturnValue('add'),
           getString: jest.fn()
@@ -286,7 +311,7 @@ describe('Command Execution Integration', () => {
       mockBudget.create.mockResolvedValue(mockBudgetData);
 
       const interaction = {
-        ...mockInteraction,
+        ...createMockInteraction(),
         options: {
           getSubcommand: jest.fn().mockReturnValue('add'),
           getString: jest.fn()
@@ -367,7 +392,7 @@ describe('Command Execution Integration', () => {
       });
 
       const interaction = {
-        ...mockInteraction,
+        ...createMockInteraction(),
         options: {
           getSubcommand: jest.fn().mockReturnValue('summary'),
           getString: jest.fn().mockReturnValue('month')  // period
@@ -444,7 +469,7 @@ describe('Command Execution Integration', () => {
 
       // Test task command routing
       const taskInteraction = {
-        ...mockInteraction,
+        ...createMockInteraction(),
         commandName: 'task',
         options: {
           getSubcommand: jest.fn().mockReturnValue('add'),
@@ -457,7 +482,7 @@ describe('Command Execution Integration', () => {
 
       // Test budget command routing
       const budgetInteraction = {
-        ...mockInteraction,
+        ...createMockInteraction(),
         commandName: 'budget',
         options: {
           getSubcommand: jest.fn().mockReturnValue('add'),
@@ -492,7 +517,7 @@ describe('Command Execution Integration', () => {
       };
 
       const interaction = {
-        ...mockInteraction,
+        ...createMockInteraction(),
         user: { id: 'test-user' }
       };
 

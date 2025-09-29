@@ -1,7 +1,5 @@
-import { jest } from '@jest/globals';
-
 // Mock Discord.js Client and related components
-const mockClient = {
+const mockClient: any = {
   login: jest.fn(),
   on: jest.fn(),
   off: jest.fn(),
@@ -47,19 +45,20 @@ let processEventHandlers: { [key: string]: Function[] } = {};
 
 beforeAll(() => {
   // Mock process.on
-  jest.spyOn(process, 'on').mockImplementation((event: string, handler: Function) => {
-    if (!processEventHandlers[event]) {
-      processEventHandlers[event] = [];
+  jest.spyOn(process, 'on').mockImplementation(((event: string | symbol, handler: any) => {
+    const eventKey = typeof event === 'string' ? event : event.toString();
+    if (!processEventHandlers[eventKey]) {
+      processEventHandlers[eventKey] = [];
     }
-    processEventHandlers[event].push(handler);
+    processEventHandlers[eventKey].push(handler);
     return process;
-  });
+  }) as any);
 
   // Mock process.exit
-  jest.spyOn(process, 'exit').mockImplementation((code?: number) => {
+  jest.spyOn(process, 'exit').mockImplementation(((_code?: number) => {
     // Don't actually exit during tests
     return undefined as never;
-  });
+  }) as any);
 });
 
 afterAll(() => {
@@ -85,7 +84,7 @@ describe('Bot Lifecycle Integration', () => {
 
     // Reset mock implementations
     mockClient.login.mockResolvedValue('token');
-    mockClient.on.mockImplementation((event, handler) => {
+    mockClient.on.mockImplementation((_event: any, _handler: any) => {
       // Store handlers for testing
       return mockClient;
     });
@@ -123,7 +122,7 @@ describe('Bot Lifecycle Integration', () => {
             console.log(`Bot ${mockClient.user?.username} is ready!`);
           });
 
-          mockClient.on('interactionCreate', async (interaction) => {
+          mockClient.on('interactionCreate', async (interaction: any) => {
             if (interaction.isChatInputCommand()) {
               console.log(`Command received: ${interaction.commandName}`);
             }
@@ -160,7 +159,7 @@ describe('Bot Lifecycle Integration', () => {
           return { success: true };
         } catch (error) {
           console.error('Initialization failed:', error);
-          return { success: false, error: error.message };
+          return { success: false, error: (error as Error).message };
         }
       };
 
@@ -198,12 +197,15 @@ describe('Bot Lifecycle Integration', () => {
             await new Promise(resolve => setTimeout(resolve, 100));
           }
         }
+        // This should never be reached, but TypeScript needs it
+        throw new Error('Unexpected flow');
       };
 
       const result = await initializeWithRetry();
 
-      expect(result.success).toBe(true);
-      expect(result.attempts).toBe(3);
+      expect(result).toBeDefined();
+      expect(result!.success).toBe(true);
+      expect(result!.attempts).toBe(3);
       expect(mockSequelize.authenticate).toHaveBeenCalledTimes(3);
     });
   });
@@ -258,7 +260,7 @@ describe('Bot Lifecycle Integration', () => {
       });
 
       const setupInteractionHandler = () => {
-        mockClient.on('interactionCreate', async (interaction) => {
+        mockClient.on('interactionCreate', async (interaction: any) => {
           try {
             if (interaction.isChatInputCommand?.()) {
               console.log(`Processing command: ${interaction.commandName}`);

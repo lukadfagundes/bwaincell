@@ -6,6 +6,9 @@ jest.mock('../../../utils/interactions/helpers/databaseHelper', () => ({
     getModels: jest.fn()
 }));
 
+// Mock the Task model
+jest.mock('../../../database/models/Task');
+
 import { mockEssentials } from '../../utils/mocks/external-only';
 import { taskFixtures } from '../../utils/fixtures/database-fixtures';
 import { createMockButtonInteraction } from '../../mocks/discord';
@@ -50,7 +53,7 @@ describe('TaskHandlers', () => {
                 // Arrange
                 const taskId = 123;
                 const mockTask = { ...taskFixtures.basic, id: taskId };
-                jest.spyOn(Task, 'completeTask').mockResolvedValue(mockTask as any);
+                (Task.completeTask as jest.Mock).mockResolvedValue(mockTask);
 
                 const interaction = createMockButtonInteraction(`task_done_${taskId}`) as ButtonInteraction<CacheType>;
 
@@ -68,7 +71,7 @@ describe('TaskHandlers', () => {
             it('should return error for non-existent task', async () => {
                 // Arrange
                 const taskId = 999;
-                jest.spyOn(Task, 'completeTask').mockResolvedValue(null);
+                (Task.completeTask as jest.Mock).mockResolvedValue(null);
 
                 const interaction = createMockButtonInteraction(`task_done_${taskId}`) as ButtonInteraction<CacheType>;
 
@@ -89,7 +92,7 @@ describe('TaskHandlers', () => {
                 // Arrange
                 const taskId = 123;
                 const mockTask = { ...taskFixtures.basic, id: taskId };
-                jest.spyOn(Task, 'findOne').mockResolvedValue(mockTask as any);
+                (Task.findOne as jest.Mock).mockResolvedValue(mockTask);
 
                 const interaction = createMockButtonInteraction(`task_edit_${taskId}`) as ButtonInteraction<CacheType>;
 
@@ -106,7 +109,7 @@ describe('TaskHandlers', () => {
             it('should show error for non-existent task', async () => {
                 // Arrange
                 const taskId = 999;
-                jest.spyOn(Task, 'findOne').mockResolvedValue(null);
+                (Task.findOne as jest.Mock).mockResolvedValue(null);
 
                 const interaction = createMockButtonInteraction(`task_edit_${taskId}`) as ButtonInteraction<CacheType>;
 
@@ -125,7 +128,7 @@ describe('TaskHandlers', () => {
             it('should delete task successfully', async () => {
                 // Arrange
                 const taskId = 123;
-                jest.spyOn(Task, 'deleteTask').mockResolvedValue(true);
+                (Task.deleteTask as jest.Mock).mockResolvedValue(true);
 
                 const interaction = createMockButtonInteraction(`task_delete_${taskId}`) as ButtonInteraction<CacheType>;
 
@@ -143,7 +146,7 @@ describe('TaskHandlers', () => {
             it('should show error for failed deletion', async () => {
                 // Arrange
                 const taskId = 999;
-                jest.spyOn(Task, 'deleteTask').mockResolvedValue(false);
+                (Task.deleteTask as jest.Mock).mockResolvedValue(false);
 
                 const interaction = createMockButtonInteraction(`task_delete_${taskId}`) as ButtonInteraction<CacheType>;
 
@@ -166,7 +169,7 @@ describe('TaskHandlers', () => {
                     { ...taskFixtures.basic, id: 1 },
                     { ...taskFixtures.urgent, id: 2 }
                 ];
-                jest.spyOn(Task, 'getUserTasks').mockResolvedValue(mockTasks as any);
+                (Task.getUserTasks as jest.Mock).mockResolvedValue(mockTasks);
 
                 const interaction = createMockButtonInteraction('task_quick_complete') as ButtonInteraction<CacheType>;
 
@@ -184,7 +187,7 @@ describe('TaskHandlers', () => {
 
             it('should show error when no pending tasks', async () => {
                 // Arrange
-                jest.spyOn(Task, 'getUserTasks').mockResolvedValue([]);
+                (Task.getUserTasks as jest.Mock).mockResolvedValue([]);
 
                 const interaction = createMockButtonInteraction('task_quick_complete') as ButtonInteraction<CacheType>;
 
@@ -202,7 +205,7 @@ describe('TaskHandlers', () => {
         describe('error handling', () => {
             it('should handle database errors gracefully', async () => {
                 // Arrange
-                jest.spyOn(Task, 'completeTask').mockRejectedValue(new Error('Database error'));
+                (Task.completeTask as jest.Mock).mockRejectedValue(new Error('Database error'));
 
                 const interaction = createMockButtonInteraction('task_done_123') as ButtonInteraction<CacheType>;
 

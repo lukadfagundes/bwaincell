@@ -6,6 +6,10 @@ jest.mock('../../../utils/interactions/helpers/databaseHelper', () => ({
     getModels: jest.fn()
 }));
 
+// Mock the database models
+jest.mock('../../../database/models/Task');
+jest.mock('../../../database/models/List');
+
 import { mockEssentials } from '../../utils/mocks/external-only';
 import { taskFixtures, listFixtures } from '../../utils/fixtures/database-fixtures';
 import { createMockModalSubmitInteraction } from '../../mocks/discord';
@@ -35,7 +39,7 @@ describe('ModalHandlers', () => {
             it('should create task with valid description', async () => {
                 // Arrange
                 const mockTask = { ...taskFixtures.basic, id: 42 };
-                jest.spyOn(Task, 'createTask').mockResolvedValue(mockTask as any);
+                (Task.createTask as jest.Mock).mockResolvedValue(mockTask);
 
                 const interaction = createMockModalSubmitInteraction('task_add_modal', {
                     'task_description': 'Buy groceries',
@@ -63,7 +67,7 @@ describe('ModalHandlers', () => {
             it('should create task with due date', async () => {
                 // Arrange
                 const mockTask = { ...taskFixtures.basic, id: 42 };
-                jest.spyOn(Task, 'createTask').mockResolvedValue(mockTask as any);
+                (Task.createTask as jest.Mock).mockResolvedValue(mockTask);
 
                 const interaction = createMockModalSubmitInteraction('task_add_modal', {
                     'task_description': 'Submit report',
@@ -105,7 +109,7 @@ describe('ModalHandlers', () => {
                 // Arrange
                 const taskId = 123;
                 const mockTask = { ...taskFixtures.basic, id: taskId, description: 'Updated task' };
-                jest.spyOn(Task, 'editTask').mockResolvedValue(mockTask as any);
+                (Task.editTask as jest.Mock).mockResolvedValue(mockTask);
 
                 const interaction = createMockModalSubmitInteraction(`task_edit_modal_${taskId}`, {
                     'task_new_description': 'Updated task description'
@@ -130,7 +134,7 @@ describe('ModalHandlers', () => {
             it('should show error for non-existent task', async () => {
                 // Arrange
                 const taskId = 999;
-                jest.spyOn(Task, 'editTask').mockResolvedValue(null);
+                (Task.editTask as jest.Mock).mockResolvedValue(null);
 
                 const interaction = createMockModalSubmitInteraction(`task_edit_modal_${taskId}`, {
                     'task_new_description': 'Updated task'
@@ -151,7 +155,7 @@ describe('ModalHandlers', () => {
             it('should add item to list', async () => {
                 // Arrange
                 const listName = 'Shopping';
-                jest.spyOn(List, 'addItem').mockResolvedValue(true);
+                (List.addItem as jest.Mock).mockResolvedValue(true);
 
                 const interaction = createMockModalSubmitInteraction(
                     `list_add_item_modal_${encodeURIComponent(listName)}`,
@@ -176,7 +180,7 @@ describe('ModalHandlers', () => {
             it('should handle special characters in list name', async () => {
                 // Arrange
                 const listName = 'Shopping & Groceries';
-                jest.spyOn(List, 'addItem').mockResolvedValue(true);
+                (List.addItem as jest.Mock).mockResolvedValue(true);
 
                 const interaction = createMockModalSubmitInteraction(
                     `list_add_item_modal_${encodeURIComponent(listName)}`,
@@ -198,7 +202,7 @@ describe('ModalHandlers', () => {
             it('should show error when list does not exist', async () => {
                 // Arrange
                 const listName = 'NonExistent';
-                jest.spyOn(List, 'addItem').mockResolvedValue(false);
+                (List.addItem as jest.Mock).mockResolvedValue(false);
 
                 const interaction = createMockModalSubmitInteraction(
                     `list_add_item_modal_${encodeURIComponent(listName)}`,
@@ -218,7 +222,7 @@ describe('ModalHandlers', () => {
         describe('error handling', () => {
             it('should handle database errors gracefully', async () => {
                 // Arrange
-                jest.spyOn(Task, 'createTask').mockRejectedValue(new Error('Database error'));
+                (Task.createTask as jest.Mock).mockRejectedValue(new Error('Database error'));
 
                 const interaction = createMockModalSubmitInteraction('task_add_modal', {
                     'task_description': 'Test task',

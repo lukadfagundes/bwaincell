@@ -6,6 +6,9 @@ jest.mock('../../../utils/interactions/helpers/databaseHelper', () => ({
     getModels: jest.fn()
 }));
 
+// Mock the List model
+jest.mock('../../../database/models/List');
+
 import { mockEssentials } from '../../utils/mocks/external-only';
 import { listFixtures } from '../../utils/fixtures/database-fixtures';
 import { createMockButtonInteraction } from '../../mocks/discord';
@@ -56,7 +59,7 @@ describe('ListHandlers', () => {
                         { text: 'Eggs', completed: false }
                     ]
                 };
-                jest.spyOn(List, 'findOne').mockResolvedValue(mockList as any);
+                (List.findOne as jest.Mock).mockResolvedValue(mockList);
 
                 const interaction = createMockButtonInteraction(`list_view_${listName}`) as ButtonInteraction<CacheType>;
 
@@ -86,7 +89,7 @@ describe('ListHandlers', () => {
                     name: listName,
                     items: []
                 };
-                jest.spyOn(List, 'findOne').mockResolvedValue(mockList as any);
+                (List.findOne as jest.Mock).mockResolvedValue(mockList);
 
                 const interaction = createMockButtonInteraction(`list_view_${listName}`) as ButtonInteraction<CacheType>;
 
@@ -101,7 +104,7 @@ describe('ListHandlers', () => {
             it('should show error for non-existent list', async () => {
                 // Arrange
                 const listName = 'NonExistent';
-                jest.spyOn(List, 'findOne').mockResolvedValue(null);
+                (List.findOne as jest.Mock).mockResolvedValue(null);
 
                 const interaction = createMockButtonInteraction(`list_view_${listName}`) as ButtonInteraction<CacheType>;
 
@@ -130,7 +133,7 @@ describe('ListHandlers', () => {
                     ],
                     save: jest.fn()
                 };
-                jest.spyOn(List, 'findOne').mockResolvedValue(mockList as any);
+                (List.findOne as jest.Mock).mockResolvedValue(mockList);
 
                 const interaction = createMockButtonInteraction(`list_clear_${listName}`) as ButtonInteraction<CacheType>;
 
@@ -156,7 +159,7 @@ describe('ListHandlers', () => {
                     items: [],
                     save: jest.fn()
                 };
-                jest.spyOn(List, 'findOne').mockResolvedValue(mockList as any);
+                (List.findOne as jest.Mock).mockResolvedValue(mockList);
 
                 const interaction = createMockButtonInteraction(`list_clear_${listName}`) as ButtonInteraction<CacheType>;
 
@@ -194,7 +197,7 @@ describe('ListHandlers', () => {
         describe('error handling', () => {
             it('should handle database errors gracefully', async () => {
                 // Arrange
-                jest.spyOn(List, 'findOne').mockRejectedValue(new Error('Database error'));
+                (List.findOne as jest.Mock).mockRejectedValue(new Error('Database error'));
 
                 const interaction = createMockButtonInteraction('list_view_Shopping') as ButtonInteraction<CacheType>;
 

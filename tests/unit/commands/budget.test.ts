@@ -5,10 +5,13 @@ import { createMockInteraction, InteractionScenarios } from '../../utils/helpers
 import { mockEssentials } from '../../utils/mocks/external-only';
 import { budgetFixtures } from '../../utils/fixtures/database-fixtures';
 import budgetCommand from '../../../commands/budget';
-import Budget from '../../../database/models/Budget';
 
 // ✅ NEW ARCHITECTURE: Mock only external dependencies
 mockEssentials();
+
+// Mock the Budget model
+jest.mock('../../../database/models/Budget');
+import Budget from '../../../database/models/Budget';
 
 describe('Budget Command', () => {
     beforeEach(() => {
@@ -52,7 +55,7 @@ describe('Budget Command', () => {
                 category: 'Food',
                 createdAt: new Date()
             };
-            jest.spyOn(Budget, 'create').mockResolvedValue(mockEntry as any);
+            (Budget.create as jest.Mock).mockResolvedValue(mockEntry);
 
             // Act - Execute actual command
             await budgetCommand.execute(interaction);
@@ -87,7 +90,7 @@ describe('Budget Command', () => {
             });
 
             const mockEntry = { ...budgetFixtures.largeExpense, id: 1 };
-            jest.spyOn(Budget, 'create').mockResolvedValue(mockEntry as any);
+            (Budget.create as jest.Mock).mockResolvedValue(mockEntry);
 
             // Act
             await budgetCommand.execute(interaction);
@@ -115,7 +118,7 @@ describe('Budget Command', () => {
             });
 
             const mockEntry = { ...budgetFixtures.income, id: 1 };
-            jest.spyOn(Budget, 'create').mockResolvedValue(mockEntry as any);
+            (Budget.create as jest.Mock).mockResolvedValue(mockEntry);
 
             // Act
             await budgetCommand.execute(interaction);
@@ -160,7 +163,7 @@ describe('Budget Command', () => {
             // Arrange
             const interaction = InteractionScenarios.budgetAdd('Test expense', 25.00);
             const mockError = new Error('Database connection failed');
-            jest.spyOn(Budget, 'create').mockRejectedValue(mockError);
+            (Budget.create as jest.Mock).mockRejectedValue(mockError);
 
             // Act
             await budgetCommand.execute(interaction);
@@ -191,7 +194,7 @@ describe('Budget Command', () => {
                 { ...budgetFixtures.transport, id: 2 },
                 { ...budgetFixtures.income, id: 3 }
             ];
-            jest.spyOn(Budget, 'findAll').mockResolvedValue(mockEntries as any);
+            (Budget.findAll as jest.Mock).mockResolvedValue(mockEntries);
 
             // Act
             await budgetCommand.execute(interaction);
@@ -216,7 +219,7 @@ describe('Budget Command', () => {
                 subcommand: 'view'
             });
 
-            jest.spyOn(Budget, 'findAll').mockResolvedValue([]);
+            (Budget.findAll as jest.Mock).mockResolvedValue([]);
 
             // Act
             await budgetCommand.execute(interaction);
@@ -245,8 +248,8 @@ describe('Budget Command', () => {
                 { ...budgetFixtures.income, amount: 100.00, type: 'income' },
                 { ...budgetFixtures.transport, amount: 45.00, type: 'expense' }
             ];
-            jest.spyOn(Budget, 'findAll').mockResolvedValue(mockEntries as any);
-            jest.spyOn(Budget, 'sum').mockImplementation((field, options) => {
+            (Budget.findAll as jest.Mock).mockResolvedValue(mockEntries);
+            (Budget.sum as jest.Mock).mockImplementation((field: any, options: any) => {
                 const type = options?.where?.type;
                 if (type === 'income') return Promise.resolve(100.00);
                 if (type === 'expense') return Promise.resolve(70.50);
@@ -281,7 +284,7 @@ describe('Budget Command', () => {
                 }
             });
 
-            jest.spyOn(Budget, 'destroy').mockResolvedValue(1);
+            (Budget.destroy as jest.Mock).mockResolvedValue(1);
 
             // Act
             await budgetCommand.execute(interaction);
@@ -313,7 +316,7 @@ describe('Budget Command', () => {
                 }
             });
 
-            jest.spyOn(Budget, 'destroy').mockResolvedValue(0);
+            (Budget.destroy as jest.Mock).mockResolvedValue(0);
 
             // Act
             await budgetCommand.execute(interaction);
@@ -337,7 +340,7 @@ describe('Budget Command', () => {
                 }
             });
 
-            jest.spyOn(Budget, 'destroy').mockRejectedValue(new Error('Database error'));
+            (Budget.destroy as jest.Mock).mockRejectedValue(new Error('Database error'));
 
             // Act
             await budgetCommand.execute(interaction);
@@ -368,7 +371,7 @@ describe('Budget Command', () => {
                     }
                 });
 
-                jest.spyOn(Budget, 'create').mockResolvedValue({
+                (Budget.create as jest.Mock).mockResolvedValue({
                     id: 1,
                     category,
                     amount: 50.00

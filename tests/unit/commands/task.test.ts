@@ -5,10 +5,13 @@ import { createMockInteraction, InteractionScenarios } from '../../utils/helpers
 import { mockEssentials } from '../../utils/mocks/external-only';
 import { taskFixtures } from '../../utils/fixtures/database-fixtures';
 import taskCommand from '../../../commands/task';
-import Task from '../../../database/models/Task';
 
 // ✅ NEW ARCHITECTURE: Mock only external dependencies
 mockEssentials();
+
+// Mock the Task model
+jest.mock('../../../database/models/Task');
+import Task from '../../../database/models/Task';
 
 describe('Task Command', () => {
     beforeEach(() => {
@@ -61,7 +64,7 @@ describe('Task Command', () => {
                 status: 'pending',
                 createdAt: new Date()
             };
-            jest.spyOn(Task, 'createTask').mockResolvedValue(mockTask as any);
+            (Task.createTask as jest.Mock).mockResolvedValue(mockTask);
 
             // Act - Execute actual command
             await taskCommand.execute(interaction);
@@ -104,7 +107,7 @@ describe('Task Command', () => {
                 description: 'Christmas preparation',
                 dueDate: new Date(dueDate)
             };
-            jest.spyOn(Task, 'createTask').mockResolvedValue(mockTask as any);
+            (Task.createTask as jest.Mock).mockResolvedValue(mockTask);
 
             // Act
             await taskCommand.execute(interaction);
@@ -172,7 +175,7 @@ describe('Task Command', () => {
                 { ...taskFixtures.basic, id: 1 },
                 { ...taskFixtures.completed, id: 2 }
             ];
-            jest.spyOn(Task, 'getUserTasks').mockResolvedValue(mockTasks as any);
+            (Task.getUserTasks as jest.Mock).mockResolvedValue(mockTasks);
 
             // Act
             await taskCommand.execute(interaction);
@@ -201,7 +204,7 @@ describe('Task Command', () => {
             // Arrange
             const interaction = InteractionScenarios.taskList('pending');
             const mockTasks = [taskFixtures.basic];
-            jest.spyOn(Task, 'getUserTasks').mockResolvedValue(mockTasks as any);
+            (Task.getUserTasks as jest.Mock).mockResolvedValue(mockTasks);
 
             // Act
             await taskCommand.execute(interaction);
@@ -217,7 +220,7 @@ describe('Task Command', () => {
         it('should handle empty task list', async () => {
             // Arrange
             const interaction = InteractionScenarios.taskList();
-            jest.spyOn(Task, 'getUserTasks').mockResolvedValue([]);
+            (Task.getUserTasks as jest.Mock).mockResolvedValue([]);
 
             // Act
             await taskCommand.execute(interaction);
@@ -242,7 +245,7 @@ describe('Task Command', () => {
             // Arrange
             const interaction = InteractionScenarios.taskComplete(1);
             const mockTask = { ...taskFixtures.basic, id: 1 };
-            jest.spyOn(Task, 'completeTask').mockResolvedValue(mockTask as any);
+            (Task.completeTask as jest.Mock).mockResolvedValue(mockTask);
 
             // Act
             await taskCommand.execute(interaction);
@@ -270,7 +273,7 @@ describe('Task Command', () => {
         it('should handle non-existent task', async () => {
             // Arrange
             const interaction = InteractionScenarios.taskComplete(999);
-            jest.spyOn(Task, 'completeTask').mockResolvedValue(null);
+            (Task.completeTask as jest.Mock).mockResolvedValue(null);
 
             // Act
             await taskCommand.execute(interaction);
@@ -292,7 +295,7 @@ describe('Task Command', () => {
                     task_id: 1
                 }
             });
-            jest.spyOn(Task, 'deleteTask').mockResolvedValue(true);
+            (Task.deleteTask as jest.Mock).mockResolvedValue(true);
 
             // Act
             await taskCommand.execute(interaction);
@@ -326,7 +329,7 @@ describe('Task Command', () => {
                     task_id: 999
                 }
             });
-            jest.spyOn(Task, 'deleteTask').mockResolvedValue(false);
+            (Task.deleteTask as jest.Mock).mockResolvedValue(false);
 
             // Act
             await taskCommand.execute(interaction);
@@ -355,7 +358,7 @@ describe('Task Command', () => {
                 id: 1,
                 description: 'Updated task description'
             };
-            jest.spyOn(Task, 'editTask').mockResolvedValue(mockUpdatedTask as any);
+            (Task.editTask as jest.Mock).mockResolvedValue(mockUpdatedTask);
 
             // Act
             await taskCommand.execute(interaction);
@@ -391,7 +394,7 @@ describe('Task Command', () => {
                     new_text: 'New description'
                 }
             });
-            jest.spyOn(Task, 'editTask').mockResolvedValue(null);
+            (Task.editTask as jest.Mock).mockResolvedValue(null);
 
             // Act
             await taskCommand.execute(interaction);
@@ -408,7 +411,7 @@ describe('Task Command', () => {
             // Arrange
             const interaction = InteractionScenarios.taskAdd('Test task');
             const mockError = new Error('Database connection failed');
-            jest.spyOn(Task, 'createTask').mockRejectedValue(mockError);
+            (Task.createTask as jest.Mock).mockRejectedValue(mockError);
 
             // Act
             await taskCommand.execute(interaction);
@@ -428,7 +431,7 @@ describe('Task Command', () => {
             (interaction as any).replied = false;
             (interaction as any).deferred = false;
 
-            jest.spyOn(Task, 'createTask').mockRejectedValue(mockError);
+            (Task.createTask as jest.Mock).mockRejectedValue(mockError);
 
             // Act
             await taskCommand.execute(interaction);
@@ -457,7 +460,7 @@ describe('Task Command', () => {
                 { id: 1, description: 'Task 1', completed: false },
                 { id: 2, description: 'Task 2', completed: false }
             ];
-            jest.spyOn(Task, 'getUserTasks').mockResolvedValue(mockTasks as any);
+            (Task.getUserTasks as jest.Mock).mockResolvedValue(mockTasks);
 
             // Act
             await taskCommand.autocomplete(autocompleteInteraction as any);
@@ -491,7 +494,7 @@ describe('Task Command', () => {
                 respond: jest.fn().mockResolvedValue(undefined)
             };
 
-            jest.spyOn(Task, 'getUserTasks').mockRejectedValue(new Error('Database error'));
+            (Task.getUserTasks as jest.Mock).mockRejectedValue(new Error('Database error'));
 
             // Act
             await taskCommand.autocomplete(autocompleteInteraction as any);
