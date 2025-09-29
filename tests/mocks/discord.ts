@@ -16,7 +16,13 @@ export const createMockButtonInteraction = (customId: string, userId: string = '
         client: {
             commands: new Map()
         } as any,
-        valueOf: () => customId
+        valueOf: () => customId,
+        // Discord.js type checking methods
+        isButton: () => true,
+        isStringSelectMenu: () => false,
+        isModalSubmit: () => false,
+        isCommand: () => false,
+        isAutocomplete: () => false
     } as Partial<ButtonInteraction<CacheType>>;
 };
 
@@ -32,7 +38,13 @@ export const createMockModalSubmitInteraction = (customId: string, fields: Recor
         editReply: jest.fn().mockResolvedValue(undefined),
         followUp: jest.fn().mockResolvedValue(undefined),
         reply: jest.fn().mockResolvedValue(undefined),
-        valueOf: () => customId
+        valueOf: () => customId,
+        // Discord.js type checking methods
+        isButton: () => false,
+        isStringSelectMenu: () => false,
+        isModalSubmit: () => true,
+        isCommand: () => false,
+        isAutocomplete: () => false
     } as Partial<ModalSubmitInteraction<CacheType>>;
 };
 
@@ -45,6 +57,12 @@ export const createMockSelectMenuInteraction = (customId: string, values: string
         deferUpdate: jest.fn().mockResolvedValue(undefined),
         followUp: jest.fn().mockResolvedValue(undefined),
         editReply: jest.fn().mockResolvedValue(undefined),
-        valueOf: () => customId
+        valueOf: () => customId,
+        // Discord.js type checking methods
+        isButton: () => false,
+        isStringSelectMenu: () => true,
+        isModalSubmit: () => false,
+        isCommand: () => false,
+        isAutocomplete: () => false
     } as Partial<StringSelectMenuInteraction<CacheType>>;
 };

@@ -1,33 +1,53 @@
-import { handleModalSubmit } from '../../../utils/interactions/modals/modalHandlers';
-import { createMockModalSubmitInteraction } from '../../mocks/discord';
-import { createMockTask, mockModels } from '../../mocks/database';
-import { ModalSubmitInteraction, CacheType } from 'discord.js';
+// ModalHandlers Tests - REFACTORED using Work Order #010 Architecture
+// Tests the actual handler implementation with external dependencies mocked
 
-// Mock the database helper
+// Mock getModels before imports to avoid circular dependency
 jest.mock('../../../utils/interactions/helpers/databaseHelper', () => ({
-    getModels: jest.fn().mockResolvedValue(mockModels),
+    getModels: jest.fn()
 }));
+
+import { mockEssentials } from '../../utils/mocks/external-only';
+import { taskFixtures, listFixtures } from '../../utils/fixtures/database-fixtures';
+import { createMockModalSubmitInteraction } from '../../mocks/discord';
+import { handleModalSubmit } from '../../../utils/interactions/modals/modalHandlers';
+import Task from '../../../database/models/Task';
+import List from '../../../database/models/List';
+import { ModalSubmitInteraction, CacheType } from 'discord.js';
+import { getModels } from '../../../utils/interactions/helpers/databaseHelper';
+
+// ✅ NEW ARCHITECTURE: Mock only external dependencies
+mockEssentials();
 
 describe('ModalHandlers', () => {
     beforeEach(() => {
         jest.clearAllMocks();
+        // ✅ NO jest.resetModules() - keeps module loading stable
+
+        // Set up getModels to return the models for spying
+        (getModels as jest.Mock).mockResolvedValue({
+            Task: Task,
+            List: List
+        });
     });
 
     describe('handleModalSubmit', () => {
         describe('task_add_modal', () => {
             it('should create task with valid description', async () => {
-                const mockTask = { ...createMockTask(), id: 42 };
-                mockModels.Task.createTask.mockResolvedValue(mockTask);
+                // Arrange
+                const mockTask = { ...taskFixtures.basic, id: 42 };
+                jest.spyOn(Task, 'createTask').mockResolvedValue(mockTask as any);
 
                 const interaction = createMockModalSubmitInteraction('task_add_modal', {
                     'task_description': 'Buy groceries',
                     'task_due_date': ''
                 }) as ModalSubmitInteraction<CacheType>;
 
+                // Act
                 await handleModalSubmit(interaction);
 
+                // Assert - Verify actual Task model method is called
                 expect(interaction.deferReply).toHaveBeenCalledWith({ ephemeral: true });
-                expect(mockModels.Task.createTask).toHaveBeenCalledWith(
+                expect(Task.createTask).toHaveBeenCalledWith(
                     'test-user',
                     'test-guild',
                     'Buy groceries',
@@ -41,17 +61,20 @@ describe('ModalHandlers', () => {
             });
 
             it('should create task with due date', async () => {
-                const mockTask = { ...createMockTask(), id: 42 };
-                mockModels.Task.createTask.mockResolvedValue(mockTask);
+                // Arrange
+                const mockTask = { ...taskFixtures.basic, id: 42 };
+                jest.spyOn(Task, 'createTask').mockResolvedValue(mockTask as any);
 
                 const interaction = createMockModalSubmitInteraction('task_add_modal', {
                     'task_description': 'Submit report',
                     'task_due_date': '2025-12-25 14:00'
                 }) as ModalSubmitInteraction<CacheType>;
 
+                // Act
                 await handleModalSubmit(interaction);
 
-                expect(mockModels.Task.createTask).toHaveBeenCalledWith(
+                // Assert
+                expect(Task.createTask).toHaveBeenCalledWith(
                     'test-user',
                     'test-guild',
                     'Submit report',
@@ -60,14 +83,17 @@ describe('ModalHandlers', () => {
             });
 
             it('should reject invalid date format', async () => {
+                // Arrange
                 const interaction = createMockModalSubmitInteraction('task_add_modal', {
                     'task_description': 'Test task',
                     'task_due_date': 'invalid-date'
                 }) as ModalSubmitInteraction<CacheType>;
 
+                // Act
                 await handleModalSubmit(interaction);
 
-                expect(mockModels.Task.createTask).not.toHaveBeenCalled();
+                // Assert
+                expect(Task.createTask).not.toHaveBeenCalled();
                 expect(interaction.editReply).toHaveBeenCalledWith({
                     content: expect.stringContaining('Invalid date format')
                 });
@@ -76,17 +102,20 @@ describe('ModalHandlers', () => {
 
         describe('task_edit_modal_', () => {
             it('should update task description', async () => {
+                // Arrange
                 const taskId = 123;
-                const mockTask = { ...createMockTask(), id: taskId, description: 'Updated task' };
-                mockModels.Task.editTask.mockResolvedValue(mockTask);
+                const mockTask = { ...taskFixtures.basic, id: taskId, description: 'Updated task' };
+                jest.spyOn(Task, 'editTask').mockResolvedValue(mockTask as any);
 
                 const interaction = createMockModalSubmitInteraction(`task_edit_modal_${taskId}`, {
                     'task_new_description': 'Updated task description'
                 }) as ModalSubmitInteraction<CacheType>;
 
+                // Act
                 await handleModalSubmit(interaction);
 
-                expect(mockModels.Task.editTask).toHaveBeenCalledWith(
+                // Assert
+                expect(Task.editTask).toHaveBeenCalledWith(
                     taskId,
                     'test-user',
                     'test-guild',
@@ -99,15 +128,18 @@ describe('ModalHandlers', () => {
             });
 
             it('should show error for non-existent task', async () => {
+                // Arrange
                 const taskId = 999;
-                mockModels.Task.editTask.mockResolvedValue(null);
+                jest.spyOn(Task, 'editTask').mockResolvedValue(null);
 
                 const interaction = createMockModalSubmitInteraction(`task_edit_modal_${taskId}`, {
                     'task_new_description': 'Updated task'
                 }) as ModalSubmitInteraction<CacheType>;
 
+                // Act
                 await handleModalSubmit(interaction);
 
+                // Assert
                 expect(interaction.followUp).toHaveBeenCalledWith({
                     content: expect.stringContaining('not found'),
                     ephemeral: true
@@ -117,17 +149,20 @@ describe('ModalHandlers', () => {
 
         describe('list_add_item_modal_', () => {
             it('should add item to list', async () => {
+                // Arrange
                 const listName = 'Shopping';
-                mockModels.List.addItem.mockResolvedValue(true);
+                jest.spyOn(List, 'addItem').mockResolvedValue(true);
 
                 const interaction = createMockModalSubmitInteraction(
                     `list_add_item_modal_${encodeURIComponent(listName)}`,
                     { 'list_item': 'Milk' }
                 ) as ModalSubmitInteraction<CacheType>;
 
+                // Act
                 await handleModalSubmit(interaction);
 
-                expect(mockModels.List.addItem).toHaveBeenCalledWith(
+                // Assert
+                expect(List.addItem).toHaveBeenCalledWith(
                     'test-user',
                     'test-guild',
                     listName,
@@ -139,17 +174,20 @@ describe('ModalHandlers', () => {
             });
 
             it('should handle special characters in list name', async () => {
+                // Arrange
                 const listName = 'Shopping & Groceries';
-                mockModels.List.addItem.mockResolvedValue(true);
+                jest.spyOn(List, 'addItem').mockResolvedValue(true);
 
                 const interaction = createMockModalSubmitInteraction(
                     `list_add_item_modal_${encodeURIComponent(listName)}`,
                     { 'list_item': 'Bread' }
                 ) as ModalSubmitInteraction<CacheType>;
 
+                // Act
                 await handleModalSubmit(interaction);
 
-                expect(mockModels.List.addItem).toHaveBeenCalledWith(
+                // Assert
+                expect(List.addItem).toHaveBeenCalledWith(
                     'test-user',
                     'test-guild',
                     listName,
@@ -158,16 +196,19 @@ describe('ModalHandlers', () => {
             });
 
             it('should show error when list does not exist', async () => {
+                // Arrange
                 const listName = 'NonExistent';
-                mockModels.List.addItem.mockResolvedValue(false);
+                jest.spyOn(List, 'addItem').mockResolvedValue(false);
 
                 const interaction = createMockModalSubmitInteraction(
                     `list_add_item_modal_${encodeURIComponent(listName)}`,
                     { 'list_item': 'Item' }
                 ) as ModalSubmitInteraction<CacheType>;
 
+                // Act
                 await handleModalSubmit(interaction);
 
+                // Assert
                 expect(interaction.editReply).toHaveBeenCalledWith({
                     content: expect.stringContaining('Could not add item')
                 });
@@ -176,16 +217,19 @@ describe('ModalHandlers', () => {
 
         describe('error handling', () => {
             it('should handle database errors gracefully', async () => {
-                mockModels.Task.createTask.mockRejectedValue(new Error('Database error'));
+                // Arrange
+                jest.spyOn(Task, 'createTask').mockRejectedValue(new Error('Database error'));
 
                 const interaction = createMockModalSubmitInteraction('task_add_modal', {
                     'task_description': 'Test task',
                     'task_due_date': ''
                 }) as ModalSubmitInteraction<CacheType>;
 
+                // Act
                 await handleModalSubmit(interaction);
 
-                expect(interaction.followUp).toHaveBeenCalled();
+                // Assert - Should handle error gracefully
+                expect(interaction.reply).toHaveBeenCalled();
             });
         });
 

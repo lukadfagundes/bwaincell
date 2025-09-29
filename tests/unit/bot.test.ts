@@ -1,6 +1,6 @@
 // Tests for bot.ts - Core bot initialization
 import { Client, GatewayIntentBits } from 'discord.js';
-import { mockClient, mockInteraction } from '../mocks/discord.js.js';
+import { mockClient, mockInteraction } from '../mocks/discord.js';
 import { mockSequelize } from '../mocks/database.mock';
 
 // Mock dependencies

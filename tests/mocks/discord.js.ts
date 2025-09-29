@@ -59,13 +59,14 @@ export const mockInteraction = {
   options: {
     getString: jest.fn(),
     getInteger: jest.fn(),
+    getNumber: jest.fn(),
     getBoolean: jest.fn(),
     getUser: jest.fn(),
     getChannel: jest.fn(),
     getRole: jest.fn(),
     getSubcommand: jest.fn(),
-    getSubcommandGroup: jest.fn(),
   },
+  update: jest.fn().mockResolvedValue(undefined),
 };
 
 export const mockMessage = {

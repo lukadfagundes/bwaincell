@@ -1,6 +1,6 @@
 // Tests for Discord commands
 // Removed unused import
-import { mockInteraction } from '../mocks/discord.js.js';
+import { mockInteraction } from '../mocks/discord.js';
 import { mockTask, mockList, mockNote, mockReminder, mockBudget } from '../mocks/database.mock';
 
 // Mock database models
@@ -44,8 +44,8 @@ describe('Discord Commands', () => {
 
     it('should have correct command structure', () => {
       expect(taskCommand.data).toBeDefined();
-      expect(taskCommand.data.name).toBe('task');
-      expect(taskCommand.data.description).toBeDefined();
+      expect(taskCommand.default.data.name).toBe('task');
+      expect(taskCommand.default.data.description).toBeDefined();
       expect(taskCommand.execute).toBeDefined();
     });
 
@@ -133,7 +133,7 @@ describe('Discord Commands', () => {
 
     it('should have correct command structure', () => {
       expect(listCommand.data).toBeDefined();
-      expect(listCommand.data.name).toBe('list');
+      expect(listCommand.default.data.name).toBe('list');
       expect(listCommand.execute).toBeDefined();
     });
 
@@ -198,7 +198,7 @@ describe('Discord Commands', () => {
 
     it('should have correct command structure', () => {
       expect(noteCommand.data).toBeDefined();
-      expect(noteCommand.data.name).toBe('note');
+      expect(noteCommand.default.data.name).toBe('note');
       expect(noteCommand.execute).toBeDefined();
     });
 
@@ -271,7 +271,7 @@ describe('Discord Commands', () => {
 
     it('should have correct command structure', () => {
       expect(reminderCommand.data).toBeDefined();
-      expect(reminderCommand.data.name).toBe('remind');
+      expect(reminderCommand.default.data.name).toBe('remind');
       expect(reminderCommand.execute).toBeDefined();
     });
 
@@ -321,7 +321,7 @@ describe('Discord Commands', () => {
 
     it('should have correct command structure', () => {
       expect(budgetCommand.data).toBeDefined();
-      expect(budgetCommand.data.name).toBe('budget');
+      expect(budgetCommand.default.data.name).toBe('budget');
       expect(budgetCommand.execute).toBeDefined();
     });
 

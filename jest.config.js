@@ -29,6 +29,7 @@ module.exports = {
     '^@config/(.*)$': '<rootDir>/config/$1',
     '^@src/(.*)$': '<rootDir>/src/$1',
     '^@types/(.*)$': '<rootDir>/types/$1',
+    '^@/(.*)$': '<rootDir>/$1',
   },
   setupFilesAfterEnv: ['<rootDir>/tests/setup.ts'],
   coverageDirectory: 'coverage',

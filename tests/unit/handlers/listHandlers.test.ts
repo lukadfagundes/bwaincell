@@ -1,16 +1,31 @@
-import { handleListButton } from '../../../utils/interactions/handlers/listHandlers';
-import { createMockButtonInteraction } from '../../mocks/discord';
-import { createMockList, mockModels } from '../../mocks/database';
-import { ButtonInteraction, CacheType } from 'discord.js';
+// ListHandlers Tests - REFACTORED using Work Order #010 Architecture
+// Tests the actual handler implementation with external dependencies mocked
 
-// Mock the database helper
+// Mock getModels before imports to avoid circular dependency
 jest.mock('../../../utils/interactions/helpers/databaseHelper', () => ({
-    getModels: jest.fn().mockResolvedValue(mockModels),
+    getModels: jest.fn()
 }));
+
+import { mockEssentials } from '../../utils/mocks/external-only';
+import { listFixtures } from '../../utils/fixtures/database-fixtures';
+import { createMockButtonInteraction } from '../../mocks/discord';
+import { handleListButton } from '../../../utils/interactions/handlers/listHandlers';
+import List from '../../../database/models/List';
+import { ButtonInteraction, CacheType } from 'discord.js';
+import { getModels } from '../../../utils/interactions/helpers/databaseHelper';
+
+// ✅ NEW ARCHITECTURE: Mock only external dependencies
+mockEssentials();
 
 describe('ListHandlers', () => {
     beforeEach(() => {
         jest.clearAllMocks();
+        // ✅ NO jest.resetModules() - keeps module loading stable
+
+        // Set up getModels to return the List model for spying
+        (getModels as jest.Mock).mockResolvedValue({
+            List: List
+        });
     });
 
     describe('handleListButton', () => {
@@ -30,9 +45,10 @@ describe('ListHandlers', () => {
 
         describe('list_view_', () => {
             it('should display list with items', async () => {
+                // Arrange
                 const listName = 'Shopping';
                 const mockList = {
-                    ...createMockList(),
+                    ...listFixtures.basic,
                     name: listName,
                     items: [
                         { text: 'Milk', completed: false },
@@ -40,52 +56,60 @@ describe('ListHandlers', () => {
                         { text: 'Eggs', completed: false }
                     ]
                 };
-                mockModels.List.findOne.mockResolvedValue(mockList);
+                jest.spyOn(List, 'findOne').mockResolvedValue(mockList as any);
 
                 const interaction = createMockButtonInteraction(`list_view_${listName}`) as ButtonInteraction<CacheType>;
 
+                // Act
                 await handleListButton(interaction);
 
-                expect(mockModels.List.findOne).toHaveBeenCalledWith({
+                // Assert - Verify actual List model method is called
+                expect(List.findOne).toHaveBeenCalledWith({
                     where: { user_id: 'test-user', guild_id: 'test-guild', name: listName }
                 });
-                expect(interaction.followUp).toHaveBeenCalledWith({
+                expect(interaction.reply).toHaveBeenCalledWith({
                     embeds: expect.any(Array),
                     components: expect.any(Array),
                     ephemeral: true
                 });
 
-                const embedCall = (interaction.followUp as jest.Mock).mock.calls[0][0];
+                const embedCall = (interaction.reply as jest.Mock).mock.calls[0][0];
                 expect(embedCall.embeds[0].data.title).toContain(listName);
                 expect(embedCall.embeds[0].data.footer.text).toContain('1/3 completed');
             });
 
             it('should display empty list message', async () => {
+                // Arrange
                 const listName = 'Shopping';
                 const mockList = {
-                    ...createMockList(),
+                    ...listFixtures.basic,
                     name: listName,
                     items: []
                 };
-                mockModels.List.findOne.mockResolvedValue(mockList);
+                jest.spyOn(List, 'findOne').mockResolvedValue(mockList as any);
 
                 const interaction = createMockButtonInteraction(`list_view_${listName}`) as ButtonInteraction<CacheType>;
 
+                // Act
                 await handleListButton(interaction);
 
-                const embedCall = (interaction.followUp as jest.Mock).mock.calls[0][0];
+                // Assert
+                const embedCall = (interaction.reply as jest.Mock).mock.calls[0][0];
                 expect(embedCall.embeds[0].data.description).toContain('empty');
             });
 
             it('should show error for non-existent list', async () => {
+                // Arrange
                 const listName = 'NonExistent';
-                mockModels.List.findOne.mockResolvedValue(null);
+                jest.spyOn(List, 'findOne').mockResolvedValue(null);
 
                 const interaction = createMockButtonInteraction(`list_view_${listName}`) as ButtonInteraction<CacheType>;
 
+                // Act
                 await handleListButton(interaction);
 
-                expect(interaction.followUp).toHaveBeenCalledWith({
+                // Assert
+                expect(interaction.reply).toHaveBeenCalledWith({
                     content: expect.stringContaining('not found'),
                     ephemeral: true
                 });
@@ -94,45 +118,53 @@ describe('ListHandlers', () => {
 
         describe('list_clear_', () => {
             it('should clear completed items from list', async () => {
+                // Arrange
                 const listName = 'Shopping';
                 const mockList = {
-                    ...createMockList(),
+                    ...listFixtures.basic,
                     name: listName,
                     items: [
                         { text: 'Milk', completed: false },
                         { text: 'Bread', completed: true },
                         { text: 'Eggs', completed: true }
-                    ]
+                    ],
+                    save: jest.fn()
                 };
-                mockModels.List.findOne.mockResolvedValue(mockList);
+                jest.spyOn(List, 'findOne').mockResolvedValue(mockList as any);
 
                 const interaction = createMockButtonInteraction(`list_clear_${listName}`) as ButtonInteraction<CacheType>;
 
+                // Act
                 await handleListButton(interaction);
 
+                // Assert
                 expect(mockList.save).toHaveBeenCalled();
                 expect(mockList.items).toHaveLength(1);
                 expect(mockList.items[0].text).toBe('Milk');
-                expect(interaction.followUp).toHaveBeenCalledWith({
+                expect(interaction.reply).toHaveBeenCalledWith({
                     content: expect.stringContaining('Cleared 2'),
                     ephemeral: true
                 });
             });
 
             it('should handle empty list', async () => {
+                // Arrange
                 const listName = 'Shopping';
                 const mockList = {
-                    ...createMockList(),
+                    ...listFixtures.basic,
                     name: listName,
-                    items: []
+                    items: [],
+                    save: jest.fn()
                 };
-                mockModels.List.findOne.mockResolvedValue(mockList);
+                jest.spyOn(List, 'findOne').mockResolvedValue(mockList as any);
 
                 const interaction = createMockButtonInteraction(`list_clear_${listName}`) as ButtonInteraction<CacheType>;
 
+                // Act
                 await handleListButton(interaction);
 
-                expect(interaction.followUp).toHaveBeenCalledWith({
+                // Assert
+                expect(interaction.reply).toHaveBeenCalledWith({
                     content: expect.stringContaining('Cleared 0'),
                     ephemeral: true
                 });
@@ -161,13 +193,16 @@ describe('ListHandlers', () => {
 
         describe('error handling', () => {
             it('should handle database errors gracefully', async () => {
-                mockModels.List.findOne.mockRejectedValue(new Error('Database error'));
+                // Arrange
+                jest.spyOn(List, 'findOne').mockRejectedValue(new Error('Database error'));
 
                 const interaction = createMockButtonInteraction('list_view_Shopping') as ButtonInteraction<CacheType>;
 
+                // Act
                 await handleListButton(interaction);
 
-                expect(interaction.followUp).toHaveBeenCalled();
+                // Assert - Should handle error gracefully
+                expect(interaction.reply).toHaveBeenCalled();
             });
         });
 
@@ -177,7 +212,7 @@ describe('ListHandlers', () => {
 
                 await handleListButton(interaction);
 
-                expect(interaction.followUp).toHaveBeenCalledWith({
+                expect(interaction.reply).toHaveBeenCalledWith({
                     content: expect.stringContaining('server'),
                     ephemeral: true
                 });
