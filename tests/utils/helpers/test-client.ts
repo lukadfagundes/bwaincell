@@ -78,10 +78,10 @@ export function createMockClient(options: MockClientOptions = {}): Client {
                 [testUsers.admin.id, testUsers.admin]
             ]),
             fetch: jest.fn().mockImplementation(async (userId: string) => {
-                const users = {
-                    [user.id]: user,
-                    [testUsers.standard.id]: testUsers.standard,
-                    [testUsers.admin.id]: testUsers.admin
+                const users: Record<string, any> = {
+                    [String(user.id)]: user,
+                    [String(testUsers.standard.id)]: testUsers.standard,
+                    [String(testUsers.admin.id)]: testUsers.admin
                 };
                 return users[userId] || null;
             }),
@@ -179,7 +179,7 @@ export function createMockClient(options: MockClientOptions = {}): Client {
     };
 
     // Override event methods to track listeners
-    const originalOn = mockClient.on;
+    // const originalOn = mockClient.on; // Unused - removed
     mockClient.on = jest.fn().mockImplementation((event: string, listener: Function) => {
         const listeners = mockClient.__testUtils.eventListeners.get(event) || [];
         listeners.push(listener);
@@ -187,7 +187,7 @@ export function createMockClient(options: MockClientOptions = {}): Client {
         return mockClient;
     });
 
-    const originalOnce = mockClient.once;
+    // const originalOnce = mockClient.once; // Unused - removed
     mockClient.once = jest.fn().mockImplementation((event: string, listener: Function) => {
         const wrappedListener = (...args: any[]) => {
             listener(...args);
@@ -352,7 +352,7 @@ export const ClientTestUtils = {
         mockClient.__testUtils.triggerEvent('ready', client);
 
         // Simulate guild availability
-        mockClient.guilds.cache.forEach(guild => {
+        mockClient.guilds.cache.forEach((guild: any) => {
             mockClient.__testUtils.triggerEvent('guildCreate', guild);
         });
     },
@@ -372,7 +372,7 @@ export const ClientTestUtils = {
         const mockClient = client as any;
 
         // Trigger disconnect events
-        mockClient.guilds.cache.forEach(guild => {
+        mockClient.guilds.cache.forEach((guild: any) => {
             mockClient.__testUtils.triggerEvent('guildDelete', guild);
         });
 

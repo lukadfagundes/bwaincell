@@ -1,6 +1,5 @@
 // Tests for validation utilities
 describe('Validation Utilities', () => {
-    let validators: any;
 
     beforeEach(() => {
         jest.clearAllMocks();

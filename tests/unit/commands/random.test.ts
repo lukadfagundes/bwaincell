@@ -24,7 +24,7 @@ describe('Random Command', () => {
 
         it('should have all required subcommands', () => {
             const commandData = randomCommand.data.toJSON();
-            const subcommandNames = commandData.options.map((opt: any) => opt.name);
+            const subcommandNames = commandData.options?.map((opt: any) => opt.name) || [];
 
             expect(subcommandNames).toContain('movie');
             expect(subcommandNames).toContain('dinner');

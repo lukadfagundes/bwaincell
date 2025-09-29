@@ -1,5 +1,5 @@
 // Mock Discord.js components
-const mockClient = {
+const mockCommandClient = {
   login: jest.fn().mockResolvedValue('token'),
   on: jest.fn(),
   user: { id: 'bot-123', username: 'TestBot' },
@@ -11,7 +11,7 @@ const mockClient = {
 };
 
 jest.mock('discord.js', () => ({
-  Client: jest.fn(() => mockClient),
+  Client: jest.fn(() => mockCommandClient),
   GatewayIntentBits: {
     Guilds: 1,
     GuildMessages: 512,
@@ -40,7 +40,7 @@ jest.mock('discord.js', () => ({
 }));
 
 // Mock Sequelize and database models
-const mockSequelize = {
+const mockCommandSequelize = {
   authenticate: jest.fn().mockResolvedValue(undefined),
   sync: jest.fn().mockResolvedValue(undefined),
   close: jest.fn().mockResolvedValue(undefined),
@@ -54,7 +54,7 @@ const mockSequelize = {
 };
 
 jest.mock('sequelize', () => ({
-  Sequelize: jest.fn(() => mockSequelize),
+  Sequelize: jest.fn(() => mockCommandSequelize),
   DataTypes: {
     STRING: 'STRING',
     INTEGER: 'INTEGER',
@@ -114,8 +114,8 @@ describe('Command Execution Integration', () => {
     mockBudget.findAll.mockResolvedValue([]);
 
     // Reset Sequelize mocks
-    mockSequelize.authenticate.mockResolvedValue(undefined);
-    mockSequelize.transaction.mockImplementation((callback) => {
+    mockCommandSequelize.authenticate.mockResolvedValue(undefined);
+    mockCommandSequelize.transaction.mockImplementation((callback) => {
       const transaction = { commit: jest.fn(), rollback: jest.fn() };
       return callback(transaction);
     });
@@ -267,7 +267,7 @@ describe('Command Execution Integration', () => {
       };
 
       const taskCreationWithTransaction = async () => {
-        const transaction = await mockSequelize.transaction(async (t) => {
+        const transaction = await mockCommandSequelize.transaction(async (t: any) => {
           try {
             const description = interaction.options.getString('description');
             const priority = interaction.options.getString('priority') || 'medium';
@@ -382,7 +382,7 @@ describe('Command Execution Integration', () => {
       ];
 
       mockBudget.findAll.mockResolvedValue(mockBudgetEntries);
-      mockBudget.sum.mockImplementation((field, options) => {
+      mockBudget.sum.mockImplementation((_field, options) => {
         const filtered = mockBudgetEntries.filter(entry =>
           entry.type === options.where.type
         );
@@ -477,7 +477,7 @@ describe('Command Execution Integration', () => {
         }
       };
 
-      const taskResult = await commandRouter(taskInteraction);
+      await commandRouter(taskInteraction);
       expect(mockTask.create).toHaveBeenCalled();
 
       // Test budget command routing
@@ -490,7 +490,7 @@ describe('Command Execution Integration', () => {
         }
       };
 
-      const budgetResult = await commandRouter(budgetInteraction);
+      await commandRouter(budgetInteraction);
       expect(mockBudget.create).toHaveBeenCalled();
     });
 

@@ -5,7 +5,6 @@ import {
     setupTestDatabase,
     cleanupTestDatabase,
     clearTestData,
-    getTestDatabase,
     DatabaseTestUtils,
     DatabaseAssertions
 } from '../utils/helpers/test-database';
@@ -146,8 +145,8 @@ describe('Database Integration', () => {
                 completed: false
             });
 
-            expect(typeof task.id).toBe('number');
-            expect(task.id).toBeGreaterThan(0);
+            expect(typeof (task as any).id).toBe('number');
+            expect((task as any).id).toBeGreaterThan(0);
 
             // Test decimal fields
             const budget = await db.models.Budget.create({
@@ -322,14 +321,14 @@ describe('Database Integration', () => {
             const guildId = 'test-guild';
 
             // Act - Perform multiple related operations
-            const task = await db.models.Task.create({
+            await db.models.Task.create({
                 user_id: userId,
                 guild_id: guildId,
                 description: 'Integrity test task',
                 completed: false
             });
 
-            const budget = await db.models.Budget.create({
+            await db.models.Budget.create({
                 user_id: userId,
                 guild_id: guildId,
                 amount: 75.50,

@@ -199,7 +199,7 @@ describe('Command Integration Tests', () => {
                 );
             }
 
-            mockModels.Task.create.mockImplementation((data) =>
+            mockModels.Task.create.mockImplementation((data: any) =>
                 Promise.resolve({ id: Math.random(), ...data })
             );
 
@@ -258,8 +258,8 @@ describe('Command Integration Tests', () => {
                 commandName: 'task',
                 subcommand: 'autocomplete'
             });
-            interaction.isAutocomplete = jest.fn().mockReturnValue(true);
-            interaction.options.getFocused = jest.fn().mockReturnValue({ name: 'description', value: 'test', type: 'STRING' });
+            (interaction as any).isAutocomplete = jest.fn().mockReturnValue(true);
+            (interaction.options as any).getFocused = jest.fn().mockReturnValue({ name: 'description', value: 'test', type: 'STRING' });
 
             // Get matching tasks for autocomplete
             mockModels.Task.findAll.mockResolvedValue([

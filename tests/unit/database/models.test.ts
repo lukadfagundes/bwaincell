@@ -5,14 +5,10 @@ import {
     setupTestDatabase,
     cleanupTestDatabase,
     clearTestData,
-    getTestDatabase,
     DatabaseTestUtils,
     DatabaseAssertions
 } from '../../utils/helpers/test-database';
-import Task from '../../../database/models/Task';
-import Budget from '../../../database/models/Budget';
-import Schedule from '../../../database/models/Schedule';
-import List from '../../../database/models/List';
+// Removed unused model imports - they were imported but not used
 import { Sequelize } from 'sequelize';
 
 describe('Database Models', () => {
@@ -41,8 +37,8 @@ describe('Database Models', () => {
             });
 
             it('should have all required attributes', () => {
-                const attributes = db.models.Task.getTableName ?
-                    Object.keys(db.models.Task.rawAttributes) :
+                const attributes = (db.models.Task as any).getTableName ?
+                    Object.keys((db.models.Task as any).rawAttributes) :
                     Object.keys((db.models.Task as any).attributes || {});
 
                 expect(attributes).toContain('user_id');
@@ -225,8 +221,8 @@ describe('Database Models', () => {
             });
 
             it('should have financial-specific attributes', () => {
-                const attributes = db.models.Budget.getTableName ?
-                    Object.keys(db.models.Budget.rawAttributes) :
+                const attributes = (db.models.Budget as any).getTableName ?
+                    Object.keys((db.models.Budget as any).rawAttributes) :
                     Object.keys((db.models.Budget as any).attributes || {});
 
                 expect(attributes).toContain('amount');
@@ -256,7 +252,7 @@ describe('Database Models', () => {
                 expect(budgetJson.category).toBe(budgetData.category);
 
                 // Verify precision is maintained
-                const dbRecord = await db.models.Budget.findByPk(budget.id);
+                const dbRecord = await db.models.Budget.findByPk((budget as any).id);
                 expect(dbRecord?.toJSON().amount).toBe(150.75);
             });
 
@@ -328,8 +324,8 @@ describe('Database Models', () => {
             const schedule = await db.models.Schedule.create(scheduleData);
 
             // Assert - Verify both records exist
-            await DatabaseAssertions.expectRecordExists('Task', { id: task.id });
-            await DatabaseAssertions.expectRecordExists('Schedule', { id: schedule.id });
+            await DatabaseAssertions.expectRecordExists('Task', { id: (task as any).id });
+            await DatabaseAssertions.expectRecordExists('Schedule', { id: (schedule as any).id });
 
             // Test user-based queries work across models
             const userTaskCount = await DatabaseTestUtils.countRecords('Task', { user_id: 'test-user' });
@@ -369,7 +365,7 @@ describe('Database Models', () => {
             expect(taskCount).toBe(5);
 
             // Verify all have unique IDs
-            const taskIds = tasks.map(task => task.id);
+            const taskIds = tasks.map(task => (task as any).id);
             const uniqueIds = new Set(taskIds);
             expect(uniqueIds.size).toBe(5);
         });

@@ -1,7 +1,26 @@
 // Tests for Discord commands
-// Removed unused import
-import { mockInteraction } from '../mocks/discord.js';
+// Remove unused import - mockInteraction doesn't exist in our mocks
 import { mockTask, mockList, mockNote, mockReminder, mockBudget } from '../mocks/database.mock';
+
+// Create a mock interaction object for testing
+const mockInteraction = {
+    user: { id: 'user-1', username: 'TestUser' },
+    guild: { id: 'guild-1' },
+    guildId: 'guild-1',
+    options: {
+        getSubcommand: jest.fn(),
+        getString: jest.fn(),
+        getInteger: jest.fn(),
+        getBoolean: jest.fn(),
+        getNumber: jest.fn()
+    },
+    reply: jest.fn(),
+    deferReply: jest.fn(),
+    editReply: jest.fn(),
+    followUp: jest.fn(),
+    replied: false,
+    deferred: false
+};
 
 // Mock database models
 jest.mock('@database/models/Task', () => mockTask);
@@ -204,7 +223,7 @@ describe('Discord Commands', () => {
 
     it('should add a new note', async () => {
       mockInteraction.options.getSubcommand.mockReturnValue('add');
-      mockInteraction.options.getString.mockImplementation((name) => {
+      mockInteraction.options.getString.mockImplementation((name: any) => {
         if (name === 'title') return 'Test Note';
         if (name === 'content') return 'Note content';
         return null;
@@ -277,7 +296,7 @@ describe('Discord Commands', () => {
 
     it('should set a reminder', async () => {
       mockInteraction.options.getSubcommand.mockReturnValue('set');
-      mockInteraction.options.getString.mockImplementation((name) => {
+      mockInteraction.options.getString.mockImplementation((name: any) => {
         if (name === 'message') return 'Test reminder';
         if (name === 'time') return '2024-12-31 23:59';
         return null;
@@ -328,7 +347,7 @@ describe('Discord Commands', () => {
     it('should add an expense', async () => {
       mockInteraction.options.getSubcommand.mockReturnValue('add');
       (mockInteraction.options as any).getNumber = jest.fn().mockReturnValue(50.00);
-      mockInteraction.options.getString.mockImplementation((name) => {
+      mockInteraction.options.getString.mockImplementation((name: any) => {
         if (name === 'category') return 'food';
         if (name === 'description') return 'Groceries';
         return null;

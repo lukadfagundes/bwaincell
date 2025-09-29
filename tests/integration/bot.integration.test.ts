@@ -38,7 +38,7 @@ describe('Bot Integration Tests', () => {
                     intents: ['Guilds', 'GuildMessages', 'DirectMessages'],
                 });
 
-                client.commands = new Map();
+                (client as any).commands = new Map();
                 return client;
             };
 

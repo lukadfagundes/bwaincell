@@ -363,7 +363,7 @@ export const mockSequelize = () => {
 export const mockFileSystem = () => {
     return jest.mock('fs/promises', () => ({
         readFile: jest.fn().mockResolvedValue(''),
-        writeFile: jest.fn().mkResolvedValue(undefined),
+        writeFile: jest.fn().mockResolvedValue(undefined),
         mkdir: jest.fn().mockResolvedValue(undefined),
         rmdir: jest.fn().mockResolvedValue(undefined),
         unlink: jest.fn().mockResolvedValue(undefined),

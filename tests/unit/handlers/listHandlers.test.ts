@@ -51,7 +51,7 @@ describe('ListHandlers', () => {
                 // Arrange
                 const listName = 'Shopping';
                 const mockList = {
-                    ...listFixtures.basic,
+                    ...listFixtures.groceries,
                     name: listName,
                     items: [
                         { text: 'Milk', completed: false },
@@ -85,7 +85,7 @@ describe('ListHandlers', () => {
                 // Arrange
                 const listName = 'Shopping';
                 const mockList = {
-                    ...listFixtures.basic,
+                    ...listFixtures.groceries,
                     name: listName,
                     items: []
                 };
@@ -124,7 +124,7 @@ describe('ListHandlers', () => {
                 // Arrange
                 const listName = 'Shopping';
                 const mockList = {
-                    ...listFixtures.basic,
+                    ...listFixtures.groceries,
                     name: listName,
                     items: [
                         { text: 'Milk', completed: false },
@@ -154,7 +154,7 @@ describe('ListHandlers', () => {
                 // Arrange
                 const listName = 'Shopping';
                 const mockList = {
-                    ...listFixtures.basic,
+                    ...listFixtures.groceries,
                     name: listName,
                     items: [],
                     save: jest.fn()

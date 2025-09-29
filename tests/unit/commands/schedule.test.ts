@@ -1,7 +1,7 @@
 // Schedule Command Tests - REFACTORED using Work Order #010 Architecture
 // Tests the actual command implementation with external dependencies mocked
 
-import { createMockInteraction, InteractionScenarios } from '../../utils/helpers/test-interaction';
+import { createMockInteraction } from '../../utils/helpers/test-interaction';
 import { mockEssentials } from '../../utils/mocks/external-only';
 import scheduleCommand from '../../../commands/schedule';
 import Schedule from '../../../database/models/Schedule';
@@ -25,7 +25,7 @@ describe('Schedule Command', () => {
 
         it('should have all required subcommands', () => {
             const commandData = scheduleCommand.data.toJSON();
-            const subcommandNames = commandData.options.map((opt: any) => opt.name);
+            const subcommandNames = commandData.options?.map((opt: any) => opt.name) || [];
 
             expect(subcommandNames).toContain('add');
             expect(subcommandNames).toContain('list');
@@ -182,7 +182,7 @@ describe('Schedule Command', () => {
                     date: '2024-12-25',
                     time: '10:00'
                 },
-                guild: null
+                guild: undefined
             });
             (interaction as any).guild = null;
             (interaction as any).guildId = null;

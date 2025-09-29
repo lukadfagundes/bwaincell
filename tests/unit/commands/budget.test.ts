@@ -29,7 +29,7 @@ describe('Budget Command', () => {
 
         it('should have all required subcommands', () => {
             const commandData = budgetCommand.data.toJSON();
-            const subcommandNames = commandData.options.map((opt: any) => opt.name);
+            const subcommandNames = commandData.options?.map((opt: any) => opt.name) || [];
 
             expect(subcommandNames).toContain('add');
             expect(subcommandNames).toContain('view');
@@ -141,7 +141,7 @@ describe('Budget Command', () => {
                     description: 'Test expense',
                     amount: 10.00
                 },
-                guild: null
+                guild: undefined
             });
             (interaction as any).guild = null;
             (interaction as any).guildId = null;
@@ -249,7 +249,7 @@ describe('Budget Command', () => {
                 { ...budgetFixtures.transport, amount: 45.00, type: 'expense' }
             ];
             (Budget.findAll as jest.Mock).mockResolvedValue(mockEntries);
-            (Budget.sum as jest.Mock).mockImplementation((field: any, options: any) => {
+            (Budget.sum as jest.Mock).mockImplementation((_field: any, options: any) => {
                 const type = options?.where?.type;
                 if (type === 'income') return Promise.resolve(100.00);
                 if (type === 'expense') return Promise.resolve(70.50);

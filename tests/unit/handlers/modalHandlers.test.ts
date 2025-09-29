@@ -11,7 +11,7 @@ jest.mock('../../../database/models/Task');
 jest.mock('../../../database/models/List');
 
 import { mockEssentials } from '../../utils/mocks/external-only';
-import { taskFixtures, listFixtures } from '../../utils/fixtures/database-fixtures';
+import { taskFixtures } from '../../utils/fixtures/database-fixtures';
 import { createMockModalSubmitInteraction } from '../../mocks/discord';
 import { handleModalSubmit } from '../../../utils/interactions/modals/modalHandlers';
 import Task from '../../../database/models/Task';

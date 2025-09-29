@@ -288,11 +288,11 @@ describe('Helper Utilities', () => {
     });
 
     test('should pick properties from object', () => {
-      const pick = <T, K extends keyof T>(obj: T, keys: K[]): Pick<T, K> => {
+      const pick = <T extends object, K extends keyof T>(obj: T, keys: K[]): Pick<T, K> => {
         const result = {} as Pick<T, K>;
         keys.forEach(key => {
           if (key in obj) {
-            result[key] = obj[key];
+            (result as any)[key] = obj[key];
           }
         });
         return result;
@@ -430,7 +430,7 @@ describe('Helper Utilities', () => {
         return Promise.resolve('success');
       });
 
-      const result = await retryWithBackoff(mockFn, 3, 10);
+      const result = await retryWithBackoff(mockFn as () => Promise<unknown>, 3, 10);
       expect(result).toBe('success');
       expect(mockFn).toHaveBeenCalledTimes(3);
     });

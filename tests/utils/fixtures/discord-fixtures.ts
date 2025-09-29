@@ -1,12 +1,5 @@
 // Discord.js test fixtures and mock data
-import {
-    User,
-    Guild,
-    GuildMember,
-    TextChannel,
-    Message,
-    Embed
-} from 'discord.js';
+// Removed unused imports - keeping the file for fixture data
 
 /**
  * Standard test users for consistent testing
@@ -31,7 +24,7 @@ export const testUsers = {
         discriminator: '0002',
         bot: false,
         system: false,
-        avatar: 'admin-avatar-hash',
+        avatar: null, // Changed to null to match type requirements
         verified: true,
         createdTimestamp: 1640995200000
     },
@@ -43,7 +36,7 @@ export const testUsers = {
         discriminator: '0000',
         bot: true,
         system: false,
-        avatar: 'bot-avatar-hash',
+        avatar: null, // Changed to null to match type requirements
         verified: true,
         createdTimestamp: 1640995200000
     }
@@ -72,12 +65,12 @@ export const testGuilds = {
         name: 'Large Test Guild',
         ownerId: testUsers.admin.id,
         description: 'A large test guild',
-        icon: 'guild-icon-hash',
-        banner: 'guild-banner-hash',
+        icon: null, // Changed to null to match type requirements
+        banner: null, // Changed to null to match type requirements
         memberCount: 5000,
         large: true,
         createdTimestamp: 1640995200000,
-        features: ['COMMUNITY', 'NEWS'],
+        features: [], // Changed to empty array to match type requirements
         preferredLocale: 'en-US'
     }
 };

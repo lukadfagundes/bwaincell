@@ -1,10 +1,41 @@
 // Tests for bot.ts - Core bot initialization
 import { Client, GatewayIntentBits } from 'discord.js';
-import { mockClient, mockInteraction } from '../mocks/discord.js';
+// Remove unused imports - these don't exist in our mocks
 import { mockSequelize } from '../mocks/database.mock';
 
+// Create mock client
+const mockClient = {
+  commands: new Map(),
+  once: jest.fn(),
+  on: jest.fn(),
+  login: jest.fn(),
+  destroy: jest.fn(),
+};
+
+// Create mock interaction
+const mockInteraction = {
+  isCommand: jest.fn(),
+  commandName: '',
+  reply: jest.fn(),
+  followUp: jest.fn(),
+  editReply: jest.fn(),
+  deferReply: jest.fn(),
+  user: { id: 'user-123' },
+  guild: { id: 'guild-123' },
+  replied: false,
+  deferred: false,
+};
+
 // Mock dependencies
-jest.mock('discord.js');
+jest.mock('discord.js', () => ({
+  Client: jest.fn(() => mockClient),
+  GatewayIntentBits: {
+    Guilds: 1,
+    GuildMessages: 512,
+    MessageContent: 32768,
+  },
+  Collection: Map,
+}));
 jest.mock('dotenv', () => ({
   config: jest.fn(),
 }));

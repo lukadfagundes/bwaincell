@@ -1,5 +1,5 @@
 // Mock Discord.js Client and related components
-const mockClient: any = {
+const mockBotLifecycleClient: any = {
   login: jest.fn(),
   on: jest.fn(),
   off: jest.fn(),
@@ -19,7 +19,7 @@ const mockClient: any = {
 };
 
 jest.mock('discord.js', () => ({
-  Client: jest.fn(() => mockClient),
+  Client: jest.fn(() => mockBotLifecycleClient),
   GatewayIntentBits: {
     Guilds: 1,
     GuildMessages: 512,
@@ -66,7 +66,7 @@ afterAll(() => {
 });
 
 // Mock database connection
-const mockSequelize = {
+const mockBotSequelize = {
   authenticate: jest.fn(),
   sync: jest.fn(),
   close: jest.fn(),
@@ -74,7 +74,7 @@ const mockSequelize = {
 };
 
 jest.mock('sequelize', () => ({
-  Sequelize: jest.fn(() => mockSequelize)
+  Sequelize: jest.fn(() => mockBotSequelize)
 }));
 
 describe('Bot Lifecycle Integration', () => {
@@ -83,16 +83,16 @@ describe('Bot Lifecycle Integration', () => {
     processEventHandlers = {};
 
     // Reset mock implementations
-    mockClient.login.mockResolvedValue('token');
-    mockClient.on.mockImplementation((_event: any, _handler: any) => {
+    mockBotLifecycleClient.login.mockResolvedValue('token');
+    mockBotLifecycleClient.on.mockImplementation((_event: any, _handler: any) => {
       // Store handlers for testing
-      return mockClient;
+      return mockBotLifecycleClient;
     });
-    mockClient.destroy.mockResolvedValue(undefined);
+    mockBotLifecycleClient.destroy.mockResolvedValue(undefined);
 
-    mockSequelize.authenticate.mockResolvedValue(undefined);
-    mockSequelize.sync.mockResolvedValue(undefined);
-    mockSequelize.close.mockResolvedValue(undefined);
+    mockBotSequelize.authenticate.mockResolvedValue(undefined);
+    mockBotSequelize.sync.mockResolvedValue(undefined);
+    mockBotSequelize.close.mockResolvedValue(undefined);
   });
 
   describe('Bot Initialization', () => {
@@ -107,31 +107,31 @@ describe('Bot Lifecycle Integration', () => {
         // Simulate bot initialization process
         try {
           // 1. Setup database connection
-          await mockSequelize.authenticate();
+          await mockBotSequelize.authenticate();
           console.log('Database connection established');
 
           // 2. Sync database models
-          await mockSequelize.sync({ alter: true });
+          await mockBotSequelize.sync({ alter: true });
           console.log('Database models synchronized');
 
           // 3. Setup Discord client
-          mockClient.user = { id: 'bot-123', username: 'TestBot' };
+          mockBotLifecycleClient.user = { id: 'bot-123', username: 'TestBot' };
 
           // 4. Register event handlers
-          mockClient.on('ready', () => {
-            console.log(`Bot ${mockClient.user?.username} is ready!`);
+          mockBotLifecycleClient.on('ready', () => {
+            console.log(`Bot ${mockBotLifecycleClient.user?.username} is ready!`);
           });
 
-          mockClient.on('interactionCreate', async (interaction: any) => {
+          mockBotLifecycleClient.on('interactionCreate', async (interaction: any) => {
             if (interaction.isChatInputCommand()) {
               console.log(`Command received: ${interaction.commandName}`);
             }
           });
 
           // 5. Login to Discord
-          await mockClient.login(config.token);
+          await mockBotLifecycleClient.login(config.token);
 
-          return { success: true, client: mockClient };
+          return { success: true, client: mockBotLifecycleClient };
         } catch (error) {
           console.error('Bot initialization failed:', error);
           throw error;
@@ -140,22 +140,22 @@ describe('Bot Lifecycle Integration', () => {
 
       const result = await initializeBot(botConfig);
 
-      expect(mockSequelize.authenticate).toHaveBeenCalled();
-      expect(mockSequelize.sync).toHaveBeenCalledWith({ alter: true });
-      expect(mockClient.login).toHaveBeenCalledWith('test-token');
-      expect(mockClient.on).toHaveBeenCalledWith('ready', expect.any(Function));
-      expect(mockClient.on).toHaveBeenCalledWith('interactionCreate', expect.any(Function));
+      expect(mockBotSequelize.authenticate).toHaveBeenCalled();
+      expect(mockBotSequelize.sync).toHaveBeenCalledWith({ alter: true });
+      expect(mockBotLifecycleClient.login).toHaveBeenCalledWith('test-token');
+      expect(mockBotLifecycleClient.on).toHaveBeenCalledWith('ready', expect.any(Function));
+      expect(mockBotLifecycleClient.on).toHaveBeenCalledWith('interactionCreate', expect.any(Function));
       expect(result.success).toBe(true);
     });
 
     test('should handle initialization failures gracefully', async () => {
       // Mock database connection failure
-      mockSequelize.authenticate.mockRejectedValue(new Error('Database connection failed'));
+      mockBotSequelize.authenticate.mockRejectedValue(new Error('Database connection failed'));
 
       const initializeBot = async () => {
         try {
-          await mockSequelize.authenticate();
-          await mockClient.login('test-token');
+          await mockBotSequelize.authenticate();
+          await mockBotLifecycleClient.login('test-token');
           return { success: true };
         } catch (error) {
           console.error('Initialization failed:', error);
@@ -167,12 +167,12 @@ describe('Bot Lifecycle Integration', () => {
 
       expect(result.success).toBe(false);
       expect(result.error).toBe('Database connection failed');
-      expect(mockClient.login).not.toHaveBeenCalled();
+      expect(mockBotLifecycleClient.login).not.toHaveBeenCalled();
     });
 
     test('should retry connection on temporary failures', async () => {
       let attemptCount = 0;
-      mockSequelize.authenticate.mockImplementation(() => {
+      mockBotSequelize.authenticate.mockImplementation(() => {
         attemptCount++;
         if (attemptCount < 3) {
           return Promise.reject(new Error('Temporary connection failure'));
@@ -185,8 +185,8 @@ describe('Bot Lifecycle Integration', () => {
 
         for (let attempt = 0; attempt < maxRetries; attempt++) {
           try {
-            await mockSequelize.authenticate();
-            await mockClient.login('test-token');
+            await mockBotSequelize.authenticate();
+            await mockBotLifecycleClient.login('test-token');
             return { success: true, attempts: attempt + 1 };
           } catch (error) {
             lastError = error as Error;
@@ -206,32 +206,32 @@ describe('Bot Lifecycle Integration', () => {
       expect(result).toBeDefined();
       expect(result!.success).toBe(true);
       expect(result!.attempts).toBe(3);
-      expect(mockSequelize.authenticate).toHaveBeenCalledTimes(3);
+      expect(mockBotSequelize.authenticate).toHaveBeenCalledTimes(3);
     });
   });
 
   describe('Event Handling', () => {
     test('should register and handle ready event', async () => {
-      let readyHandler: Function | null = null;
+      let readyHandler: ((args?: any) => any) | null = null;
 
-      mockClient.on.mockImplementation((event: string, handler: Function) => {
+      mockBotLifecycleClient.on.mockImplementation((event: string, handler: (args?: any) => any) => {
         if (event === 'ready') {
           readyHandler = handler;
         }
-        return mockClient;
+        return mockBotLifecycleClient;
       });
 
       const setupEventHandlers = () => {
-        mockClient.on('ready', () => {
-          mockClient.readyAt = new Date();
+        mockBotLifecycleClient.on('ready', () => {
+          mockBotLifecycleClient.readyAt = new Date();
           console.log('Bot is ready!');
         });
 
-        mockClient.on('error', (error: Error) => {
+        mockBotLifecycleClient.on('error', (error: Error) => {
           console.error('Discord client error:', error);
         });
 
-        mockClient.on('warn', (warning: string) => {
+        mockBotLifecycleClient.on('warn', (warning: string) => {
           console.warn('Discord client warning:', warning);
         });
       };
@@ -240,27 +240,27 @@ describe('Bot Lifecycle Integration', () => {
 
       // Simulate ready event
       if (readyHandler) {
-        readyHandler();
+        (readyHandler as () => void)();
       }
 
-      expect(mockClient.on).toHaveBeenCalledWith('ready', expect.any(Function));
-      expect(mockClient.on).toHaveBeenCalledWith('error', expect.any(Function));
-      expect(mockClient.on).toHaveBeenCalledWith('warn', expect.any(Function));
-      expect(mockClient.readyAt).toBeInstanceOf(Date);
+      expect(mockBotLifecycleClient.on).toHaveBeenCalledWith('ready', expect.any(Function));
+      expect(mockBotLifecycleClient.on).toHaveBeenCalledWith('error', expect.any(Function));
+      expect(mockBotLifecycleClient.on).toHaveBeenCalledWith('warn', expect.any(Function));
+      expect(mockBotLifecycleClient.readyAt).toBeInstanceOf(Date);
     });
 
     test('should handle interaction events', async () => {
-      let interactionHandler: Function | null = null;
+      let interactionHandler: ((args?: any) => any) | null = null;
 
-      mockClient.on.mockImplementation((event: string, handler: Function) => {
+      mockBotLifecycleClient.on.mockImplementation((event: string, handler: (args?: any) => any) => {
         if (event === 'interactionCreate') {
           interactionHandler = handler;
         }
-        return mockClient;
+        return mockBotLifecycleClient;
       });
 
       const setupInteractionHandler = () => {
-        mockClient.on('interactionCreate', async (interaction: any) => {
+        mockBotLifecycleClient.on('interactionCreate', async (interaction: any) => {
           try {
             if (interaction.isChatInputCommand?.()) {
               console.log(`Processing command: ${interaction.commandName}`);
@@ -283,7 +283,7 @@ describe('Bot Lifecycle Integration', () => {
       };
 
       if (interactionHandler) {
-        await interactionHandler(mockInteraction);
+        await (interactionHandler as (arg: any) => Promise<void>)(mockInteraction);
       }
 
       expect(mockInteraction.isChatInputCommand).toHaveBeenCalled();
@@ -291,19 +291,19 @@ describe('Bot Lifecycle Integration', () => {
     });
 
     test('should handle error events gracefully', async () => {
-      let errorHandler: Function | null = null;
+      let errorHandler: ((args?: any) => any) | null = null;
 
-      mockClient.on.mockImplementation((event: string, handler: Function) => {
+      mockBotLifecycleClient.on.mockImplementation((event: string, handler: (args?: any) => any) => {
         if (event === 'error') {
           errorHandler = handler;
         }
-        return mockClient;
+        return mockBotLifecycleClient;
       });
 
       const errorLog: Error[] = [];
 
       const setupErrorHandler = () => {
-        mockClient.on('error', (error: Error) => {
+        mockBotLifecycleClient.on('error', (error: Error) => {
           errorLog.push(error);
           console.error('Discord error:', error.message);
           // Don't crash the bot, just log the error
@@ -315,7 +315,7 @@ describe('Bot Lifecycle Integration', () => {
       // Simulate error
       const testError = new Error('Test Discord error');
       if (errorHandler) {
-        errorHandler(testError);
+        (errorHandler as (error: Error) => void)(testError);
       }
 
       expect(errorLog).toHaveLength(1);
@@ -330,14 +330,14 @@ describe('Bot Lifecycle Integration', () => {
 
         try {
           // 1. Stop accepting new interactions
-          mockClient.off('interactionCreate');
+          mockBotLifecycleClient.off('interactionCreate');
 
           // 2. Close database connections
-          await mockSequelize.close();
+          await mockBotSequelize.close();
           console.log('Database connections closed');
 
           // 3. Destroy Discord client
-          await mockClient.destroy();
+          await mockBotLifecycleClient.destroy();
           console.log('Discord client destroyed');
 
           // 4. Exit process
@@ -358,9 +358,9 @@ describe('Bot Lifecycle Integration', () => {
         await sigintHandlers[0]();
       }
 
-      expect(mockClient.off).toHaveBeenCalledWith('interactionCreate');
-      expect(mockSequelize.close).toHaveBeenCalled();
-      expect(mockClient.destroy).toHaveBeenCalled();
+      expect(mockBotLifecycleClient.off).toHaveBeenCalledWith('interactionCreate');
+      expect(mockBotSequelize.close).toHaveBeenCalled();
+      expect(mockBotLifecycleClient.destroy).toHaveBeenCalled();
       expect(process.exit).toHaveBeenCalledWith(0);
     });
 
@@ -374,8 +374,8 @@ describe('Bot Lifecycle Integration', () => {
         }, 10000); // 10 second timeout
 
         try {
-          await mockSequelize.close();
-          await mockClient.destroy();
+          await mockBotSequelize.close();
+          await mockBotLifecycleClient.destroy();
           clearTimeout(timeout);
           process.exit(0);
         } catch (error) {
@@ -394,8 +394,8 @@ describe('Bot Lifecycle Integration', () => {
         await sigtermHandlers[0]();
       }
 
-      expect(mockSequelize.close).toHaveBeenCalled();
-      expect(mockClient.destroy).toHaveBeenCalled();
+      expect(mockBotSequelize.close).toHaveBeenCalled();
+      expect(mockBotLifecycleClient.destroy).toHaveBeenCalled();
     });
 
     test('should handle unhandled promise rejections', async () => {
@@ -427,11 +427,11 @@ describe('Bot Lifecycle Integration', () => {
     test('should monitor bot health metrics', async () => {
       const healthCheck = () => {
         const health = {
-          uptime: mockClient.uptime || 0,
+          uptime: mockBotLifecycleClient.uptime || 0,
           memoryUsage: process.memoryUsage(),
-          guilds: mockClient.guilds.cache.size,
-          ping: mockClient.ws.ping,
-          ready: !!mockClient.readyAt,
+          guilds: mockBotLifecycleClient.guilds.cache.size,
+          ping: mockBotLifecycleClient.ws.ping,
+          ready: !!mockBotLifecycleClient.readyAt,
           timestamp: Date.now()
         };
 
@@ -439,9 +439,9 @@ describe('Bot Lifecycle Integration', () => {
       };
 
       // Mock some health data
-      mockClient.uptime = 123456;
-      mockClient.guilds.cache.set('guild-1', { id: 'guild-1' });
-      mockClient.readyAt = new Date();
+      mockBotLifecycleClient.uptime = 123456;
+      mockBotLifecycleClient.guilds.cache.set('guild-1', { id: 'guild-1' });
+      mockBotLifecycleClient.readyAt = new Date();
 
       const health = healthCheck();
 
@@ -460,14 +460,14 @@ describe('Bot Lifecycle Integration', () => {
         console.log(`Restarting bot (attempt ${restartCount})...`);
 
         try {
-          await mockClient.destroy();
-          await mockSequelize.close();
+          await mockBotLifecycleClient.destroy();
+          await mockBotSequelize.close();
 
           // Simulate restart delay
           await new Promise(resolve => setTimeout(resolve, 1000));
 
-          await mockSequelize.authenticate();
-          await mockClient.login('test-token');
+          await mockBotSequelize.authenticate();
+          await mockBotLifecycleClient.login('test-token');
 
           return { success: true, restartCount };
         } catch (error) {
@@ -480,10 +480,10 @@ describe('Bot Lifecycle Integration', () => {
 
       expect(result.success).toBe(true);
       expect(result.restartCount).toBe(1);
-      expect(mockClient.destroy).toHaveBeenCalled();
-      expect(mockSequelize.close).toHaveBeenCalled();
-      expect(mockSequelize.authenticate).toHaveBeenCalled();
-      expect(mockClient.login).toHaveBeenCalled();
+      expect(mockBotLifecycleClient.destroy).toHaveBeenCalled();
+      expect(mockBotSequelize.close).toHaveBeenCalled();
+      expect(mockBotSequelize.authenticate).toHaveBeenCalled();
+      expect(mockBotLifecycleClient.login).toHaveBeenCalled();
     });
   });
 

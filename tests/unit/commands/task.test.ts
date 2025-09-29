@@ -29,7 +29,7 @@ describe('Task Command', () => {
 
         it('should have all required subcommands', () => {
             const commandData = taskCommand.data.toJSON();
-            const subcommandNames = commandData.options.map((opt: any) => opt.name);
+            const subcommandNames = commandData.options?.map((opt: any) => opt.name) || [];
 
             expect(subcommandNames).toContain('add');
             expect(subcommandNames).toContain('list');
@@ -150,7 +150,7 @@ describe('Task Command', () => {
                 options: {
                     description: 'Test task'
                 },
-                guild: null
+                guild: undefined
             });
             // Override guildId to null
             (interaction as any).guild = null;

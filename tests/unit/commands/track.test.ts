@@ -25,7 +25,7 @@ describe('Track Command', () => {
 
         it('should have all required subcommands', () => {
             const commandData = trackCommand.data.toJSON();
-            const subcommandNames = commandData.options.map((opt: any) => opt.name);
+            const subcommandNames = commandData.options?.map((opt: any) => opt.name) || [];
 
             expect(subcommandNames).toContain('add');
             expect(subcommandNames).toContain('stats');
@@ -93,7 +93,7 @@ describe('Track Command', () => {
                     metric: 'steps',
                     value: 10000
                 },
-                guild: null
+                guild: undefined
             });
             (interaction as any).guild = null;
             (interaction as any).guildId = null;

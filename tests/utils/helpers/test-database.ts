@@ -150,8 +150,8 @@ async function initializeModels(sequelize: Sequelize): Promise<void> {
         // Set up associations if they exist
         try {
             const associationsModule = await import('../../../database/associations');
-            if (associationsModule.default && typeof associationsModule.default === 'function') {
-                associationsModule.default();
+            if ((associationsModule as any).default && typeof (associationsModule as any).default === 'function') {
+                (associationsModule as any).default();
             }
         } catch (error) {
             console.warn('Could not set up associations:', error);
