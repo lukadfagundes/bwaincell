@@ -1,14 +1,14 @@
 {
-  "timestamp": "2025-09-28T05:52:24.659Z",
+  "timestamp": "2025-09-29T15:10:18.860Z",
   "repository": "lukadfagundes/bwaincell",
   "branch": "main",
-  "commit": "de7bb60de74debbdd0e4c3383cf606b17590e93b",
+  "commit": "3a5992e70bc7f1353dfb169a5ac68c2c49b00dac",
   "workflow": "CI Pipeline with Merge Gates",
-  "run_number": "32",
-  "run_id": "18070096382",
+  "run_number": "42",
+  "run_id": "18101626162",
   "build": {
     "status": "success",
-    "duration": 127,
+    "duration": 313,
     "artifacts_generated": true
   },
   "tests": {
@@ -16,27 +16,27 @@
     "passed": 95,
     "failed": 5,
     "skipped": 0,
-    "coverage": 74.37
+    "coverage": 88.81
   },
   "security": {
     "vulnerabilities": {
       "critical": 0,
       "high": 0,
-      "medium": 3,
-      "low": 0
+      "medium": 0,
+      "low": 6
     },
     "security_score": 100
   },
   "quality": {
-    "issues": 1,
+    "issues": 3,
     "code_smells": 3,
-    "duplications": 0.87,
+    "duplications": 2.65,
     "maintainability_rating": "A"
   },
   "performance": {
-    "build_time": 93,
-    "test_time": 88,
-    "deploy_time": 67
+    "build_time": 183,
+    "test_time": 194,
+    "deploy_time": 46
   },
-  "health_score": 90
+  "health_score": 98
 }
