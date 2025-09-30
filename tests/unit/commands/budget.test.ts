@@ -32,8 +32,11 @@ describe('Budget Command', () => {
             const subcommandNames = commandData.options?.map((opt: any) => opt.name) || [];
 
             expect(subcommandNames).toContain('add');
-            expect(subcommandNames).toContain('view');
-            expect(subcommandNames).toContain('delete');
+            expect(subcommandNames).toContain('income');
+            expect(subcommandNames).toContain('summary');
+            expect(subcommandNames).toContain('categories');
+            expect(subcommandNames).toContain('recent');
+            expect(subcommandNames).toContain('trend');
         });
 
         it('should have execute function', () => {

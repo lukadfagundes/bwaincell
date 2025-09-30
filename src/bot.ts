@@ -11,18 +11,44 @@ import { handleButtonInteraction, handleSelectMenuInteraction, handleModalSubmit
 // Import the properly configured database with all models
 import { sequelize } from '../database';
 
+// Detect test environment
+const isTestEnvironment = process.env.NODE_ENV === 'test';
+
 // Validate environment variables first
-const env = validateEnv();
+let env: ReturnType<typeof validateEnv>;
+try {
+    env = validateEnv();
+} catch (error) {
+    if (!isTestEnvironment) {
+        logError(error as Error, { context: 'Environment validation failed' });
+        process.exit(1);
+    }
+    // In test mode, use defaults or re-throw for test to handle
+    env = {
+        DISCORD_TOKEN: process.env.DISCORD_TOKEN || 'test-token',
+        CLIENT_ID: process.env.CLIENT_ID || 'test-client-id'
+    } as ReturnType<typeof validateEnv>;
+}
 
-const client = new Client({
-    intents: [
-        GatewayIntentBits.Guilds,
-        GatewayIntentBits.GuildMessages,
-        GatewayIntentBits.DirectMessages,
-    ]
-});
+// Create client variable but don't initialize in test mode
+let client: Client & { commands?: Collection<any, any> };
 
-client.commands = new Collection();
+function createClient() {
+    const newClient = new Client({
+        intents: [
+            GatewayIntentBits.Guilds,
+            GatewayIntentBits.GuildMessages,
+            GatewayIntentBits.DirectMessages,
+        ]
+    }) as Client & { commands?: Collection<any, any> };
+    newClient.commands = new Collection();
+    return newClient;
+}
+
+// Only initialize immediately if not in test mode
+if (!isTestEnvironment) {
+    client = createClient();
+}
 
 async function loadModels() {
     // Models are already initialized in database/index.ts
@@ -32,6 +58,11 @@ async function loadModels() {
 }
 
 async function loadCommands() {
+    // Ensure client is initialized
+    if (!client) {
+        client = createClient();
+    }
+
     const commandsPath = path.join(__dirname, '..', 'commands');
     const commandFiles = (await fs.readdir(commandsPath))
         .filter(file => file.endsWith('.js') && !file.endsWith('.d.ts'));
@@ -44,7 +75,7 @@ async function loadCommands() {
         const commandModule = command.default || command;
 
         if ('data' in commandModule && 'execute' in commandModule) {
-            client.commands.set(commandModule.data.name, commandModule);
+            client.commands!.set(commandModule.data.name, commandModule);
             logger.info(`Loaded command: ${commandModule.data.name}`);
         } else {
             logger.error(`Failed to load command from ${file}: Missing data or execute`);
@@ -55,6 +86,11 @@ async function loadCommands() {
 }
 
 async function setupScheduler() {
+    // Ensure client is initialized
+    if (!client) {
+        client = createClient();
+    }
+
     const schedulerPath = path.join(__dirname, '..', 'utils', 'scheduler.js');
     if (existsSync(schedulerPath)) {
         const { startScheduler } = require(schedulerPath);
@@ -63,19 +99,25 @@ async function setupScheduler() {
     }
 }
 
-client.once('clientReady', () => {
-    logger.info(`Bot logged in as ${client.user?.tag}`);
-    logBotEvent('clientReady', {
-        username: client.user?.username,
-        id: client.user?.id,
-        guilds: client.guilds.cache.size
-    });
-});
-
 // Duplicate interaction prevention
 const processedInteractions = new Set();
 
-client.on('interactionCreate', async interaction => {
+// Function to set up event handlers (called when client is initialized)
+function setupEventHandlers() {
+    if (!client) {
+        throw new Error('Client must be initialized before setting up event handlers');
+    }
+
+    client.once('clientReady', () => {
+        logger.info(`Bot logged in as ${client.user?.tag}`);
+        logBotEvent('clientReady', {
+            username: client.user?.username,
+            id: client.user?.id,
+            guilds: client.guilds.cache.size
+        });
+    });
+
+    client.on('interactionCreate', async interaction => {
     try {
         // Prevent duplicate processing
         if (processedInteractions.has(interaction.id)) {
@@ -211,19 +253,31 @@ client.on('interactionCreate', async interaction => {
             guildId: interaction.guildId
         });
     }
-});
+    });
 
-client.on('error', error => {
-    logError(error, { context: 'Discord client error' });
-});
+    client.on('error', error => {
+        logError(error, { context: 'Discord client error' });
+    });
 
-client.on('warn', info => {
-    logger.warn('Discord client warning', { info });
-});
+    client.on('warn', info => {
+        logger.warn('Discord client warning', { info });
+    });
+}
+
+// Set up event handlers if client was created during module initialization
+if (client) {
+    setupEventHandlers();
+}
 
 async function init() {
     try {
         logger.info('Initializing Bwaincell Bot...');
+
+        // Ensure client is initialized
+        if (!client) {
+            client = createClient();
+            setupEventHandlers();
+        }
 
         await loadModels();
         await loadCommands();
@@ -233,7 +287,13 @@ async function init() {
         logger.info('Bot initialization complete');
     } catch (error) {
         logError(error as Error, { context: 'Bot initialization failed' });
-        process.exit(1);
+
+        // Only exit in production - in tests, throw the error
+        if (!isTestEnvironment) {
+            process.exit(1);
+        } else {
+            throw error; // Let test framework catch and handle
+        }
     }
 }
 
@@ -250,5 +310,17 @@ process.on('SIGTERM', () => {
     process.exit(0);
 });
 
-// Start the bot
-init();
+// Only auto-initialize if not in test mode
+if (!isTestEnvironment) {
+    // Start the bot in production mode
+    init();
+}
+
+// Export testable components for testing
+export {
+    client,           // Discord client instance
+    init,             // Initialization function
+    loadCommands,     // Command loading function
+    loadModels,       // Database sync function
+    createClient      // Client factory for testing
+};

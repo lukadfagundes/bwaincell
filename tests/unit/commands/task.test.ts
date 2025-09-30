@@ -417,9 +417,12 @@ describe('Task Command', () => {
             await taskCommand.execute(interaction);
 
             // Assert - Should handle error gracefully
-            expect(interaction.followUp).toHaveBeenCalledWith({
-                content: '❌ An error occurred while processing your request.'
-            });
+            expect(interaction.reply).toHaveBeenCalledWith(
+                expect.objectContaining({
+                    content: expect.stringContaining('An error occurred while processing your request'),
+                    ephemeral: true
+                })
+            );
         });
 
         it('should use editReply when interaction not replied yet', async () => {

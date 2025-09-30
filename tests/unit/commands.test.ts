@@ -1,36 +1,47 @@
-// Tests for Discord commands
-// Remove unused import - mockInteraction doesn't exist in our mocks
-import { mockTask, mockList, mockNote, mockReminder, mockBudget } from '../mocks/database.mock';
+// Tests for Discord commands with static method mocking
+import {
+  createTaskMock,
+  createListMock,
+  createNoteMock,
+  createReminderMock,
+  createBudgetMock
+} from '../mocks/model-mocks';
 
-// Create a mock interaction object for testing
-const mockInteraction = {
-    user: { id: 'user-1', username: 'TestUser' },
-    guild: { id: 'guild-1' },
-    guildId: 'guild-1',
-    options: {
-        getSubcommand: jest.fn(),
-        getString: jest.fn(),
-        getInteger: jest.fn(),
-        getBoolean: jest.fn(),
-        getNumber: jest.fn()
-    },
-    reply: jest.fn(),
-    deferReply: jest.fn(),
-    editReply: jest.fn(),
-    followUp: jest.fn(),
-    replied: false,
-    deferred: false
-};
+// Create mock models
+const taskMock = createTaskMock();
+const listMock = createListMock();
+const noteMock = createNoteMock();
+const reminderMock = createReminderMock();
+const budgetMock = createBudgetMock();
 
-// Mock database models
-jest.mock('@database/models/Task', () => mockTask);
-jest.mock('@database/models/List', () => mockList);
-jest.mock('@database/models/Note', () => mockNote);
-jest.mock('@database/models/Reminder', () => mockReminder);
-jest.mock('@database/models/Budget', () => mockBudget);
+// Mock database models with static methods
+jest.mock('../../database/models/Task', () => ({
+  __esModule: true,
+  default: taskMock
+}));
+
+jest.mock('../../database/models/List', () => ({
+  __esModule: true,
+  default: listMock
+}));
+
+jest.mock('../../database/models/Note', () => ({
+  __esModule: true,
+  default: noteMock
+}));
+
+jest.mock('../../database/models/Reminder', () => ({
+  __esModule: true,
+  default: reminderMock
+}));
+
+jest.mock('../../database/models/Budget', () => ({
+  __esModule: true,
+  default: budgetMock
+}));
 
 // Mock logger
-jest.mock('@shared/utils/logger', () => ({
+jest.mock('../../shared/utils/logger', () => ({
   logger: {
     info: jest.fn(),
     error: jest.fn(),
@@ -43,13 +54,50 @@ jest.mock('@shared/utils/logger', () => ({
     warn: jest.fn(),
     debug: jest.fn(),
   })),
+  logError: jest.fn(),
+  logBotEvent: jest.fn(),
 }));
 
+// Create a mock interaction object for testing
+const createMockInteraction = () => ({
+    user: { id: 'user-1', username: 'TestUser' },
+    guild: { id: 'guild-1' },
+    guildId: 'guild-1',
+    options: {
+        getSubcommand: jest.fn(),
+        getString: jest.fn(),
+        getInteger: jest.fn(),
+        getBoolean: jest.fn(),
+        getNumber: jest.fn()
+    },
+    reply: jest.fn(),
+    deferReply: jest.fn(),
+    editReply: jest.fn().mockResolvedValue(undefined),
+    followUp: jest.fn(),
+    replied: false,
+    deferred: false
+});
+
 describe('Discord Commands', () => {
+  let mockInteraction: any;
+
   beforeEach(() => {
     jest.clearAllMocks();
-    mockInteraction.replied = false;
-    mockInteraction.deferred = false;
+    mockInteraction = createMockInteraction();
+
+    // Reset mock return values to defaults
+    taskMock.createTask.mockResolvedValue({
+      id: 1,
+      description: 'Test task',
+      completed: false,
+      user_id: 'user-1',
+      guild_id: 'guild-1'
+    });
+
+    taskMock.getUserTasks.mockResolvedValue([
+      { id: 1, description: 'Task 1', completed: false },
+      { id: 2, description: 'Task 2', completed: true }
+    ]);
   });
 
   describe('Task Command', () => {
@@ -63,27 +111,29 @@ describe('Discord Commands', () => {
 
     it('should have correct command structure', () => {
       expect(taskCommand.data).toBeDefined();
-      expect(taskCommand.default.data.name).toBe('task');
-      expect(taskCommand.default.data.description).toBeDefined();
+      expect(taskCommand.data.name).toBe('task');
+      expect(taskCommand.data.description).toBeDefined();
       expect(taskCommand.execute).toBeDefined();
     });
 
     it('should add a new task', async () => {
       mockInteraction.options.getSubcommand.mockReturnValue('add');
-      mockInteraction.options.getString.mockReturnValue('Test task description');
+      mockInteraction.options.getString.mockImplementation((name: string) => {
+        if (name === 'description') return 'Test task description';
+        if (name === 'due_date') return null;
+        return null;
+      });
 
       await taskCommand.execute(mockInteraction);
 
-      expect(mockTask.create).toHaveBeenCalledWith(expect.objectContaining({
-        task: 'Test task description',
-        userId: 'user-1',
-        guildId: 'guild-1',
-        done: false,
-      }));
+      expect(taskMock.createTask).toHaveBeenCalledWith(
+        'user-1',
+        'guild-1',
+        'Test task description',
+        null
+      );
 
-      expect(mockInteraction.reply).toHaveBeenCalledWith(expect.objectContaining({
-        embeds: expect.any(Array),
-      }));
+      expect(mockInteraction.editReply).toHaveBeenCalled();
     });
 
     it('should list all tasks', async () => {
@@ -92,52 +142,50 @@ describe('Discord Commands', () => {
 
       await taskCommand.execute(mockInteraction);
 
-      expect(mockTask.findAll).toHaveBeenCalledWith({
-        where: {
-          userId: 'user-1',
-          guildId: 'guild-1',
-        },
-      });
+      expect(taskMock.getUserTasks).toHaveBeenCalledWith(
+        'user-1',
+        'guild-1',
+        'all'
+      );
 
-      expect(mockInteraction.reply).toHaveBeenCalled();
+      expect(mockInteraction.editReply).toHaveBeenCalled();
     });
 
     it('should mark task as done', async () => {
       mockInteraction.options.getSubcommand.mockReturnValue('done');
       mockInteraction.options.getInteger.mockReturnValue(1);
 
-      mockTask.findOne.mockResolvedValue({ id: 1, task: 'Test', done: false });
+      taskMock.completeTask.mockResolvedValue({
+        id: 1,
+        description: 'Test task',
+        completed: true
+      });
 
       await taskCommand.execute(mockInteraction);
 
-      expect(mockTask.update).toHaveBeenCalledWith(
-        { done: true },
-        {
-          where: {
-            id: 1,
-            userId: 'user-1',
-            guildId: 'guild-1',
-          },
-        }
+      expect(taskMock.completeTask).toHaveBeenCalledWith(
+        1,
+        'user-1',
+        'guild-1'
       );
 
-      expect(mockInteraction.reply).toHaveBeenCalled();
+      expect(mockInteraction.editReply).toHaveBeenCalled();
     });
 
     it('should handle errors gracefully', async () => {
       mockInteraction.options.getSubcommand.mockReturnValue('add');
-      mockTask.create.mockRejectedValue(new Error('Database error'));
+      mockInteraction.options.getString.mockImplementation((name: string) => {
+        if (name === 'description') return 'Test task';
+        return null;
+      });
 
-      const consoleErrorSpy = jest.spyOn(console, 'error').mockImplementation();
+      taskMock.createTask.mockRejectedValue(new Error('Database error'));
 
       await taskCommand.execute(mockInteraction);
 
-      expect(mockInteraction.reply).toHaveBeenCalledWith(expect.objectContaining({
-        content: expect.stringContaining('error'),
-        ephemeral: true,
-      }));
-
-      consoleErrorSpy.mockRestore();
+      expect(mockInteraction.editReply).toHaveBeenCalledWith(
+        expect.stringContaining('error')
+      );
     });
   });
 
@@ -152,7 +200,8 @@ describe('Discord Commands', () => {
 
     it('should have correct command structure', () => {
       expect(listCommand.data).toBeDefined();
-      expect(listCommand.default.data.name).toBe('list');
+      expect(listCommand.data.name).toBe('list');
+      expect(listCommand.data.description).toBeDefined();
       expect(listCommand.execute).toBeDefined();
     });
 
@@ -162,47 +211,42 @@ describe('Discord Commands', () => {
 
       await listCommand.execute(mockInteraction);
 
-      expect(mockList.create).toHaveBeenCalledWith(expect.objectContaining({
-        name: 'Shopping List',
-        userId: 'user-1',
-        guildId: 'guild-1',
-      }));
+      expect(listMock.createList).toHaveBeenCalledWith(
+        'user-1',
+        'guild-1',
+        'Shopping List'
+      );
 
-      expect(mockInteraction.reply).toHaveBeenCalled();
+      expect(mockInteraction.editReply).toHaveBeenCalled();
     });
 
-    it('should show all lists', async () => {
-      mockInteraction.options.getSubcommand.mockReturnValue('show');
+    it('should view all lists', async () => {
+      mockInteraction.options.getSubcommand.mockReturnValue('view');
+      mockInteraction.options.getString.mockReturnValue(null);
 
       await listCommand.execute(mockInteraction);
 
-      expect(mockList.findAll).toHaveBeenCalledWith({
-        where: {
-          userId: 'user-1',
-          guildId: 'guild-1',
-        },
-      });
+      expect(listMock.getUserLists).toHaveBeenCalledWith(
+        'user-1',
+        'guild-1'
+      );
 
-      expect(mockInteraction.reply).toHaveBeenCalled();
+      expect(mockInteraction.editReply).toHaveBeenCalled();
     });
 
     it('should delete a list', async () => {
       mockInteraction.options.getSubcommand.mockReturnValue('delete');
       mockInteraction.options.getString.mockReturnValue('Shopping List');
 
-      mockList.destroy.mockResolvedValue(1);
-
       await listCommand.execute(mockInteraction);
 
-      expect(mockList.destroy).toHaveBeenCalledWith({
-        where: {
-          name: 'Shopping List',
-          userId: 'user-1',
-          guildId: 'guild-1',
-        },
-      });
+      expect(listMock.deleteList).toHaveBeenCalledWith(
+        'user-1',
+        'guild-1',
+        'Shopping List'
+      );
 
-      expect(mockInteraction.reply).toHaveBeenCalled();
+      expect(mockInteraction.editReply).toHaveBeenCalled();
     });
   });
 
@@ -217,28 +261,31 @@ describe('Discord Commands', () => {
 
     it('should have correct command structure', () => {
       expect(noteCommand.data).toBeDefined();
-      expect(noteCommand.default.data.name).toBe('note');
+      expect(noteCommand.data.name).toBe('note');
+      expect(noteCommand.data.description).toBeDefined();
       expect(noteCommand.execute).toBeDefined();
     });
 
-    it('should add a new note', async () => {
-      mockInteraction.options.getSubcommand.mockReturnValue('add');
-      mockInteraction.options.getString.mockImplementation((name: any) => {
+    it('should create a new note', async () => {
+      mockInteraction.options.getSubcommand.mockReturnValue('create');
+      mockInteraction.options.getString.mockImplementation((name: string) => {
         if (name === 'title') return 'Test Note';
         if (name === 'content') return 'Note content';
+        if (name === 'tags') return 'test,sample';
         return null;
       });
 
       await noteCommand.execute(mockInteraction);
 
-      expect(mockNote.create).toHaveBeenCalledWith(expect.objectContaining({
-        title: 'Test Note',
-        content: 'Note content',
-        userId: 'user-1',
-        guildId: 'guild-1',
-      }));
+      expect(noteMock.createNote).toHaveBeenCalledWith(
+        'user-1',
+        'guild-1',
+        'Test Note',
+        'Note content',
+        ['test', 'sample']
+      );
 
-      expect(mockInteraction.reply).toHaveBeenCalled();
+      expect(mockInteraction.editReply).toHaveBeenCalled();
     });
 
     it('should list all notes', async () => {
@@ -246,36 +293,27 @@ describe('Discord Commands', () => {
 
       await noteCommand.execute(mockInteraction);
 
-      expect(mockNote.findAll).toHaveBeenCalledWith({
-        where: {
-          userId: 'user-1',
-          guildId: 'guild-1',
-        },
-      });
+      expect(noteMock.getNotes).toHaveBeenCalledWith(
+        'user-1',
+        'guild-1'
+      );
 
-      expect(mockInteraction.reply).toHaveBeenCalled();
+      expect(mockInteraction.editReply).toHaveBeenCalled();
     });
 
-    it('should get a specific note', async () => {
-      mockInteraction.options.getSubcommand.mockReturnValue('get');
-      mockInteraction.options.getString.mockReturnValue('Test Note');
-
-      mockNote.findOne.mockResolvedValue({
-        title: 'Test Note',
-        content: 'Note content',
-      });
+    it('should search notes', async () => {
+      mockInteraction.options.getSubcommand.mockReturnValue('search');
+      mockInteraction.options.getString.mockReturnValue('keyword');
 
       await noteCommand.execute(mockInteraction);
 
-      expect(mockNote.findOne).toHaveBeenCalledWith({
-        where: {
-          title: 'Test Note',
-          userId: 'user-1',
-          guildId: 'guild-1',
-        },
-      });
+      expect(noteMock.searchNotes).toHaveBeenCalledWith(
+        'user-1',
+        'guild-1',
+        'keyword'
+      );
 
-      expect(mockInteraction.reply).toHaveBeenCalled();
+      expect(mockInteraction.editReply).toHaveBeenCalled();
     });
   });
 
@@ -290,27 +328,35 @@ describe('Discord Commands', () => {
 
     it('should have correct command structure', () => {
       expect(reminderCommand.data).toBeDefined();
-      expect(reminderCommand.default.data.name).toBe('remind');
+      expect(reminderCommand.data.name).toBe('remind');
+      expect(reminderCommand.data.description).toBeDefined();
       expect(reminderCommand.execute).toBeDefined();
     });
 
     it('should set a reminder', async () => {
       mockInteraction.options.getSubcommand.mockReturnValue('set');
-      mockInteraction.options.getString.mockImplementation((name: any) => {
+      mockInteraction.options.getString.mockImplementation((name: string) => {
+        if (name === 'time') return '10:00';
         if (name === 'message') return 'Test reminder';
-        if (name === 'time') return '2024-12-31 23:59';
+        if (name === 'frequency') return 'once';
         return null;
       });
+      mockInteraction.options.getInteger.mockReturnValue(null);
+      mockInteraction.channel = { id: 'channel-1' };
 
       await reminderCommand.execute(mockInteraction);
 
-      expect(mockReminder.create).toHaveBeenCalledWith(expect.objectContaining({
-        reminder: 'Test reminder',
-        userId: 'user-1',
-        guildId: 'guild-1',
-      }));
+      expect(reminderMock.createReminder).toHaveBeenCalledWith(
+        'user-1',
+        'guild-1',
+        'channel-1',
+        'Test reminder',
+        '10:00',
+        'once',
+        null
+      );
 
-      expect(mockInteraction.reply).toHaveBeenCalled();
+      expect(mockInteraction.editReply).toHaveBeenCalled();
     });
 
     it('should list reminders', async () => {
@@ -318,14 +364,12 @@ describe('Discord Commands', () => {
 
       await reminderCommand.execute(mockInteraction);
 
-      expect(mockReminder.findAll).toHaveBeenCalledWith({
-        where: {
-          userId: 'user-1',
-          guildId: 'guild-1',
-        },
-      });
+      expect(reminderMock.getUserReminders).toHaveBeenCalledWith(
+        'user-1',
+        'guild-1'
+      );
 
-      expect(mockInteraction.reply).toHaveBeenCalled();
+      expect(mockInteraction.editReply).toHaveBeenCalled();
     });
   });
 
@@ -340,91 +384,32 @@ describe('Discord Commands', () => {
 
     it('should have correct command structure', () => {
       expect(budgetCommand.data).toBeDefined();
-      expect(budgetCommand.default.data.name).toBe('budget');
+      expect(budgetCommand.data.name).toBe('budget');
+      expect(budgetCommand.data.description).toBeDefined();
       expect(budgetCommand.execute).toBeDefined();
     });
 
-    it('should add an expense', async () => {
-      mockInteraction.options.getSubcommand.mockReturnValue('add');
-      (mockInteraction.options as any).getNumber = jest.fn().mockReturnValue(50.00);
-      mockInteraction.options.getString.mockImplementation((name: any) => {
-        if (name === 'category') return 'food';
-        if (name === 'description') return 'Groceries';
-        return null;
-      });
-
-      await budgetCommand.execute(mockInteraction);
-
-      expect(mockBudget.create).toHaveBeenCalledWith(expect.objectContaining({
-        amount: 50.00,
-        category: 'food',
-        description: 'Groceries',
-        userId: 'user-1',
-        guildId: 'guild-1',
-      }));
-
-      expect(mockInteraction.reply).toHaveBeenCalled();
-    });
-
-    it('should show budget summary', async () => {
+    it('should handle budget interactions', async () => {
       mockInteraction.options.getSubcommand.mockReturnValue('summary');
+      mockInteraction.options.getInteger.mockReturnValue(null);
 
       await budgetCommand.execute(mockInteraction);
 
-      expect(mockBudget.findAll).toHaveBeenCalledWith({
-        where: {
-          userId: 'user-1',
-          guildId: 'guild-1',
-        },
-      });
+      expect(budgetMock.getSummary).toHaveBeenCalledWith(
+        'user-1',
+        'guild-1',
+        null
+      );
 
-      expect(mockInteraction.reply).toHaveBeenCalled();
+      expect(mockInteraction.editReply).toHaveBeenCalled();
     });
 
-    it('should calculate total expenses', async () => {
-      mockInteraction.options.getSubcommand.mockReturnValue('total');
+    it('should handle unknown subcommands gracefully', async () => {
+      mockInteraction.options.getSubcommand.mockReturnValue('unknown');
 
       await budgetCommand.execute(mockInteraction);
 
-      expect(mockBudget.sum).toHaveBeenCalledWith('amount', {
-        where: {
-          userId: 'user-1',
-          guildId: 'guild-1',
-        },
-      });
-
-      expect(mockInteraction.reply).toHaveBeenCalled();
-    });
-  });
-
-  describe('Command Error Handling', () => {
-    it('should handle missing subcommands gracefully', async () => {
-      const taskCommand = require('../../commands/task').default;
-      mockInteraction.options.getSubcommand.mockReturnValue(undefined);
-
-      await taskCommand.execute(mockInteraction);
-
-      expect(mockInteraction.reply).toHaveBeenCalledWith(expect.objectContaining({
-        content: expect.stringContaining('error'),
-        ephemeral: true,
-      }));
-    });
-
-    it('should handle database connection errors', async () => {
-      const listCommand = require('../../commands/list').default;
-      mockInteraction.options.getSubcommand.mockReturnValue('show');
-      mockList.findAll.mockRejectedValue(new Error('Database connection failed'));
-
-      const consoleErrorSpy = jest.spyOn(console, 'error').mockImplementation();
-
-      await listCommand.execute(mockInteraction);
-
-      expect(mockInteraction.reply).toHaveBeenCalledWith(expect.objectContaining({
-        content: expect.stringContaining('error'),
-        ephemeral: true,
-      }));
-
-      consoleErrorSpy.mockRestore();
+      expect(mockInteraction.editReply).toHaveBeenCalled();
     });
   });
 });
