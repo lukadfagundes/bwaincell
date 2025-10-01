@@ -52,14 +52,15 @@ interface MonthlyTrend {
 
 const BudgetBase = Model as any;
 class Budget extends BudgetBase<BudgetAttributes, BudgetCreationAttributes> {
-    public id!: number;
-    public type!: BudgetType;
-    public category?: string | null;
-    public amount!: number;
-    public description?: string | null;
-    public date!: Date;
-    public user_id!: string;
-    public guild_id!: string;
+    // Commenting out public fields to prevent Sequelize warnings
+    // public id!: number;
+    // public type!: BudgetType;
+    // public category?: string | null;
+    // public amount!: number;
+    // public description?: string | null;
+    // public date!: Date;
+    // public user_id!: string;
+    // public guild_id!: string;
 
     static init(sequelize: Sequelize) {
         return Model.init.call(this as any, schemas.budget, {

@@ -65,7 +65,7 @@ async function loadCommands() {
 
     const commandsPath = path.join(__dirname, '..', 'commands');
     const commandFiles = (await fs.readdir(commandsPath))
-        .filter(file => file.endsWith('.js') && !file.endsWith('.d.ts'));
+        .filter(file => file.endsWith('.ts') && !file.endsWith('.d.ts') && !file.includes('.backup'));
 
     for (const file of commandFiles) {
         const filePath = path.join(commandsPath, file);
@@ -91,7 +91,7 @@ async function setupScheduler() {
         client = createClient();
     }
 
-    const schedulerPath = path.join(__dirname, '..', 'utils', 'scheduler.js');
+    const schedulerPath = path.join(__dirname, '..', 'utils', 'scheduler.ts');
     if (existsSync(schedulerPath)) {
         const { startScheduler } = require(schedulerPath);
         startScheduler(client);

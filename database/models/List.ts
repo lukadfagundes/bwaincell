@@ -23,12 +23,12 @@ interface ListCreationAttributes extends Optional<ListAttributes, 'id' | 'create
 
 const ListBase = Model as any;
 class List extends ListBase<ListAttributes, ListCreationAttributes> implements ListAttributes {
-    public id!: number;
-    public name!: string;
-    public items!: ListItem[];
-    public user_id!: string;
-    public guild_id!: string;
-    public created_at!: Date;
+//     public id!: number;
+//     public name!: string;
+//     public items!: ListItem[];
+//     public user_id!: string;
+//     public guild_id!: string;
+//     public created_at!: Date;
 
     static init(sequelize: Sequelize) {
         return Model.init.call(this as any, schemas.list, {

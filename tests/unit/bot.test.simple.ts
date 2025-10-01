@@ -32,7 +32,7 @@ jest.mock('../../utils/interactions', () => ({
   handleModalSubmit: jest.fn(),
 }));
 jest.mock('fs/promises', () => ({
-  readdir: jest.fn().mockResolvedValue(['task.js', 'list.js']),
+  readdir: jest.fn().mockResolvedValue(['task.ts', 'list.ts']),
 }));
 jest.mock('fs', () => ({
   existsSync: jest.fn().mockReturnValue(true),

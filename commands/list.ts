@@ -367,7 +367,7 @@ export default {
                     embed.setDescription(listInfo);
                     embed.setFooter({ text: `Total lists: ${lists.length}` });
 
-                    if (lists.length <= 5) {
+                    if (lists.length > 0 && lists.length <= 5) {
                         const selectMenu = new StringSelectMenuBuilder()
                             .setCustomId('list_select_view')
                             .setPlaceholder('Select a list to view')

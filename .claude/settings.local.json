@@ -49,7 +49,12 @@
       "Bash(sort:*)",
       "Bash(cd:*)",
       "Bash(npm run dev:*)",
-      "Bash(npm uninstall:*)"
+      "Bash(npm uninstall:*)",
+      "Bash(npm run build:*)",
+      "Bash(pkill:*)",
+      "Bash(node deploy-commands-dev.js)",
+      "Bash(do echo \"=== /$cmd command ===\")",
+      "Bash(node:*)"
     ],
     "deny": [],
     "ask": [],

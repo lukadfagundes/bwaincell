@@ -84,19 +84,19 @@ jest.mock('../../utils/interactions', () => ({
 }));
 
 jest.mock('fs/promises', () => ({
-  readdir: jest.fn().mockResolvedValue(['test.js']),
+  readdir: jest.fn().mockResolvedValue(['test.ts']),
 }));
 
 jest.mock('fs', () => ({
   existsSync: jest.fn().mockImplementation((path) => {
-    // Return false for scheduler.js to prevent require issues
-    if (path.includes('scheduler.js')) return false;
+    // Return false for scheduler.ts to prevent require issues
+    if (path.includes('scheduler.ts')) return false;
     return true;
   }),
 }));
 
 // Mock command modules to prevent require errors
-jest.mock('C:\\Users\\lukaf\\Desktop\\Dev Work\\Bwaincell\\commands\\test.js', () => ({
+jest.mock('C:\\Users\\lukaf\\Desktop\\Dev Work\\Bwaincell\\commands\\test.ts', () => ({
   data: {
     name: 'test',
     description: 'Test command',
@@ -193,7 +193,7 @@ describe('Bot Initialization', () => {
   describe('Command Loading', () => {
     it('should load commands from commands directory', async () => {
       const fs = require('fs/promises');
-      fs.readdir.mockResolvedValue(['test.js', 'test2.ts']);
+      fs.readdir.mockResolvedValue(['test.ts', 'test2.ts']);
 
       await loadCommands();
 
