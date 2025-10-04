@@ -47,15 +47,6 @@ export interface Reminder extends BaseEntity {
 }
 
 /**
- * Tracker entity for metric tracking
- */
-export interface Tracker extends Omit<BaseEntity, 'created_at'> {
-  metric: string;
-  value: number;
-  timestamp: Date;
-}
-
-/**
  * Schedule entity for event scheduling
  */
 export interface Schedule extends BaseEntity {

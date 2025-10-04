@@ -14,7 +14,9 @@ import {
     TextInputStyle,
     ActionRowBuilder,
     StringSelectMenuBuilder,
-    ChatInputCommandInteraction
+    EmbedBuilder,
+    ButtonBuilder,
+    ButtonStyle
 } from 'discord.js';
 import { getModels } from '../helpers/databaseHelper';
 import { handleInteractionError } from '../responses/errorResponses';
@@ -65,17 +67,25 @@ export async function handleTaskButton(interaction: ButtonInteraction<CacheType>
                 .setRequired(true)
                 .setMaxLength(200);
 
-            const dueDateInput = new TextInputBuilder()
+            const dateInput = new TextInputBuilder()
                 .setCustomId('task_due_date')
-                .setLabel('Due Date (optional, YYYY-MM-DD HH:MM)')
+                .setLabel('Due Date (MM-DD-YYYY)')
                 .setStyle(TextInputStyle.Short)
                 .setRequired(false)
-                .setPlaceholder('2025-12-25 14:00');
+                .setPlaceholder('10-03-2025');
 
-            const firstRow = new ActionRowBuilder<TextInputBuilder>().addComponents(descriptionInput);
-            const secondRow = new ActionRowBuilder<TextInputBuilder>().addComponents(dueDateInput);
+            const timeInput = new TextInputBuilder()
+                .setCustomId('task_due_time')
+                .setLabel('Due Time (hh:mm AM/PM)')
+                .setStyle(TextInputStyle.Short)
+                .setRequired(false)
+                .setPlaceholder('2:30 PM');
 
-            modal.addComponents(firstRow, secondRow);
+            const descRow = new ActionRowBuilder<TextInputBuilder>().addComponents(descriptionInput);
+            const dateRow = new ActionRowBuilder<TextInputBuilder>().addComponents(dateInput);
+            const timeRow = new ActionRowBuilder<TextInputBuilder>().addComponents(timeInput);
+
+            modal.addComponents(descRow, dateRow, timeRow);
             await interaction.showModal(modal);
             return;
         }
@@ -188,8 +198,45 @@ export async function handleTaskButton(interaction: ButtonInteraction<CacheType>
                 .setRequired(true)
                 .setMaxLength(200);
 
-            const row = new ActionRowBuilder<TextInputBuilder>().addComponents(newDescriptionInput);
-            modal.addComponents(row);
+            // Format existing due date if available
+            let dateValue = '';
+            let timeValue = '';
+            if (task.due_date) {
+                const date = new Date(task.due_date);
+                const month = (date.getMonth() + 1).toString().padStart(2, '0');
+                const day = date.getDate().toString().padStart(2, '0');
+                const year = date.getFullYear();
+                dateValue = `${month}-${day}-${year}`;
+
+                let hours = date.getHours();
+                const minutes = date.getMinutes().toString().padStart(2, '0');
+                const period = hours >= 12 ? 'PM' : 'AM';
+                if (hours === 0) hours = 12;
+                else if (hours > 12) hours -= 12;
+                timeValue = `${hours}:${minutes} ${period}`;
+            }
+
+            const dateInput = new TextInputBuilder()
+                .setCustomId('task_due_date')
+                .setLabel('Due Date (MM-DD-YYYY)')
+                .setStyle(TextInputStyle.Short)
+                .setValue(dateValue)
+                .setRequired(false)
+                .setPlaceholder('10-03-2025');
+
+            const timeInput = new TextInputBuilder()
+                .setCustomId('task_due_time')
+                .setLabel('Due Time (hh:mm AM/PM)')
+                .setStyle(TextInputStyle.Short)
+                .setValue(timeValue)
+                .setRequired(false)
+                .setPlaceholder('2:30 PM');
+
+            const descRow = new ActionRowBuilder<TextInputBuilder>().addComponents(newDescriptionInput);
+            const dateRow = new ActionRowBuilder<TextInputBuilder>().addComponents(dateInput);
+            const timeRow = new ActionRowBuilder<TextInputBuilder>().addComponents(timeInput);
+
+            modal.addComponents(descRow, dateRow, timeRow);
             await interaction.showModal(modal);
             return;
         }
@@ -231,22 +278,61 @@ export async function handleTaskButton(interaction: ButtonInteraction<CacheType>
         if (customId === 'task_list_all' || customId === 'task_list_pending' || customId === 'task_refresh') {
             const filter = customId === 'task_list_pending' ? 'pending' : 'all';
 
-            const command = interaction.client.commands.get('task');
-            if (command) {
-                // Create a mock options object for the command
-                const mockInteraction = {
-                    ...interaction,
-                    options: {
-                        getSubcommand: () => 'list',
-                        getString: (name: string) => {
-                            if (name === 'filter') return filter;
-                            return null;
-                        }
-                    }
-                } as unknown as ChatInputCommandInteraction;
+            const tasks = await Task.getUserTasks(userId, guildId, filter);
 
-                await command.execute(mockInteraction);
+            if (tasks.length === 0) {
+                const emptyEmbed = new EmbedBuilder()
+                    .setTitle(`📋 No ${filter === 'pending' ? 'Pending ' : ''}Tasks`)
+                    .setDescription(`You don't have any ${filter === 'pending' ? 'pending ' : ''}tasks.`)
+                    .setColor(0xFFFF00)
+                    .setTimestamp();
+
+                await interaction.editReply({ embeds: [emptyEmbed], components: [] });
+                return;
             }
+
+            const embed = new EmbedBuilder()
+                .setTitle(`📋 Your ${filter === 'pending' ? 'Pending ' : ''}Tasks`)
+                .setColor(0x0099FF)
+                .setTimestamp()
+                .setFooter({ text: `Total: ${tasks.length} tasks` });
+
+            const taskList = tasks.slice(0, 25).map((task: any) => {
+                const status = task.completed ? '✅' : '⏳';
+                let description = `${status} **#${task.id}** - ${task.description}`;
+                if (task.due_date) {
+                    const dueDate = new Date(task.due_date);
+                    description += `\n📅 Due: ${dueDate.toLocaleString()}`;
+                }
+                return description;
+            }).join('\n\n');
+
+            embed.setDescription(taskList);
+
+            if (tasks.length > 25) {
+                embed.addFields({ name: '📌 Note', value: `Showing 25 of ${tasks.length} tasks` });
+            }
+
+            const row = new ActionRowBuilder<ButtonBuilder>()
+                .addComponents(
+                    new ButtonBuilder()
+                        .setCustomId('task_list_all')
+                        .setLabel('All Tasks')
+                        .setStyle(filter === 'all' ? ButtonStyle.Primary : ButtonStyle.Secondary)
+                        .setEmoji('📋'),
+                    new ButtonBuilder()
+                        .setCustomId('task_list_pending')
+                        .setLabel('Pending')
+                        .setStyle(filter === 'pending' ? ButtonStyle.Primary : ButtonStyle.Secondary)
+                        .setEmoji('⏳'),
+                    new ButtonBuilder()
+                        .setCustomId('task_refresh')
+                        .setLabel('Refresh')
+                        .setStyle(ButtonStyle.Secondary)
+                        .setEmoji('🔄')
+                );
+
+            await interaction.editReply({ embeds: [embed], components: [row] });
             return;
         }
     } catch (error) {

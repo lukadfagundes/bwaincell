@@ -13,6 +13,41 @@ import Task from '../database/models/Task';
 
 type TaskFilter = 'all' | 'pending' | 'completed';
 
+// Parse date in MM-DD-YYYY hh:mm AM/PM format
+function parseDateString(dateStr: string): Date | null {
+    // Match MM-DD-YYYY hh:mm AM/PM format
+    const match = dateStr.trim().match(/^(\d{1,2})-(\d{1,2})-(\d{4})\s+(\d{1,2}):(\d{2})\s*(AM|PM|am|pm)$/i);
+
+    if (!match) return null;
+
+    const month = parseInt(match[1]);
+    const day = parseInt(match[2]);
+    const year = parseInt(match[3]);
+    let hours = parseInt(match[4]);
+    const minutes = parseInt(match[5]);
+    const period = match[6].toUpperCase();
+
+    // Validate ranges
+    if (month < 1 || month > 12) return null;
+    if (day < 1 || day > 31) return null;
+    if (hours < 1 || hours > 12) return null;
+    if (minutes < 0 || minutes > 59) return null;
+
+    // Convert to 24-hour format
+    if (period === 'PM' && hours !== 12) {
+        hours += 12;
+    } else if (period === 'AM' && hours === 12) {
+        hours = 0;
+    }
+
+    const date = new Date(year, month - 1, day, hours, minutes);
+
+    // Check if date is valid
+    if (isNaN(date.getTime())) return null;
+
+    return date;
+}
+
 export default {
     data: new SlashCommandBuilder()
         .setName('task')
@@ -26,9 +61,15 @@ export default {
                         .setDescription('Task description')
                         .setRequired(true))
                 .addStringOption(option =>
-                    option.setName('due_date')
-                        .setDescription('Due date (YYYY-MM-DD HH:MM)')
-                        .setRequired(false)))
+                    option.setName('date')
+                        .setDescription('Due date (MM-DD-YYYY)')
+                        .setRequired(false)
+                        .setMaxLength(10))
+                .addStringOption(option =>
+                    option.setName('time')
+                        .setDescription('Due time (hh:mm AM/PM)')
+                        .setRequired(false)
+                        .setMaxLength(10)))
         .addSubcommand(subcommand =>
             subcommand
                 .setName('list')
@@ -92,20 +133,34 @@ export default {
             switch (subcommand) {
                 case 'add': {
                     const description = interaction.options.getString('description', true);
-                    const dueDateStr = interaction.options.getString('due_date');
-                    let dueDate: Date | null = null;
+                    const dateStr = interaction.options.getString('date');
+                    const timeStr = interaction.options.getString('time');
+                    let dueDate: Date | undefined = undefined;
 
-                    if (dueDateStr) {
-                        dueDate = new Date(dueDateStr);
-                        if (isNaN(dueDate.getTime())) {
+                    // If both date and time are provided, combine them
+                    if (dateStr && timeStr) {
+                        const combined = `${dateStr.trim()} ${timeStr.trim()}`;
+                        const parsed = parseDateString(combined);
+                        if (!parsed) {
                             await interaction.editReply({
-                                content: 'Invalid date format. Use YYYY-MM-DD HH:MM'
+                                content: `❌ Invalid date/time format.\n\nDate format: MM-DD-YYYY (e.g., 10-03-2025)\nTime format: hh:mm AM/PM (e.g., 2:30 PM)\n\nYou entered: "${combined}"`
                             });
                             return;
                         }
+                        dueDate = parsed;
+                        logger.info('Task date parsed successfully', {
+                            input: combined,
+                            parsed: dueDate.toISOString()
+                        });
+                    } else if (dateStr || timeStr) {
+                        // Only one provided - show error
+                        await interaction.editReply({
+                            content: '❌ Please provide both date and time, or leave both empty.'
+                        });
+                        return;
                     }
 
-                    const task= await Task.createTask(userId, guildId, description, dueDate);
+                    const task = await Task.createTask(userId, guildId, description, dueDate);
 
                     const embed = new EmbedBuilder()
                         .setTitle('✨ Task Created')

@@ -23,16 +23,17 @@ interface ReminderCreationAttributes extends Optional<ReminderAttributes, 'id' |
 
 const ReminderBase = Model as any;
 class Reminder extends ReminderBase<ReminderAttributes, ReminderCreationAttributes> implements ReminderAttributes {
-    public id!: number;
-    public message!: string;
-    public time!: string;
-    public frequency!: ReminderFrequency;
-    public day_of_week?: number | null;
-    public channel_id!: string;
-    public user_id!: string;
-    public guild_id!: string;
-    public active!: boolean;
-    public next_trigger?: Date | null;
+    // Commenting out public fields to prevent Sequelize warnings
+    // public id!: number;
+    // public message!: string;
+    // public time!: string;
+    // public frequency!: ReminderFrequency;
+    // public day_of_week?: number | null;
+    // public channel_id!: string;
+    // public user_id!: string;
+    // public guild_id!: string;
+    // public active!: boolean;
+    // public next_trigger?: Date | null;
 
     static init(sequelize: Sequelize) {
         return Model.init.call(this as any, schemas.reminder, {

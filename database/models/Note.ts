@@ -25,14 +25,16 @@ interface NoteUpdateAttributes {
 
 const NoteBase = Model as any;
 class Note extends NoteBase<NoteAttributes, NoteCreationAttributes> implements NoteAttributes {
-    public id!: number;
-    public title!: string;
-    public content!: string;
-    public tags!: string[];
-    public created_at!: Date;
-    public updated_at!: Date;
-    public user_id!: string;
-    public guild_id!: string;
+    // Sequelize automatically provides getters/setters for these fields
+    // Commenting out to prevent shadowing warnings
+    // public id!: number;
+    // public title!: string;
+    // public content!: string;
+    // public tags!: string[];
+    // public created_at!: Date;
+    // public updated_at!: Date;
+    // public user_id!: string;
+    // public guild_id!: string;
 
     static init(sequelize: Sequelize) {
         return Model.init.call(this as any, schemas.note, {

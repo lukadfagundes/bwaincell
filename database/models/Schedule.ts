@@ -27,14 +27,16 @@ interface CountdownResult {
 
 const ScheduleBase = Model as any;
 class Schedule extends ScheduleBase<ScheduleAttributes, ScheduleCreationAttributes> implements ScheduleAttributes {
-    public id!: number;
-    public event!: string;
-    public date!: string;
-    public time!: string;
-    public description?: string | null;
-    public user_id!: string;
-    public guild_id!: string;
-    public created_at!: Date;
+    // Sequelize automatically provides getters/setters for these fields
+    // Commenting out to prevent shadowing warnings
+    // public id!: number;
+    // public event!: string;
+    // public date!: string;
+    // public time!: string;
+    // public description?: string | null;
+    // public user_id!: string;
+    // public guild_id!: string;
+    // public created_at!: Date;
 
     static init(sequelize: Sequelize) {
         return Model.init.call(this as any, schemas.schedule, {

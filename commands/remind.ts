@@ -10,6 +10,48 @@ import {
 } from 'discord.js';
 import { logger } from '../shared/utils/logger';
 import Reminder from '../database/models/Reminder';
+import { getScheduler } from '../utils/scheduler';
+
+// Convert 12-hour time format to 24-hour format
+function parseTimeToMilitaryFormat(timeStr: string): string | null {
+    const time = timeStr.trim();
+
+    // Check for 12-hour format (e.g., "2:30 PM", "2:30PM", "2:30 pm")
+    const twelveHourMatch = time.match(/^(\d{1,2}):(\d{2})\s*(AM|PM|am|pm)$/i);
+    if (twelveHourMatch) {
+        let hours = parseInt(twelveHourMatch[1]);
+        const minutes = twelveHourMatch[2];
+        const period = twelveHourMatch[3].toUpperCase();
+
+        if (hours < 1 || hours > 12) return null;
+        if (parseInt(minutes) < 0 || parseInt(minutes) > 59) return null;
+
+        if (period === 'PM' && hours !== 12) {
+            hours += 12;
+        } else if (period === 'AM' && hours === 12) {
+            hours = 0;
+        }
+
+        return `${hours.toString().padStart(2, '0')}:${minutes}`;
+    }
+
+    return null;
+}
+
+// Convert 24-hour time format to 12-hour format for display
+function formatTimeTo12Hour(time24: string): string {
+    const [hoursStr, minutes] = time24.split(':');
+    let hours = parseInt(hoursStr);
+    const period = hours >= 12 ? 'PM' : 'AM';
+
+    if (hours === 0) {
+        hours = 12;
+    } else if (hours > 12) {
+        hours -= 12;
+    }
+
+    return `${hours}:${minutes} ${period}`;
+}
 
 export default {
     data: new SlashCommandBuilder()
@@ -25,7 +67,7 @@ export default {
                         .setRequired(true))
                 .addStringOption(option =>
                     option.setName('time')
-                        .setDescription('Time (HH:MM in 24-hour format)')
+                        .setDescription('Time (12-hour format, e.g., 2:30 PM)')
                         .setRequired(true)))
         .addSubcommand(subcommand =>
             subcommand
@@ -37,7 +79,7 @@ export default {
                         .setRequired(true))
                 .addStringOption(option =>
                     option.setName('time')
-                        .setDescription('Time (HH:MM in 24-hour format)')
+                        .setDescription('Time (12-hour format, e.g., 2:30 PM)')
                         .setRequired(true)))
         .addSubcommand(subcommand =>
             subcommand
@@ -62,7 +104,7 @@ export default {
                         ))
                 .addStringOption(option =>
                     option.setName('time')
-                        .setDescription('Time (HH:MM in 24-hour format)')
+                        .setDescription('Time (12-hour format, e.g., 2:30 PM)')
                         .setRequired(true)))
         .addSubcommand(subcommand =>
             subcommand
@@ -105,23 +147,32 @@ export default {
             switch (subcommand) {
                 case 'me': {
                     const message = interaction.options.getString('message', true);
-                    const time = interaction.options.getString('time', true);
+                    const timeInput = interaction.options.getString('time', true);
 
-                    if (!time.match(/^\d{1,2}:\d{2}$/)) {
+                    const time = parseTimeToMilitaryFormat(timeInput);
+                    if (!time) {
                         await interaction.editReply({
-                            content: '❌ Invalid time format. Use HH:MM (24-hour format).',
+                            content: '❌ Invalid time format. Use 12-hour format (e.g., 2:30 PM).',
 
                         });
                         return;
-                    }const reminder= await Reminder.createReminder(
+                    }
+
+                    const reminder = await Reminder.createReminder(
                         userId, guildId, channelId, message, time, 'once'
                     );
+
+                    // Add reminder to scheduler
+                    const scheduler = getScheduler();
+                    if (scheduler) {
+                        await scheduler.addReminder(reminder.id);
+                    }
 
                     const embed = new EmbedBuilder()
                         .setTitle('⏰ Reminder Set')
                         .setDescription(`I'll remind you: **"${message}"**`)
                         .addFields(
-                            { name: '🕐 Time', value: time, inline: true },
+                            { name: '🕐 Time', value: formatTimeTo12Hour(time), inline: true },
                             { name: '📅 Frequency', value: 'One-time', inline: true },
                             { name: '⏱️ Next Trigger', value: reminder.next_trigger?.toLocaleString() || 'N/A' }
                         )
@@ -153,23 +204,32 @@ export default {
 
                 case 'daily': {
                     const message = interaction.options.getString('message', true);
-                    const time = interaction.options.getString('time', true);
+                    const timeInput = interaction.options.getString('time', true);
 
-                    if (!time.match(/^\d{1,2}:\d{2}$/)) {
+                    const time = parseTimeToMilitaryFormat(timeInput);
+                    if (!time) {
                         await interaction.editReply({
-                            content: '❌ Invalid time format. Use HH:MM (24-hour format).',
+                            content: '❌ Invalid time format. Use 12-hour format (e.g., 2:30 PM).',
 
                         });
                         return;
-                    }const reminder= await Reminder.createReminder(
+                    }
+
+                    const reminder = await Reminder.createReminder(
                         userId, guildId, channelId, message, time, 'daily'
                     );
+
+                    // Add reminder to scheduler
+                    const scheduler = getScheduler();
+                    if (scheduler) {
+                        await scheduler.addReminder(reminder.id);
+                    }
 
                     const embed = new EmbedBuilder()
                         .setTitle('⏰ Daily Reminder Set')
                         .setDescription(`I'll remind you daily: **"${message}"**`)
                         .addFields(
-                            { name: '🕐 Time', value: `Every day at ${time}`, inline: true },
+                            { name: '🕐 Time', value: `Every day at ${formatTimeTo12Hour(time)}`, inline: true },
                             { name: '📅 Frequency', value: 'Daily', inline: true },
                             { name: '⏱️ Next Trigger', value: reminder.next_trigger?.toLocaleString() || 'N/A' }
                         )
@@ -202,17 +262,26 @@ export default {
                 case 'weekly': {
                     const message = interaction.options.getString('message', true);
                     const dayOfWeek = parseInt(interaction.options.getString('day', true));
-                    const time = interaction.options.getString('time', true);
+                    const timeInput = interaction.options.getString('time', true);
 
-                    if (!time.match(/^\d{1,2}:\d{2}$/)) {
+                    const time = parseTimeToMilitaryFormat(timeInput);
+                    if (!time) {
                         await interaction.editReply({
-                            content: '❌ Invalid time format. Use HH:MM (24-hour format).',
+                            content: '❌ Invalid time format. Use 12-hour format (e.g., 2:30 PM).',
 
                         });
                         return;
-                    }const reminder= await Reminder.createReminder(
+                    }
+
+                    const reminder = await Reminder.createReminder(
                         userId, guildId, channelId, message, time, 'weekly', dayOfWeek
                     );
+
+                    // Add reminder to scheduler
+                    const scheduler = getScheduler();
+                    if (scheduler) {
+                        await scheduler.addReminder(reminder.id);
+                    }
 
                     const dayNames = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
 
@@ -221,7 +290,7 @@ export default {
                         .setDescription(`I'll remind you weekly: **"${message}"**`)
                         .addFields(
                             { name: '📅 Day', value: dayNames[dayOfWeek], inline: true },
-                            { name: '🕐 Time', value: time, inline: true },
+                            { name: '🕐 Time', value: formatTimeTo12Hour(time), inline: true },
                             { name: '🔄 Frequency', value: 'Weekly', inline: true },
                             { name: '⏱️ Next Trigger', value: reminder.next_trigger?.toLocaleString() || 'N/A' }
                         )
@@ -308,7 +377,7 @@ export default {
                             displayFrequency = frequency;
                         }
 
-                        return `${emoji} **#${reminder.id}** - "${reminder.message}"\n🕐 ${reminder.time} | ${displayFrequency}\n⏱️ Next: ${reminder.next_trigger?.toLocaleString() || 'N/A'}`;
+                        return `${emoji} **#${reminder.id}** - "${reminder.message}"\n🕐 ${formatTimeTo12Hour(reminder.time)} | ${displayFrequency}\n⏱️ Next: ${reminder.next_trigger?.toLocaleString() || 'N/A'}`;
                     }).join('\n\n');
 
                     embed.setDescription(reminderList);

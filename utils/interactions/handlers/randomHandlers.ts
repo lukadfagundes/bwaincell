@@ -234,6 +234,33 @@ export async function handleRandomButton(interaction: ButtonInteraction<CacheTyp
             await interaction.editReply({ embeds: [embed], components: [row] });
             return;
         }
+
+        // Coin flip
+        if (customId === 'random_coin_flip') {
+            const result = Math.random() < 0.5 ? 'Heads' : 'Tails';
+            const emoji = result === 'Heads' ? '👑' : '⚡';
+            const embed = new EmbedBuilder()
+                .setTitle('🪙 Coin Flip')
+                .setDescription(`${emoji} **${result}**`)
+                .setColor(0x9932CC)
+                .setTimestamp();
+
+            const row = new ActionRowBuilder<ButtonBuilder>()
+                .addComponents(
+                    new ButtonBuilder()
+                        .setCustomId('random_coin_flip')
+                        .setLabel('Flip Again')
+                        .setStyle(ButtonStyle.Secondary)
+                        .setEmoji('🪙')
+                );
+
+            // Check if already acknowledged before updating
+            if (!interaction.deferred && !interaction.replied) {
+                await interaction.deferUpdate();
+            }
+            await interaction.editReply({ embeds: [embed], components: [row] });
+            return;
+        }
     } catch (error) {
         await handleInteractionError(interaction, error, 'random button handler');
     }

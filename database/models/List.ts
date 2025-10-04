@@ -23,12 +23,12 @@ interface ListCreationAttributes extends Optional<ListAttributes, 'id' | 'create
 
 const ListBase = Model as any;
 class List extends ListBase<ListAttributes, ListCreationAttributes> implements ListAttributes {
-    public id!: number;
-    public name!: string;
-    public items!: ListItem[];
-    public user_id!: string;
-    public guild_id!: string;
-    public created_at!: Date;
+//     public id!: number;
+//     public name!: string;
+//     public items!: ListItem[];
+//     public user_id!: string;
+//     public guild_id!: string;
+//     public created_at!: Date;
 
     static init(sequelize: Sequelize) {
         return Model.init.call(this as any, schemas.list, {
@@ -39,10 +39,17 @@ class List extends ListBase<ListAttributes, ListCreationAttributes> implements L
         });
     }
 
-    static async createList(userId: string, guildId: string, name: string): Promise<List | null> {
-        const existing = await (this as any).findOne({
-            where: { user_id: userId, guild_id: guildId, name }
+    // Helper method to find list case-insensitively
+    private static async findListCaseInsensitive(userId: string, guildId: string, listName: string): Promise<any | null> {
+        const lists = await (this as any).findAll({
+            where: { user_id: userId, guild_id: guildId }
         });
+
+        return lists.find((l: any) => l.name.toLowerCase() === listName.toLowerCase()) || null;
+    }
+
+    static async createList(userId: string, guildId: string, name: string): Promise<List | null> {
+        const existing = await this.findListCaseInsensitive(userId, guildId, name);
 
         if (existing) return null;
 
@@ -55,9 +62,7 @@ class List extends ListBase<ListAttributes, ListCreationAttributes> implements L
     }
 
     static async addItem(userId: string, guildId: string, listName: string, item: string): Promise<List | null> {
-        const list = await (this as any).findOne({
-            where: { user_id: userId, guild_id: guildId, name: listName }
-        });
+        const list = await this.findListCaseInsensitive(userId, guildId, listName);
 
         if (!list) return null;
 
@@ -69,15 +74,14 @@ class List extends ListBase<ListAttributes, ListCreationAttributes> implements L
         });
 
         list.items = items;
+        list.changed('items', true); // Mark items as changed for Sequelize
         await list.save();
 
         return list;
     }
 
     static async removeItem(userId: string, guildId: string, listName: string, itemText: string): Promise<List | null> {
-        const list = await (this as any).findOne({
-            where: { user_id: userId, guild_id: guildId, name: listName }
-        });
+        const list = await this.findListCaseInsensitive(userId, guildId, listName);
 
         if (!list) return null;
 
@@ -88,15 +92,14 @@ class List extends ListBase<ListAttributes, ListCreationAttributes> implements L
 
         items.splice(index, 1);
         list.items = items;
+        list.changed('items', true); // Mark items as changed for Sequelize
         await list.save();
 
         return list;
     }
 
     static async getList(userId: string, guildId: string, listName: string): Promise<List | null> {
-        return await (this as any).findOne({
-            where: { user_id: userId, guild_id: guildId, name: listName }
-        });
+        return await this.findListCaseInsensitive(userId, guildId, listName);
     }
 
     static async getUserLists(userId: string, guildId: string): Promise<List[]> {
@@ -107,31 +110,32 @@ class List extends ListBase<ListAttributes, ListCreationAttributes> implements L
     }
 
     static async clearCompleted(userId: string, guildId: string, listName: string): Promise<List | null> {
-        const list = await (this as any).findOne({
-            where: { user_id: userId, guild_id: guildId, name: listName }
-        });
+        const list = await this.findListCaseInsensitive(userId, guildId, listName);
 
         if (!list) return null;
 
         const items = list.items || [];
         list.items = items.filter((item: any) => !item.completed);
+        list.changed('items', true); // Mark items as changed for Sequelize
         await list.save();
 
         return list;
     }
 
     static async deleteList(userId: string, guildId: string, listName: string): Promise<boolean> {
+        const targetList = await this.findListCaseInsensitive(userId, guildId, listName);
+
+        if (!targetList) return false;
+
         const result = await (this as any).destroy({
-            where: { user_id: userId, guild_id: guildId, name: listName }
+            where: { id: targetList.id }
         });
 
         return result > 0;
     }
 
     static async toggleItem(userId: string, guildId: string, listName: string, itemText: string): Promise<List | null> {
-        const list = await (this as any).findOne({
-            where: { user_id: userId, guild_id: guildId, name: listName }
-        });
+        const list = await this.findListCaseInsensitive(userId, guildId, listName);
 
         if (!list) return null;
 
@@ -142,6 +146,7 @@ class List extends ListBase<ListAttributes, ListCreationAttributes> implements L
 
         item.completed = !item.completed;
         list.items = items;
+        list.changed('items', true); // Mark items as changed for Sequelize
         await list.save();
 
         return list;
