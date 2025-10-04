@@ -3,7 +3,6 @@ import Note from './models/Note';
 import Reminder from './models/Reminder';
 import Budget from './models/Budget';
 import Schedule from './models/Schedule';
-import Tracker from './models/Tracker';
 import List from './models/List';
 import { logger } from '../shared/utils/logger';
 
@@ -32,9 +31,6 @@ export function initializeAssociations(): void {
   // User.hasMany(Schedule, { foreignKey: 'user_id', as: 'schedules' });
   // Schedule.belongsTo(User, { foreignKey: 'user_id', as: 'user' });
 
-  // User.hasMany(Tracker, { foreignKey: 'user_id', as: 'trackers' });
-  // Tracker.belongsTo(User, { foreignKey: 'user_id', as: 'user' });
-
   // User.hasMany(List, { foreignKey: 'user_id', as: 'lists' });
   // List.belongsTo(User, { foreignKey: 'user_id', as: 'user' });
 
@@ -50,6 +46,5 @@ export {
   Reminder,
   Budget,
   Schedule,
-  Tracker,
   List
 };

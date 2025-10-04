@@ -14,7 +14,6 @@ import Note from './models/Note';
 import Reminder from './models/Reminder';
 import Budget from './models/Budget';
 import Schedule from './models/Schedule';
-import Tracker from './models/Tracker';
 import List from './models/List';
 
 // Create Sequelize instance with sqlite3
@@ -33,7 +32,6 @@ Note.init(sequelize);
 Reminder.init(sequelize);
 Budget.init(sequelize);
 Schedule.init(sequelize);
-Tracker.init(sequelize);
 List.init(sequelize);
 
 // Export sequelize instance and models
@@ -44,7 +42,6 @@ export {
     Reminder,
     Budget,
     Schedule,
-    Tracker,
     List
 };
 
