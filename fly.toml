@@ -3,6 +3,8 @@
 
 app = "bwaincell"
 primary_region = "iad"
+kill_signal = "SIGINT"
+kill_timeout = "5s"
 
 [build]
 
@@ -13,3 +15,11 @@ primary_region = "iad"
   cpu_kind = "shared"
   cpus = 1
   memory_mb = 256
+
+# Critical for Discord bots: prevent auto-shutdown
+[[services]]
+  internal_port = 8080
+  protocol = "tcp"
+  auto_start_machines = false
+  auto_stop_machines = false
+  min_machines_running = 1
