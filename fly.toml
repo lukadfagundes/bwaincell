@@ -8,7 +8,6 @@ primary_region = "iad"
 
 [env]
   NODE_ENV = "production"
-  DATABASE_PATH = "./data/bwaincell.sqlite"
 
 [[vm]]
   cpu_kind = "shared"
