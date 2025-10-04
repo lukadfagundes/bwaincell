@@ -1,0 +1,47 @@
+# Node modules (will be installed in container)
+node_modules
+
+# Build output (will be built in container)
+dist
+
+# Environment files (set via Fly.io secrets)
+.env
+.env.*
+
+# Git
+.git
+.gitignore
+
+# Documentation
+*.md
+!README.md
+
+# Test files
+tests
+*.test.ts
+*.spec.ts
+coverage
+
+# IDE
+.vscode
+.idea
+
+# Logs
+logs
+*.log
+npm-debug.log*
+
+# Trinity Method files
+trinity/sessions
+trinity/investigations
+trinity/work-orders
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Development files
+.eslintrc.*
+.prettierrc
+jest.config.js
+# Note: tsconfig.json is needed for build

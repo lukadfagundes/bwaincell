@@ -106,7 +106,7 @@
   "files.trimFinalNewlines": true,
   "problems.decorations.enabled": true,
   "problems.showCurrentInStatus": true,
-  "typescript.tsserver.experimental.enableProjectDiagnostics": true,
+  "typescript.tsserver.experimental.enableProjectDiagnostics": false,
   "eslint.run": "onType",
   "javascript.validate.enable": true,
   "typescript.validate.enable": true,

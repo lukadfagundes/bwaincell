@@ -20,7 +20,6 @@ import List from './models/List';
 const sequelize = new Sequelize({
     dialect: 'sqlite',
     storage: process.env.DATABASE_PATH || './data/bwaincell.sqlite',
-    dialectModule: require('sqlite3'),
     logging: process.env.NODE_ENV === 'development'
         ? (sql: string) => logger.debug('SQL Query', { query: sql })
         : false
