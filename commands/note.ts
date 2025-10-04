@@ -40,18 +40,20 @@ export default {
             subcommand
                 .setName('view')
                 .setDescription('Display a specific note')
-                .addIntegerOption(option =>
-                    option.setName('note_id')
-                        .setDescription('Note ID to view')
-                        .setRequired(true)))
+                .addStringOption(option =>
+                    option.setName('title')
+                        .setDescription('Note title to view')
+                        .setRequired(true)
+                        .setAutocomplete(true)))
         .addSubcommand(subcommand =>
             subcommand
                 .setName('delete')
                 .setDescription('Remove a note')
-                .addIntegerOption(option =>
-                    option.setName('note_id')
-                        .setDescription('Note ID to delete')
-                        .setRequired(true)))
+                .addStringOption(option =>
+                    option.setName('title')
+                        .setDescription('Note title to delete')
+                        .setRequired(true)
+                        .setAutocomplete(true)))
         .addSubcommand(subcommand =>
             subcommand
                 .setName('search')
@@ -64,12 +66,13 @@ export default {
             subcommand
                 .setName('edit')
                 .setDescription('Edit an existing note')
-                .addIntegerOption(option =>
-                    option.setName('note_id')
-                        .setDescription('Note ID to edit')
-                        .setRequired(true))
                 .addStringOption(option =>
-                    option.setName('title')
+                    option.setName('current_title')
+                        .setDescription('Current note title')
+                        .setRequired(true)
+                        .setAutocomplete(true))
+                .addStringOption(option =>
+                    option.setName('new_title')
                         .setDescription('New title (leave empty to keep current)')
                         .setRequired(false))
                 .addStringOption(option =>
@@ -92,6 +95,40 @@ export default {
             subcommand
                 .setName('tags')
                 .setDescription('List all your tags')),
+
+    async autocomplete(interaction: any): Promise<void> {
+        const userId = interaction.user.id;
+        const guildId = interaction.guild?.id;
+
+        if (!guildId) {
+            await interaction.respond([]);
+            return;
+        }
+
+        try {
+            const focused = interaction.options.getFocused(true);
+
+            if (focused.name === 'title' || focused.name === 'current_title') {
+                const notes = await Note.getNotes(userId, guildId);
+                const titles = notes.map((note: any) => note.title).slice(0, 25);
+
+                const filtered = titles.filter((title: string) =>
+                    title.toLowerCase().includes(focused.value.toLowerCase())
+                );
+
+                await interaction.respond(
+                    filtered.map((title: string) => ({ name: title, value: title }))
+                );
+            }
+        } catch (error) {
+            logger.error('Error in note autocomplete', {
+                error: error instanceof Error ? error.message : 'Unknown error',
+                userId,
+                guildId
+            });
+            await interaction.respond([]);
+        }
+    },
 
     async execute(interaction: ChatInputCommandInteraction): Promise<void> {
         // Note: Interaction is already deferred by bot.js for immediate acknowledgment
@@ -164,11 +201,13 @@ export default {
                 }
 
                 case 'view': {
-                    const noteId = interaction.options.getInteger('note_id', true);const note = await Note.getNote(noteId, userId, guildId);
+                    const title = interaction.options.getString('title', true);
+                    const notes = await Note.getNotes(userId, guildId);
+                    const note = notes.find((n: any) => n.title.toLowerCase() === title.toLowerCase());
 
                     if (!note) {
                         await interaction.editReply({
-                            content: `Note #${noteId} not found or doesn't belong to you.`
+                            content: `Note "${title}" not found.`
 
                         });
                         return;
@@ -179,7 +218,6 @@ export default {
                         .setDescription(note.content)
                         .setColor(0x0099FF)
                         .addFields(
-                            { name: 'Note ID', value: `#${note.id}`, inline: true },
                             { name: 'Created', value: new Date(note.created_at).toLocaleDateString(), inline: true }
                         )
                         .setTimestamp();
@@ -197,19 +235,30 @@ export default {
                 }
 
                 case 'delete': {
-                    const noteId = interaction.options.getInteger('note_id', true);
-                    const deleted: boolean = await Note.deleteNote(noteId, userId, guildId);
+                    const title = interaction.options.getString('title', true);
+                    const notes = await Note.getNotes(userId, guildId);
+                    const note = notes.find((n: any) => n.title.toLowerCase() === title.toLowerCase());
+
+                    if (!note) {
+                        await interaction.editReply({
+                            content: `Note "${title}" not found.`,
+
+                        });
+                        return;
+                    }
+
+                    const deleted: boolean = await Note.deleteNote(note.id, userId, guildId);
 
                     if (!deleted) {
                         await interaction.editReply({
-                            content: `Note #${noteId} not found or doesn't belong to you.`,
+                            content: `Failed to delete note "${title}".`,
 
                         });
                         return;
                     }
 
                     await interaction.editReply({
-                        content: `Note #${noteId} has been deleted.`,
+                        content: `Note "${title}" has been deleted.`,
 
                     });
                     break;
@@ -244,15 +293,26 @@ export default {
                 }
 
                 case 'edit': {
-                    const noteId = interaction.options.getInteger('note_id', true);
-                    const newTitle = interaction.options.getString('title');
+                    const currentTitle = interaction.options.getString('current_title', true);
+                    const newTitle = interaction.options.getString('new_title');
                     const newContent = interaction.options.getString('content');
                     const tagsString = interaction.options.getString('tags');
+
+                    const notes = await Note.getNotes(userId, guildId);
+                    const existingNote = notes.find((n: any) => n.title.toLowerCase() === currentTitle.toLowerCase());
+
+                    if (!existingNote) {
+                        await interaction.editReply({
+                            content: `Note "${currentTitle}" not found.`
+
+                        });
+                        return;
+                    }
 
                     const updates: NoteUpdateData = {};
                     if (newTitle) updates.title = newTitle;
                     if (newContent) updates.content = newContent;
-                    if (tagsString !== null) updates.tags = tagsString.split(',').map(tag => tag.trim());
+                    if (tagsString !== null) updates.tags = tagsString.split(',').map((tag: string) => tag.trim());
 
                     if (Object.keys(updates).length === 0) {
                         await interaction.editReply({
@@ -260,11 +320,13 @@ export default {
 
                         });
                         return;
-                    }const note = await Note.updateNote(noteId, userId, guildId, updates);
+                    }
+
+                    const note = await Note.updateNote(existingNote.id, userId, guildId, updates);
 
                     if (!note) {
                         await interaction.editReply({
-                            content: `Note #${noteId} not found or doesn't belong to you.`
+                            content: `Failed to update note "${currentTitle}".`
 
                         });
                         return;
@@ -272,8 +334,8 @@ export default {
 
                     const embed = new EmbedBuilder()
                         .setTitle('Note Updated')
-                        .setDescription(`Note #${noteId} has been updated successfully.`)
-                        .addFields({ name: 'Title', value: note.title })
+                        .setDescription(`Note "${currentTitle}" has been updated successfully.`)
+                        .addFields({ name: 'New Title', value: note.title })
                         .setColor(0x00FF00)
                         .setTimestamp();
 

@@ -8,7 +8,7 @@ import {
     EmbedBuilder,
     ButtonBuilder,
     ButtonStyle,
-    ChatInputCommandInteraction
+    StringSelectMenuBuilder
 } from 'discord.js';
 import { getModels } from '../helpers/databaseHelper';
 import { handleInteractionError } from '../responses/errorResponses';
@@ -21,9 +21,9 @@ export async function handleListButton(interaction: ButtonInteraction<CacheType>
     if (!guildId) {
         // Check if already acknowledged before responding
         if (!interaction.deferred && !interaction.replied) {
-            await interaction.reply({ content: '❌ This command can only be used in a server.', ephemeral: true });
+            await interaction.reply({ content: '❌ This command can only be used in a server.', flags: 64 });
         } else {
-            await interaction.followUp({ content: '❌ This command can only be used in a server.', ephemeral: true });
+            await interaction.followUp({ content: '❌ This command can only be used in a server.', flags: 64 });
         }
         return;
     }
@@ -63,12 +63,12 @@ export async function handleListButton(interaction: ButtonInteraction<CacheType>
                 if (!interaction.deferred && !interaction.replied) {
                     await interaction.reply({
                         content: `❌ List "${listName}" not found.`,
-                        ephemeral: true
+                        flags: 64
                     });
                 } else {
                     await interaction.followUp({
                         content: `❌ List "${listName}" not found.`,
-                        ephemeral: true
+                        flags: 64
                     });
                 }
                 return;
@@ -109,77 +109,162 @@ export async function handleListButton(interaction: ButtonInteraction<CacheType>
 
             // Check if already acknowledged before responding
             if (!interaction.deferred && !interaction.replied) {
-                await interaction.reply({ embeds: [embed], components: [row], ephemeral: true });
+                await interaction.reply({ embeds: [embed], components: [row], flags: 64 });
             } else {
-                await interaction.followUp({ embeds: [embed], components: [row], ephemeral: true });
+                await interaction.followUp({ embeds: [embed], components: [row], flags: 64 });
             }
             return;
         }
 
-        // Clear completed items
-        if (customId.startsWith('list_clear_')) {
-            const listName = customId.replace('list_clear_', '');
+        // Mark item complete - show select menu
+        if (customId.startsWith('list_mark_complete_')) {
+            const listName = customId.replace('list_mark_complete_', '');
             const list = await List.findOne({
                 where: { user_id: userId, guild_id: guildId, name: listName }
             });
 
             if (!list) {
-                // Check if already acknowledged before responding
                 if (!interaction.deferred && !interaction.replied) {
                     await interaction.reply({
                         content: `❌ List "${listName}" not found.`,
-                        ephemeral: true
+                        flags: 64
                     });
                 } else {
                     await interaction.followUp({
                         content: `❌ List "${listName}" not found.`,
-                        ephemeral: true
+                        flags: 64
                     });
                 }
                 return;
             }
 
-            let cleared = 0;
-            if (list.items && list.items.length > 0) {
-                const beforeCount = list.items.length;
-                list.items = list.items.filter(item => !item.completed);
-                cleared = beforeCount - list.items.length;
-                await list.save();
+            // Get incomplete items
+            const incompleteItems = list.items.filter(item => !item.completed);
+
+            if (incompleteItems.length === 0) {
+                if (interaction.deferred) {
+                    await interaction.editReply({
+                        content: '✅ All items are already completed!'
+                    });
+                } else {
+                    await interaction.reply({
+                        content: '✅ All items are already completed!',
+                        flags: 64
+                    });
+                }
+                return;
             }
 
-            // Check if already acknowledged before responding
-            if (!interaction.deferred && !interaction.replied) {
-                await interaction.reply({
-                    content: `🧹 Cleared ${cleared} completed items from "${listName}".`,
-                    ephemeral: true
+            // Build select menu with incomplete items (max 25 options)
+            const options = incompleteItems.slice(0, 25).map((item, index) => ({
+                label: item.text.substring(0, 100), // Discord max label length
+                value: `${index}`,
+                description: `Mark "${item.text.substring(0, 50)}" as complete`
+            }));
+
+            const selectMenu = new ActionRowBuilder<StringSelectMenuBuilder>()
+                .addComponents(
+                    new StringSelectMenuBuilder()
+                        .setCustomId(`list_complete_select_${listName}`)
+                        .setPlaceholder('Select an item to mark as complete')
+                        .addOptions(options)
+                );
+
+            if (interaction.deferred) {
+                await interaction.editReply({
+                    content: `Select an item from "${listName}" to mark as complete:`,
+                    components: [selectMenu]
                 });
             } else {
-                await interaction.followUp({
-                    content: `🧹 Cleared ${cleared} completed items from "${listName}".`,
-                    ephemeral: true
+                await interaction.reply({
+                    content: `Select an item from "${listName}" to mark as complete:`,
+                    components: [selectMenu],
+                    flags: 64
                 });
             }
             return;
         }
 
-        // Refresh list view
-        if (customId.startsWith('list_refresh_')) {
-            const listName = customId.replace('list_refresh_', '');
+        // Clear completed items
+        if (customId.startsWith('list_clear_completed_')) {
+            const listName = customId.replace('list_clear_completed_', '');
+            const list = await (List as any).clearCompleted(userId, guildId, listName);
 
-            const command = interaction.client.commands.get('list');
-            if (command) {
-                const mockInteraction = {
-                    ...interaction,
-                    options: {
-                        getSubcommand: () => 'show',
-                        getString: (name: string) => {
-                            if (name === 'list_name') return listName;
-                            return null;
-                        }
-                    }
-                } as unknown as ChatInputCommandInteraction;
+            if (!list) {
+                if (interaction.deferred) {
+                    await interaction.editReply({
+                        content: `❌ List "${listName}" not found.`
+                    });
+                } else {
+                    await interaction.reply({
+                        content: `❌ List "${listName}" not found.`,
+                        flags: 64
+                    });
+                }
+                return;
+            }
 
-                await command.execute(mockInteraction);
+            if (interaction.deferred) {
+                await interaction.editReply({
+                    content: `🧹 Cleared all completed items from "${listName}".`
+                });
+            } else {
+                await interaction.reply({
+                    content: `🧹 Cleared all completed items from "${listName}".`,
+                    flags: 64
+                });
+            }
+            return;
+        }
+
+        // Delete list confirmation
+        if (customId.startsWith('list_delete_confirm_')) {
+            const listName = customId.replace('list_delete_confirm_', '');
+            const deleted = await (List as any).deleteList(userId, guildId, listName);
+
+            if (deleted) {
+                if (interaction.deferred) {
+                    await interaction.editReply({
+                        content: `🗑️ List "${listName}" has been deleted.`,
+                        components: []
+                    });
+                } else {
+                    await interaction.reply({
+                        content: `🗑️ List "${listName}" has been deleted.`,
+                        components: [],
+                        flags: 64
+                    });
+                }
+            } else {
+                if (interaction.deferred) {
+                    await interaction.editReply({
+                        content: `❌ List "${listName}" not found.`,
+                        components: []
+                    });
+                } else {
+                    await interaction.reply({
+                        content: `❌ List "${listName}" not found.`,
+                        components: [],
+                        flags: 64
+                    });
+                }
+            }
+            return;
+        }
+
+        // Cancel delete
+        if (customId === 'list_delete_cancel') {
+            if (interaction.deferred) {
+                await interaction.editReply({
+                    content: '❌ Delete cancelled.',
+                    components: []
+                });
+            } else {
+                await interaction.reply({
+                    content: '❌ Delete cancelled.',
+                    components: [],
+                    flags: 64
+                });
             }
             return;
         }

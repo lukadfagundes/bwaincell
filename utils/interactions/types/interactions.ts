@@ -33,7 +33,7 @@ export interface TaskOperations {
     completeTask(taskId: number, userId: string, guildId: string): Promise<TaskModel | null>;
     findOne(options: any): Promise<TaskModel | null>;
     createTask(userId: string, guildId: string, description: string, dueDate?: Date): Promise<TaskModel>;
-    editTask(taskId: number, userId: string, guildId: string, description: string): Promise<TaskModel | null>;
+    editTask(taskId: number, userId: string, guildId: string, description: string, newDueDate?: Date | null): Promise<TaskModel | null>;
     deleteTask(taskId: number, userId: string, guildId: string): Promise<boolean>;
 }
 
@@ -45,6 +45,8 @@ export interface ListOperations {
 
 export interface ReminderOperations {
     deleteReminder(reminderId: number, userId: string, guildId: string): Promise<boolean>;
+    createReminder(userId: string, guildId: string, channelId: string, message: string, time: string, frequency: string, dayOfWeek?: number): Promise<any>;
+    getUserReminders(userId: string, guildId: string): Promise<any[]>;
 }
 
 export interface DatabaseModels {

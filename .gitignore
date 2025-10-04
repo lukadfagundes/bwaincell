@@ -46,3 +46,10 @@ CLAUDE.md
 # Testing
 TESTING_CHECKLIST.md
 USER_GUIDE.md
+
+# Trinity Method deployment files
+.claude/
+trinity/
+trinity-hooks/
+CLAUDE.md
+TRINITY.md

@@ -82,15 +82,12 @@ export default {
         .addSubcommand(subcommand =>
             subcommand
                 .setName('number')
-                .setDescription('Generate a random number')
-                .addIntegerOption(option =>
-                    option.setName('min')
-                        .setDescription('Minimum value (default: 1)')
-                        .setRequired(false))
+                .setDescription('Generate a random number between 1 and max')
                 .addIntegerOption(option =>
                     option.setName('max')
-                        .setDescription('Maximum value (default: 100)')
-                        .setRequired(false)))
+                        .setDescription('Maximum value')
+                        .setRequired(true)
+                        .setMinValue(2)))
         .addSubcommand(subcommand =>
             subcommand
                 .setName('coin')
@@ -101,8 +98,8 @@ export default {
                 .setDescription('Roll dice')
                 .addIntegerOption(option =>
                     option.setName('sides')
-                        .setDescription('Number of sides (default: 6)')
-                        .setRequired(false)
+                        .setDescription('Number of sides')
+                        .setRequired(true)
                         .setMinValue(2)
                         .setMaxValue(100))
                 .addIntegerOption(option =>
@@ -252,20 +249,11 @@ export default {
                 }
 
                 case 'number': {
-                    const min = interaction.options.getInteger('min') || 1;
-                    const max = interaction.options.getInteger('max') || 100;
+                    const max = interaction.options.getInteger('max', true);
 
-                    if (min >= max) {
-                        await interaction.editReply({
-                            content: 'Minimum must be less than maximum.',
-
-                        });
-                        return;
-                    }
-
-                    const number = Math.floor(Math.random() * (max - min + 1)) + min;
+                    const number = Math.floor(Math.random() * max) + 1;
                     embed.setTitle('🔢 Random Number')
-                        .setDescription(`Range: ${min} - ${max}\n\nResult: **${number}**`);
+                        .setDescription(`Range: 1 - ${max}\n\nResult: **${number}**`);
 
                     await interaction.editReply({ embeds: [embed] });
                     break;
@@ -277,7 +265,16 @@ export default {
                     embed.setTitle('🪙 Coin Flip')
                         .setDescription(`${emoji} **${result}**`);
 
-                    await interaction.editReply({ embeds: [embed] });
+                    const row = new ActionRowBuilder<ButtonBuilder>()
+                        .addComponents(
+                            new ButtonBuilder()
+                                .setCustomId('random_coin_flip')
+                                .setLabel('Flip Again')
+                                .setStyle(ButtonStyle.Secondary)
+                                .setEmoji('🪙')
+                        );
+
+                    await interaction.editReply({ embeds: [embed], components: [row] });
                     break;
                 }
 

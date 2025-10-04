@@ -18,14 +18,16 @@ interface TaskCreationAttributes extends Optional<TaskAttributes, 'id' | 'create
 
 const TaskBase = Model as any;
 class Task extends TaskBase<TaskAttributes, TaskCreationAttributes> implements TaskAttributes {
-    public id!: number;
-    public description!: string;
-    public due_date?: Date | null;
-    public completed!: boolean;
-    public created_at!: Date;
-    public completed_at?: Date | null;
-    public user_id!: string;
-    public guild_id!: string;
+    // Sequelize automatically provides getters/setters for these fields
+    // Commenting out to prevent shadowing warnings
+    // public id!: number;
+    // public description!: string;
+    // public due_date?: Date | null;
+    // public completed!: boolean;
+    // public created_at!: Date;
+    // public completed_at?: Date | null;
+    // public user_id!: string;
+    // public guild_id!: string;
 
     static init(sequelize: Sequelize) {
         return Model.init.call(this as any, schemas.task, {
@@ -79,7 +81,7 @@ class Task extends TaskBase<TaskAttributes, TaskCreationAttributes> implements T
         return result > 0;
     }
 
-    static async editTask(taskId: number, userId: string, guildId: string, newDescription: string): Promise<Task | null> {
+    static async editTask(taskId: number, userId: string, guildId: string, newDescription: string, newDueDate?: Date | null): Promise<Task | null> {
         const task = await (this as any).findOne({
             where: { id: taskId, user_id: userId, guild_id: guildId }
         });
@@ -87,6 +89,9 @@ class Task extends TaskBase<TaskAttributes, TaskCreationAttributes> implements T
         if (!task) return null;
 
         task.description = newDescription;
+        if (newDueDate !== undefined) {
+            task.due_date = newDueDate;
+        }
         await task.save();
 
         return task;

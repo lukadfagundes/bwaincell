@@ -31,6 +31,23 @@
       "@database/*": ["database/*"]
     }
   },
-  "include": ["**/*"],
-  "exclude": ["node_modules", "dist", "coverage", "scripts", "eslint.config.js", ".eslintrc.js"]
+  "include": [
+    "src/**/*",
+    "commands/**/*",
+    "database/**/*",
+    "utils/**/*",
+    "shared/**/*",
+    "config/**/*"
+  ],
+  "exclude": [
+    "node_modules",
+    "dist",
+    "coverage",
+    "scripts",
+    "eslint.config.js",
+    ".eslintrc.js",
+    "**/*.test.ts",
+    "tests/**/*",
+    "*.js"
+  ]
 }

@@ -31,7 +31,7 @@ try {
 }
 
 // Create client variable but don't initialize in test mode
-let client: Client & { commands?: Collection<any, any> };
+let client: (Client & { commands?: Collection<any, any> }) | undefined;
 
 function createClient() {
     const newClient = new Client({
@@ -75,14 +75,14 @@ async function loadCommands() {
         const commandModule = command.default || command;
 
         if ('data' in commandModule && 'execute' in commandModule) {
-            client.commands!.set(commandModule.data.name, commandModule);
+            client!.commands!.set(commandModule.data.name, commandModule);
             logger.info(`Loaded command: ${commandModule.data.name}`);
         } else {
             logger.error(`Failed to load command from ${file}: Missing data or execute`);
         }
     }
 
-    logger.info(`Total commands loaded: ${client.commands.size}`);
+    logger.info(`Total commands loaded: ${client!.commands.size}`);
 }
 
 async function setupScheduler() {
@@ -108,16 +108,16 @@ function setupEventHandlers() {
         throw new Error('Client must be initialized before setting up event handlers');
     }
 
-    client.once('clientReady', () => {
-        logger.info(`Bot logged in as ${client.user?.tag}`);
+    client!.once('clientReady', () => {
+        logger.info(`Bot logged in as ${client!.user?.tag}`);
         logBotEvent('clientReady', {
-            username: client.user?.username,
-            id: client.user?.id,
-            guilds: client.guilds.cache.size
+            username: client!.user?.username,
+            id: client!.user?.id,
+            guilds: client!.guilds.cache.size
         });
     });
 
-    client.on('interactionCreate', async interaction => {
+    client!.on('interactionCreate', async interaction => {
     try {
         // Prevent duplicate processing
         if (processedInteractions.has(interaction.id)) {
@@ -131,13 +131,23 @@ function setupEventHandlers() {
 
         // IMMEDIATE ACKNOWLEDGMENT - FIRST LINE
         // This prevents 90% of "Unknown interaction" errors by acknowledging within 100ms
-        if (interaction.isChatInputCommand() || interaction.isButton() || interaction.isModalSubmit()) {
+        if (interaction.isChatInputCommand() || interaction.isButton() || interaction.isModalSubmit() || interaction.isStringSelectMenu()) {
             try {
                 if (!interaction.replied && !interaction.deferred) {
                     if (interaction.isButton() && interaction.customId) {
-                        // Button interactions need deferUpdate to avoid "Interaction failed" messages
+                        // Buttons that open modals should NOT be deferred (modals require non-deferred interactions)
+                        const modalButtons = ['list_add_', 'task_edit_', 'task_add_new', 'reminder_edit_', 'reminder_create_'];
+                        const opensModal = modalButtons.some(prefix => interaction.customId.startsWith(prefix) || interaction.customId === prefix);
+
+                        if (!opensModal) {
+                            // Button interactions need deferUpdate to avoid "Interaction failed" messages
+                            await interaction.deferUpdate();
+                            logger.debug('Button interaction deferred', { customId: interaction.customId });
+                        }
+                    } else if (interaction.isStringSelectMenu()) {
+                        // Select menus use deferUpdate to keep the message intact
                         await interaction.deferUpdate();
-                        logger.debug('Button interaction deferred', { customId: interaction.customId });
+                        logger.debug('Select menu interaction deferred', { customId: interaction.customId });
                     } else {
                         // Commands and modals use deferReply
                         await interaction.deferReply();
@@ -159,7 +169,7 @@ function setupEventHandlers() {
         }
 
         if (interaction.isChatInputCommand()) {
-            const command = client.commands.get(interaction.commandName);
+            const command = client!.commands.get(interaction.commandName);
 
             if (!command) {
                 logger.warn(`Unknown command: ${interaction.commandName}`, {
@@ -224,7 +234,7 @@ function setupEventHandlers() {
             await handleModalSubmit(interaction);
         } else if (interaction.isAutocomplete()) {
             // Autocomplete doesn't need deferral - handle directly
-            const command = client.commands.get(interaction.commandName);
+            const command = client!.commands.get(interaction.commandName);
 
             if (!command) {
                 logger.warn(`No command found for autocomplete: ${interaction.commandName}`);
@@ -255,17 +265,17 @@ function setupEventHandlers() {
     }
     });
 
-    client.on('error', error => {
+    client!.on('error', error => {
         logError(error, { context: 'Discord client error' });
     });
 
-    client.on('warn', info => {
+    client!.on('warn', info => {
         logger.warn('Discord client warning', { info });
     });
 }
 
 // Set up event handlers if client was created during module initialization
-if (client) {
+if (!isTestEnvironment && client) {
     setupEventHandlers();
 }
 
@@ -282,7 +292,7 @@ async function init() {
         await loadModels();
         await loadCommands();
         await setupScheduler();
-        await client.login(env.DISCORD_TOKEN);
+        await client!.login(env.DISCORD_TOKEN);
 
         logger.info('Bot initialization complete');
     } catch (error) {
@@ -300,13 +310,13 @@ async function init() {
 // Handle process termination
 process.on('SIGINT', () => {
     logger.info('Received SIGINT, shutting down gracefully...');
-    client.destroy();
+    client!.destroy();
     process.exit(0);
 });
 
 process.on('SIGTERM', () => {
     logger.info('Received SIGTERM, shutting down gracefully...');
-    client.destroy();
+    client!.destroy();
     process.exit(0);
 });
 

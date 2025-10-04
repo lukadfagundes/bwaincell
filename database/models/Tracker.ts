@@ -32,12 +32,14 @@ interface TrackerStats {
 
 const TrackerBase = Model as any;
 class Tracker extends TrackerBase<TrackerAttributes, TrackerCreationAttributes> implements TrackerAttributes {
-    public id!: number;
-    public metric!: string;
-    public value!: number;
-    public timestamp!: Date;
-    public user_id!: string;
-    public guild_id!: string;
+    // Sequelize automatically provides getters/setters for these fields
+    // Commenting out to prevent shadowing warnings
+    // public id!: number;
+    // public metric!: string;
+    // public value!: number;
+    // public timestamp!: Date;
+    // public user_id!: string;
+    // public guild_id!: string;
 
     static init(sequelize: Sequelize) {
         return Model.init.call(this as any, schemas.tracker, {
@@ -48,17 +50,29 @@ class Tracker extends TrackerBase<TrackerAttributes, TrackerCreationAttributes> 
         });
     }
 
+    // Helper to find actual metric name case-insensitively
+    private static async findActualMetric(userId: string, guildId: string, metric: string): Promise<string | null> {
+        const metrics = await this.getMetrics(userId, guildId);
+        return metrics.find(m => m.toLowerCase() === metric.toLowerCase()) || null;
+    }
+
     static async addDataPoint(userId: string, guildId: string, metric: string, value: number): Promise<Tracker> {
+        // Use existing metric case if it exists, otherwise use provided case
+        const actualMetric = await this.findActualMetric(userId, guildId, metric) || metric;
+
         return await (this as any).create({
             user_id: userId,
             guild_id: guildId,
-            metric,
+            metric: actualMetric,
             value
         });
     }
 
     static async getStats(userId: string, guildId: string, metric: string, period: TrackerPeriod = 'all'): Promise<TrackerStats | null> {
-        const where: any = { user_id: userId, guild_id: guildId, metric };
+        const actualMetric = await this.findActualMetric(userId, guildId, metric);
+        if (!actualMetric) return null;
+
+        const where: any = { user_id: userId, guild_id: guildId, metric: actualMetric };
 
         if (period !== 'all') {
             const now = new Date();
@@ -100,7 +114,7 @@ class Tracker extends TrackerBase<TrackerAttributes, TrackerCreationAttributes> 
         const max = Math.max(...values);
 
         return {
-            metric,
+            metric: actualMetric,
             period,
             count: data.length,
             sum: sum.toFixed(2),
@@ -124,16 +138,22 @@ class Tracker extends TrackerBase<TrackerAttributes, TrackerCreationAttributes> 
     }
 
     static async deleteMetric(userId: string, guildId: string, metric: string): Promise<boolean> {
+        const actualMetric = await this.findActualMetric(userId, guildId, metric);
+        if (!actualMetric) return false;
+
         const result = await (this as any).destroy({
-            where: { user_id: userId, guild_id: guildId, metric }
+            where: { user_id: userId, guild_id: guildId, metric: actualMetric }
         });
 
         return result > 0;
     }
 
     static async getRecentData(userId: string, guildId: string, metric: string, limit: number = 10): Promise<Tracker[]> {
+        const actualMetric = await this.findActualMetric(userId, guildId, metric);
+        if (!actualMetric) return [];
+
         return await (this as any).findAll({
-            where: { user_id: userId, guild_id: guildId, metric },
+            where: { user_id: userId, guild_id: guildId, metric: actualMetric },
             order: [['timestamp', 'DESC']],
             limit
         });

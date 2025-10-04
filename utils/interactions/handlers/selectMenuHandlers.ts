@@ -17,7 +17,11 @@ export async function handleSelectMenuInteraction(interaction: StringSelectMenuI
 
     if (!guildId) {
         logger.warn('Select menu interaction attempted outside of guild', { userId, customId });
-        await interaction.followUp({ content: '❌ This command can only be used in a server.', ephemeral: true });
+        if (interaction.deferred) {
+            await interaction.editReply({ content: '❌ This command can only be used in a server.' });
+        } else {
+            await interaction.reply({ content: '❌ This command can only be used in a server.', flags: 64 });
+        }
         return;
     }
 
@@ -32,9 +36,8 @@ export async function handleSelectMenuInteraction(interaction: StringSelectMenuI
             });
 
             if (!task) {
-                await interaction.followUp({
-                    content: '❌ Task not found.',
-                    ephemeral: true
+                await interaction.editReply({
+                    content: '❌ Task not found.'
                 });
                 return;
             }
@@ -79,10 +82,9 @@ export async function handleSelectMenuInteraction(interaction: StringSelectMenuI
                         .setEmoji('🗑️')
                 );
 
-            await interaction.followUp({
+            await interaction.editReply({
                 embeds: [embed],
-                components: [row],
-                ephemeral: true
+                components: [row]
             });
             return;
         }
@@ -92,14 +94,12 @@ export async function handleSelectMenuInteraction(interaction: StringSelectMenuI
             const taskId = parseInt(interaction.values[0]);
             const task = await Task.completeTask(taskId, userId, guildId);
             if (task) {
-                await interaction.followUp({
-                    content: `✅ Task #${taskId}: "${task.description}" marked as complete!`,
-                    ephemeral: true
+                await interaction.editReply({
+                    content: `✅ Task #${taskId}: "${task.description}" marked as complete!`
                 });
             } else {
-                await interaction.followUp({
-                    content: `❌ Task #${taskId} not found.`,
-                    ephemeral: true
+                await interaction.editReply({
+                    content: `❌ Task #${taskId} not found.`
                 });
             }
             return;
@@ -110,30 +110,129 @@ export async function handleSelectMenuInteraction(interaction: StringSelectMenuI
             const reminderId = parseInt(interaction.values[0]);
             const deleted = await Reminder.deleteReminder(reminderId, userId, guildId);
             if (deleted) {
-                await interaction.followUp({
-                    content: `🗑️ Reminder #${reminderId} has been cancelled.`,
-                    ephemeral: true
+                await interaction.editReply({
+                    content: `🗑️ Reminder #${reminderId} has been cancelled.`
                 });
             } else {
-                await interaction.followUp({
-                    content: `❌ Reminder #${reminderId} not found.`,
-                    ephemeral: true
+                await interaction.editReply({
+                    content: `❌ Reminder #${reminderId} not found.`
                 });
             }
             return;
         }
 
-        // List quick select
-        if (customId === 'list_quick_select') {
-            const listId = parseInt(interaction.values[0]);
+        // List complete select - mark item as complete
+        if (customId.startsWith('list_complete_select_')) {
+            const listName = customId.replace('list_complete_select_', '');
+            const selectedIndex = parseInt(interaction.values[0]);
+
             const list = await List.findOne({
-                where: { id: listId, user_id: userId, guild_id: guildId }
+                where: { user_id: userId, guild_id: guildId, name: listName }
             });
 
             if (!list) {
-                await interaction.followUp({
-                    content: '❌ List not found.',
-                    ephemeral: true
+                await interaction.editReply({
+                    content: `❌ List "${listName}" not found.`,
+                    components: []
+                });
+                return;
+            }
+
+            const incompleteItems = list.items.filter(item => !item.completed);
+
+            if (selectedIndex >= incompleteItems.length) {
+                await interaction.editReply({
+                    content: '❌ Selected item not found.',
+                    components: []
+                });
+                return;
+            }
+
+            const selectedItem = incompleteItems[selectedIndex];
+
+            // Toggle the item by finding it in the full list
+            const result = await (List as any).toggleItem(userId, guildId, listName, selectedItem.text);
+
+            if (result) {
+                // Refresh the list to show updated status
+                const updatedList = await List.findOne({
+                    where: { user_id: userId, guild_id: guildId, name: listName }
+                });
+
+                if (!updatedList) {
+                    await interaction.editReply({
+                        content: `✅ Marked "${selectedItem.text}" as complete!`,
+                        components: []
+                    });
+                    return;
+                }
+
+                const embed = new EmbedBuilder()
+                    .setTitle(`List: ${listName}`)
+                    .setColor(0x0099FF)
+                    .setTimestamp();
+
+                if (updatedList.items.length === 0) {
+                    embed.setDescription('This list is empty.');
+                } else {
+                    const itemsList = updatedList.items.map((item, index) => {
+                        const status = item.completed ? '✅' : '⬜';
+                        return `${status} ${index + 1}. ${item.text}`;
+                    }).join('\n');
+
+                    embed.setDescription(itemsList);
+
+                    const completed = updatedList.items.filter(item => item.completed).length;
+                    embed.setFooter({ text: `${completed}/${updatedList.items.length} completed` });
+                }
+
+                const row = new ActionRowBuilder<ButtonBuilder>()
+                    .addComponents(
+                        new ButtonBuilder()
+                            .setCustomId(`list_add_${listName}`)
+                            .setLabel('Add Item')
+                            .setStyle(ButtonStyle.Primary)
+                            .setEmoji('➕'),
+                        new ButtonBuilder()
+                            .setCustomId(`list_mark_complete_${listName}`)
+                            .setLabel('Mark Complete')
+                            .setStyle(ButtonStyle.Success)
+                            .setEmoji('✅')
+                            .setDisabled(updatedList.items.length === 0 || updatedList.items.every(item => item.completed)),
+                        new ButtonBuilder()
+                            .setCustomId(`list_clear_completed_${listName}`)
+                            .setLabel('Clear Completed')
+                            .setStyle(ButtonStyle.Secondary)
+                            .setEmoji('🧹')
+                            .setDisabled(!updatedList.items || !updatedList.items.some(item => item.completed))
+                    );
+
+                await interaction.editReply({
+                    content: `✅ Marked "${selectedItem.text}" as complete!`,
+                    embeds: [embed],
+                    components: [row]
+                });
+            } else {
+                await interaction.editReply({
+                    content: '❌ Failed to mark item as complete.',
+                    components: []
+                });
+            }
+            return;
+        }
+
+        // List select view
+        if (customId === 'list_select_view') {
+            // Value format: "listName_index"
+            const value = interaction.values[0];
+            const listName = value.substring(0, value.lastIndexOf('_'));
+            const list = await List.findOne({
+                where: { user_id: userId, guild_id: guildId, name: listName }
+            });
+
+            if (!list) {
+                await interaction.editReply({
+                    content: '❌ List not found.'
                 });
                 return;
             }
@@ -176,10 +275,68 @@ export async function handleSelectMenuInteraction(interaction: StringSelectMenuI
                         .setDisabled(!list.items || !list.items.some(i => i.completed))
                 );
 
-            await interaction.followUp({
+            await interaction.editReply({
                 embeds: [embed],
-                components: [row],
-                ephemeral: true
+                components: [row]
+            });
+            return;
+        }
+
+        // List quick select
+        if (customId === 'list_quick_select') {
+            const listId = parseInt(interaction.values[0]);
+            const list = await List.findOne({
+                where: { id: listId, user_id: userId, guild_id: guildId }
+            });
+
+            if (!list) {
+                await interaction.editReply({
+                    content: '❌ List not found.'
+                });
+                return;
+            }
+
+            const embed = new EmbedBuilder()
+                .setTitle(`📝 ${list.name}`)
+                .setColor(0x0099FF)
+                .setTimestamp()
+                .setFooter({ text: `${list.items ? list.items.length : 0} items total` });
+
+            if (!list.items || list.items.length === 0) {
+                embed.setDescription('This list is empty. Add some items to get started!');
+            } else {
+                const itemList = list.items.slice(0, 20).map(item => {
+                    const checkbox = item.completed ? '☑️' : '⬜';
+                    return `${checkbox} ${item.text}`;
+                }).join('\n');
+                embed.setDescription(itemList);
+
+                if (list.items.length > 20) {
+                    embed.addFields({
+                        name: '📌 Note',
+                        value: `Showing first 20 of ${list.items.length} items`
+                    });
+                }
+            }
+
+            const row = new ActionRowBuilder<ButtonBuilder>()
+                .addComponents(
+                    new ButtonBuilder()
+                        .setCustomId(`list_add_${list.name}`)
+                        .setLabel('Add Item')
+                        .setStyle(ButtonStyle.Primary)
+                        .setEmoji('➕'),
+                    new ButtonBuilder()
+                        .setCustomId(`list_clear_${list.name}`)
+                        .setLabel('Clear Completed')
+                        .setStyle(ButtonStyle.Secondary)
+                        .setEmoji('🧹')
+                        .setDisabled(!list.items || !list.items.some(i => i.completed))
+                );
+
+            await interaction.editReply({
+                embeds: [embed],
+                components: [row]
             });
             return;
         }
