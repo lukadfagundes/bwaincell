@@ -1,25 +1,22 @@
-# fly.toml app configuration file
+# fly.toml app configuration file generated for bwaincell on 2025-10-04T11:32:59Z
+#
 # See https://fly.io/docs/reference/configuration/ for information about how to use this file.
+#
 
-app = "bwaincell"
-primary_region = "iad"
-kill_signal = "SIGINT"
-kill_timeout = "5s"
+app = 'bwaincell'
+primary_region = 'sea'
 
 [build]
 
-[env]
-  NODE_ENV = "production"
+[http_service]
+  internal_port = 3000
+  force_https = true
+  auto_stop_machines = 'stop'
+  auto_start_machines = true
+  min_machines_running = 0
+  processes = ['app']
 
 [[vm]]
-  cpu_kind = "shared"
+  cpu_kind = 'shared'
   cpus = 1
-  memory_mb = 256
-
-# Critical for Discord bots: prevent auto-shutdown
-[[services]]
-  internal_port = 8080
-  protocol = "tcp"
-  auto_start_machines = false
-  auto_stop_machines = false
-  min_machines_running = 1
+  memory_mb = 1024
