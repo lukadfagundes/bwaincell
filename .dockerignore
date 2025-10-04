@@ -43,5 +43,5 @@ Thumbs.db
 # Development files
 .eslintrc.*
 .prettierrc
-tsconfig.json
 jest.config.js
+# Note: tsconfig.json is needed for build
