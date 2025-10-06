@@ -45,7 +45,7 @@
     "node-cron": "^4.2.1",
     "sequelize": "^6.37.7",
     "sqlite3": "^5.1.7",
-    "winston": "^3.17.0"
+    "winston": "^3.18.3"
   },
   "devDependencies": {
     "@discordjs/builders": "^1.11.3",
