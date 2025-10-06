@@ -1,19 +1,19 @@
-# fly.toml app configuration file generated for bwaincell on 2025-10-04T11:32:59Z
+# fly.toml app configuration file generated for bwaincell on 2025-10-06T05:33:23Z
 #
 # See https://fly.io/docs/reference/configuration/ for information about how to use this file.
 #
 
 app = 'bwaincell'
-primary_region = 'iad'
+primary_region = 'sea'
 
 [build]
 
 [http_service]
-  internal_port = 3000
+  internal_port = 8080
   force_https = true
-  auto_stop_machines = 'off'
-  auto_start_machines = false
-  min_machines_running = 1
+  auto_stop_machines = 'stop'
+  auto_start_machines = true
+  min_machines_running = 0
   processes = ['app']
 
 [[vm]]
