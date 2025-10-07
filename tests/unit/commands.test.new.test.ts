@@ -2,111 +2,21 @@
 // Set up mocks BEFORE any imports that might use them
 
 // Create mock functions that we'll use throughout the tests
-const mockTaskCreate = jest.fn();
-const mockTaskFindAll = jest.fn();
-const mockTaskFindOne = jest.fn();
-const mockTaskUpdate = jest.fn();
-const mockTaskDestroy = jest.fn();
-
-const mockListCreate = jest.fn();
-const mockListFindAll = jest.fn();
-const mockListFindOne = jest.fn();
-const mockListUpdate = jest.fn();
-const mockListDestroy = jest.fn();
-
-const mockNoteCreate = jest.fn();
-const mockNoteFindAll = jest.fn();
-const mockNoteFindOne = jest.fn();
-const mockNoteUpdate = jest.fn();
-const mockNoteDestroy = jest.fn();
-
-const mockReminderCreate = jest.fn();
-const mockReminderFindAll = jest.fn();
-const mockReminderFindOne = jest.fn();
-const mockReminderSchedule = jest.fn();
-
-const mockBudgetCreate = jest.fn();
-const mockBudgetFindAll = jest.fn();
-const mockBudgetFindOne = jest.fn();
-const mockBudgetSum = jest.fn();
+const mockTaskCreateTask = jest.fn();
+const mockTaskGetUserTasks = jest.fn();
+const mockTaskCompleteTask = jest.fn();
+const mockTaskDeleteTask = jest.fn();
 
 // Mock the database models before any command imports them
 jest.mock('../../database/models/Task', () => {
-  const mockTaskModel = {
-    create: mockTaskCreate,
-    findAll: mockTaskFindAll,
-    findOne: mockTaskFindOne,
-    update: mockTaskUpdate,
-    destroy: mockTaskDestroy,
-  };
-
-  // Handle both default export and direct export
   return {
     __esModule: true,
-    default: mockTaskModel,
-    ...mockTaskModel
-  };
-});
-
-jest.mock('../../database/models/List', () => {
-  const mockListModel = {
-    create: mockListCreate,
-    findAll: mockListFindAll,
-    findOne: mockListFindOne,
-    update: mockListUpdate,
-    destroy: mockListDestroy,
-  };
-
-  return {
-    __esModule: true,
-    default: mockListModel,
-    ...mockListModel
-  };
-});
-
-jest.mock('../../database/models/Note', () => {
-  const mockNoteModel = {
-    create: mockNoteCreate,
-    findAll: mockNoteFindAll,
-    findOne: mockNoteFindOne,
-    update: mockNoteUpdate,
-    destroy: mockNoteDestroy,
-  };
-
-  return {
-    __esModule: true,
-    default: mockNoteModel,
-    ...mockNoteModel
-  };
-});
-
-jest.mock('../../database/models/Reminder', () => {
-  const mockReminderModel = {
-    create: mockReminderCreate,
-    findAll: mockReminderFindAll,
-    findOne: mockReminderFindOne,
-    schedule: mockReminderSchedule,
-  };
-
-  return {
-    __esModule: true,
-    default: mockReminderModel,
-    ...mockReminderModel
-  };
-});
-
-jest.mock('../../database/models/Budget', () => {
-  const mockBudgetModel = {
-    create: mockBudgetCreate,
-    findAll: mockBudgetFindAll,
-    findOne: mockBudgetFindOne,
-    sum: mockBudgetSum,
-  };
-
-  return {
-    __esModule: true,
-    default: mockBudgetModel,
-    ...mockBudgetModel
+    default: {
+      createTask: mockTaskCreateTask,
+      getUserTasks: mockTaskGetUserTasks,
+      completeTask: mockTaskCompleteTask,
+      deleteTask: mockTaskDeleteTask,
+    },
   };
 });
 
@@ -130,22 +40,22 @@ jest.mock('../../shared/utils/logger', () => ({
 
 // Create mock interaction object
 const createMockInteraction = () => ({
-    user: { id: 'user-1', username: 'TestUser' },
-    guild: { id: 'guild-1' },
-    guildId: 'guild-1',
-    options: {
-        getSubcommand: jest.fn(),
-        getString: jest.fn(),
-        getInteger: jest.fn(),
-        getBoolean: jest.fn(),
-        getNumber: jest.fn()
-    },
-    reply: jest.fn(),
-    deferReply: jest.fn(),
-    editReply: jest.fn(),
-    followUp: jest.fn(),
-    replied: false,
-    deferred: false
+  user: { id: 'test-user-123', username: 'TestUser' },
+  guild: { id: 'test-guild-456' },
+  guildId: 'test-guild-456',
+  options: {
+    getSubcommand: jest.fn(),
+    getString: jest.fn(),
+    getInteger: jest.fn(),
+    getBoolean: jest.fn(),
+    getNumber: jest.fn(),
+  },
+  reply: jest.fn(),
+  deferReply: jest.fn(),
+  editReply: jest.fn(),
+  followUp: jest.fn(),
+  replied: false,
+  deferred: true,
 });
 
 // Now require the commands AFTER the mocks are set up
@@ -162,14 +72,41 @@ describe('Discord Commands', () => {
     mockInteraction = createMockInteraction();
 
     // Reset mock return values
-    mockTaskCreate.mockResolvedValue({ id: 1, task: 'Test task', done: false });
-    mockTaskFindAll.mockResolvedValue([
-        { id: 1, task: 'Task 1', done: false },
-        { id: 2, task: 'Task 2', done: true },
+    mockTaskCreateTask.mockResolvedValue({
+      id: 1,
+      description: 'Test task',
+      completed: false,
+      user_id: 'test-user-123',
+      guild_id: 'test-guild-456',
+      created_at: new Date(),
+    });
+    mockTaskGetUserTasks.mockResolvedValue([
+      {
+        id: 1,
+        description: 'Task 1',
+        completed: false,
+        user_id: 'test-user-123',
+        guild_id: 'test-guild-456',
+        created_at: new Date(),
+      },
+      {
+        id: 2,
+        description: 'Task 2',
+        completed: true,
+        user_id: 'test-user-123',
+        guild_id: 'test-guild-456',
+        created_at: new Date(),
+      },
     ]);
-    mockTaskFindOne.mockResolvedValue({ id: 1, task: 'Test', done: false });
-    mockTaskUpdate.mockResolvedValue([1]);
-    mockTaskDestroy.mockResolvedValue(1);
+    mockTaskCompleteTask.mockResolvedValue({
+      id: 1,
+      description: 'Test',
+      completed: true,
+      user_id: 'test-user-123',
+      guild_id: 'test-guild-456',
+      created_at: new Date(),
+    });
+    mockTaskDeleteTask.mockResolvedValue(true);
   });
 
   describe('Task Command', () => {
@@ -182,20 +119,25 @@ describe('Discord Commands', () => {
 
     it('should add a new task', async () => {
       mockInteraction.options.getSubcommand.mockReturnValue('add');
-      mockInteraction.options.getString.mockReturnValue('Test task description');
+      mockInteraction.options.getString.mockImplementation((name) => {
+        if (name === 'description') return 'Test task description';
+        return null;
+      });
 
       await taskCommand.execute(mockInteraction);
 
-      expect(mockTaskCreate).toHaveBeenCalledWith(expect.objectContaining({
-        task: 'Test task description',
-        userId: 'user-1',
-        guildId: 'guild-1',
-        done: false,
-      }));
+      expect(mockTaskCreateTask).toHaveBeenCalledWith(
+        'test-user-123',
+        'test-guild-456',
+        'Test task description',
+        undefined // When no date/time is provided, it's undefined
+      );
 
-      expect(mockInteraction.reply).toHaveBeenCalledWith(expect.objectContaining({
-        embeds: expect.any(Array),
-      }));
+      expect(mockInteraction.editReply).toHaveBeenCalledWith(
+        expect.objectContaining({
+          embeds: expect.any(Array),
+        })
+      );
     });
 
     it('should list all tasks', async () => {
@@ -204,14 +146,9 @@ describe('Discord Commands', () => {
 
       await taskCommand.execute(mockInteraction);
 
-      expect(mockTaskFindAll).toHaveBeenCalledWith({
-        where: {
-          userId: 'user-1',
-          guildId: 'guild-1',
-        },
-      });
+      expect(mockTaskGetUserTasks).toHaveBeenCalledWith('test-user-123', 'test-guild-456', 'all');
 
-      expect(mockInteraction.reply).toHaveBeenCalled();
+      expect(mockInteraction.editReply).toHaveBeenCalled();
     });
 
     it('should mark task as done', async () => {
@@ -220,30 +157,27 @@ describe('Discord Commands', () => {
 
       await taskCommand.execute(mockInteraction);
 
-      expect(mockTaskUpdate).toHaveBeenCalledWith(
-        { done: true },
-        {
-          where: {
-            id: 1,
-            userId: 'user-1',
-            guildId: 'guild-1',
-          },
-        }
-      );
+      expect(mockTaskCompleteTask).toHaveBeenCalledWith(1, 'test-user-123', 'test-guild-456');
 
-      expect(mockInteraction.reply).toHaveBeenCalled();
+      expect(mockInteraction.editReply).toHaveBeenCalled();
     });
 
     it('should handle errors gracefully', async () => {
       mockInteraction.options.getSubcommand.mockReturnValue('add');
-      mockTaskCreate.mockRejectedValue(new Error('Database error'));
+      mockInteraction.options.getString.mockImplementation((name) => {
+        if (name === 'description') return 'Test task description';
+        return null;
+      });
+      mockTaskCreateTask.mockRejectedValue(new Error('Database error'));
 
       await taskCommand.execute(mockInteraction);
 
-      expect(mockInteraction.reply).toHaveBeenCalledWith(expect.objectContaining({
-        content: expect.stringContaining('error'),
-        ephemeral: true,
-      }));
+      // Since interaction is deferred, it uses followUp for errors
+      expect(mockInteraction.followUp).toHaveBeenCalledWith(
+        expect.objectContaining({
+          content: expect.stringContaining('error'),
+        })
+      );
     });
   });
 });

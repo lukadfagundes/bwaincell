@@ -30,7 +30,6 @@ jobs:
 
     - name: Run linting
       run: npm run lint
-      continue-on-error: true
 
     - name: Run tests
       run: npm test
@@ -73,7 +72,6 @@ jobs:
 
     - name: Build project
       run: npm run build
-      continue-on-error: true
 
     - name: Archive build artifacts
       uses: actions/upload-artifact@v3
