@@ -15,41 +15,41 @@
         }
     </style>
 </head>
-
+    
 <body>
 <div class='wrapper'>
     <div class='pad1'>
         <h1><a href="../../../index.html">All files</a> / <a href="index.html">utils/interactions/middleware</a> loggingMiddleware.ts</h1>
         <div class='clearfix'>
-
+            
             <div class='fl pad1y space-right2'>
-                <span class="strong">18.51% </span>
+                <span class="strong">51.85% </span>
                 <span class="quiet">Statements</span>
-                <span class='fraction'>5/27</span>
+                <span class='fraction'>14/27</span>
             </div>
-
-
+        
+            
             <div class='fl pad1y space-right2'>
-                <span class="strong">0% </span>
+                <span class="strong">20% </span>
                 <span class="quiet">Branches</span>
-                <span class='fraction'>0/20</span>
+                <span class='fraction'>4/20</span>
             </div>
-
-
+        
+            
             <div class='fl pad1y space-right2'>
                 <span class="strong">100% </span>
                 <span class="quiet">Functions</span>
                 <span class='fraction'>2/2</span>
             </div>
-
-
+        
+            
             <div class='fl pad1y space-right2'>
-                <span class="strong">22.72% </span>
+                <span class="strong">59.09% </span>
                 <span class="quiet">Lines</span>
-                <span class='fraction'>5/22</span>
+                <span class='fraction'>13/22</span>
             </div>
-
-
+        
+            
         </div>
         <p class="quiet">
             Press <em>n</em> or <em>j</em> to go to the next uncovered block, <em>b</em>, <em>p</em> or <em>k</em> for the previous block.
@@ -61,7 +61,7 @@
             </div>
         </template>
     </div>
-    <div class='status-line low'></div>
+    <div class='status-line high'></div>
     <pre><table class="coverage">
 <tr><td class="line-count quiet"><a name='L1'></a><a href='#L1'>1</a>
 <a name='L2'></a><a href='#L2'>2</a>
@@ -161,24 +161,10 @@
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-yes">12x</span>
 <span class="cline-any cline-yes">12x</span>
-<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-yes">12x</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-yes">12x</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
@@ -186,11 +172,25 @@
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">12x</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-yes">12x</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-yes">12x</span>
+<span class="cline-any cline-yes">12x</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">12x</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">12x</span>
 <span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
@@ -243,24 +243,24 @@ export const loggingMiddleware: InteractionMiddleware = {
     execute: async (context: MiddlewareContext, next: () =&gt; Promise&lt;void&gt;) =&gt; {
         const { interaction, userId, guildId } = context;
         const interactionType = getInteractionType(interaction);
-        const startTime = <span class="cstat-no" title="statement not covered" >Date.now();</span>
+        const startTime = Date.now();
 &nbsp;
         // Log interaction start
-<span class="cstat-no" title="statement not covered" >        logger.info('Interaction started', {</span>
+        logger.info('Interaction started', {
             type: interactionType,
             userId,
             guildId,
-            customId: 'customId' in interaction ? interaction.customId : undefined,
-            commandName: 'commandName' in interaction ? interaction.commandName : undefined
+            customId: 'customId' in interaction ? interaction.customId : <span class="branch-1 cbranch-no" title="branch not covered" >undefined,</span>
+            commandName: 'commandName' in interaction ? <span class="branch-0 cbranch-no" title="branch not covered" >interaction.commandName </span>: undefined
         });
 &nbsp;
-<span class="cstat-no" title="statement not covered" >        try {</span>
+        try {
             // Execute next middleware/handler
-<span class="cstat-no" title="statement not covered" >            await next();</span>
+            await next();
 &nbsp;
             // Log successful completion
-            const duration = <span class="cstat-no" title="statement not covered" >Date.now() - startTime;</span>
-<span class="cstat-no" title="statement not covered" >            logger.info('Interaction completed', {</span>
+            const duration = Date.now() - startTime;
+            logger.info('Interaction completed', {
                 type: interactionType,
                 userId,
                 guildId,
@@ -269,10 +269,10 @@ export const loggingMiddleware: InteractionMiddleware = {
             });
 &nbsp;
             // Store performance metric in context
-<span class="cstat-no" title="statement not covered" >            context.metadata.duration = duration;</span>
+            context.metadata.duration = duration;
 &nbsp;
             // Warn if interaction took too long
-<span class="cstat-no" title="statement not covered" >            if (duration &gt; 2000) {</span>
+            <span class="missing-if-branch" title="if path not taken" >I</span>if (duration &gt; 2000) {
 <span class="cstat-no" title="statement not covered" >                logger.warn('Slow interaction detected', {</span>
                     type: interactionType,
                     duration: `${duration}ms`,
@@ -302,7 +302,7 @@ export const loggingMiddleware: InteractionMiddleware = {
  * Helper function to determine interaction type
  */
 function getInteractionType(interaction: any): string {
-    if (interaction.isButton()) <span class="cstat-no" title="statement not covered" >return 'button';</span>
+    <span class="missing-if-branch" title="else path not taken" >E</span>if (interaction.isButton()) return 'button';
 <span class="cstat-no" title="statement not covered" >    if (interaction.isStringSelectMenu()) <span class="cstat-no" title="statement not covered" >return 'selectMenu';</span></span>
 <span class="cstat-no" title="statement not covered" >    if (interaction.isModalSubmit()) <span class="cstat-no" title="statement not covered" >return 'modal';</span></span>
 <span class="cstat-no" title="statement not covered" >    if (interaction.isCommand()) <span class="cstat-no" title="statement not covered" >return 'command';</span></span>
@@ -316,7 +316,7 @@ function getInteractionType(interaction: any): string {
             <div class='footer quiet pad2 space-top1 center small'>
                 Code coverage generated by
                 <a href="https://istanbul.js.org/" target="_blank" rel="noopener noreferrer">istanbul</a>
-                at 2025-09-29T00:07:10.476Z
+                at 2025-10-07T15:48:52.918Z
             </div>
         <script src="../../../prettify.js"></script>
         <script>
@@ -328,3 +328,4 @@ function getInteractionType(interaction: any): string {
         <script src="../../../block-navigation.js"></script>
     </body>
 </html>
+    

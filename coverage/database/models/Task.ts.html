@@ -15,41 +15,41 @@
         }
     </style>
 </head>
-
+    
 <body>
 <div class='wrapper'>
     <div class='pad1'>
         <h1><a href="../../index.html">All files</a> / <a href="index.html">database/models</a> Task.ts</h1>
         <div class='clearfix'>
-
+            
             <div class='fl pad1y space-right2'>
-                <span class="strong">14.81% </span>
+                <span class="strong">17.24% </span>
                 <span class="quiet">Statements</span>
-                <span class='fraction'>4/27</span>
+                <span class='fraction'>5/29</span>
             </div>
-
-
+        
+            
             <div class='fl pad1y space-right2'>
                 <span class="strong">0% </span>
                 <span class="quiet">Branches</span>
-                <span class='fraction'>0/10</span>
+                <span class='fraction'>0/12</span>
             </div>
-
-
+        
+            
             <div class='fl pad1y space-right2'>
-                <span class="strong">0% </span>
+                <span class="strong">16.66% </span>
                 <span class="quiet">Functions</span>
-                <span class='fraction'>0/6</span>
+                <span class='fraction'>1/6</span>
             </div>
-
-
+        
+            
             <div class='fl pad1y space-right2'>
-                <span class="strong">16% </span>
+                <span class="strong">18.51% </span>
                 <span class="quiet">Lines</span>
-                <span class='fraction'>4/25</span>
+                <span class='fraction'>5/27</span>
             </div>
-
-
+        
+            
         </div>
         <p class="quiet">
             Press <em>n</em> or <em>j</em> to go to the next uncovered block, <em>b</em>, <em>p</em> or <em>k</em> for the previous block.
@@ -159,7 +159,12 @@
 <a name='L94'></a><a href='#L94'>94</a>
 <a name='L95'></a><a href='#L95'>95</a>
 <a name='L96'></a><a href='#L96'>96</a>
-<a name='L97'></a><a href='#L97'>97</a></td><td class="line-coverage quiet"><span class="cline-any cline-yes">5x</span>
+<a name='L97'></a><a href='#L97'>97</a>
+<a name='L98'></a><a href='#L98'>98</a>
+<a name='L99'></a><a href='#L99'>99</a>
+<a name='L100'></a><a href='#L100'>100</a>
+<a name='L101'></a><a href='#L101'>101</a>
+<a name='L102'></a><a href='#L102'>102</a></td><td class="line-coverage quiet"><span class="cline-any cline-yes">5x</span>
 <span class="cline-any cline-yes">5x</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
@@ -189,7 +194,9 @@
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">2x</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
@@ -248,6 +255,9 @@
 <span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-no">&nbsp;</span>
@@ -275,17 +285,19 @@ interface TaskCreationAttributes extends Optional&lt;TaskAttributes, 'id' | 'cre
 &nbsp;
 const TaskBase = Model as any;
 class Task extends TaskBase&lt;TaskAttributes, TaskCreationAttributes&gt; implements TaskAttributes {
-    public id!: number;
-    public description!: string;
-    public due_date?: Date | null;
-    public completed!: boolean;
-    public created_at!: Date;
-    public completed_at?: Date | null;
-    public user_id!: string;
-    public guild_id!: string;
+    // Sequelize automatically provides getters/setters for these fields
+    // Commenting out to prevent shadowing warnings
+    // public id!: number;
+    // public description!: string;
+    // public due_date?: Date | null;
+    // public completed!: boolean;
+    // public created_at!: Date;
+    // public completed_at?: Date | null;
+    // public user_id!: string;
+    // public guild_id!: string;
 &nbsp;
-<span class="fstat-no" title="function not covered" >    static </span>init(sequelize: Sequelize) {
-<span class="cstat-no" title="statement not covered" >        return Model.init.call(this as any, schemas.task, {</span>
+    static init(sequelize: Sequelize) {
+        return Model.init.call(this as any, schemas.task, {
             sequelize,
             modelName: 'Task',
             tableName: 'tasks',
@@ -336,7 +348,7 @@ class Task extends TaskBase&lt;TaskAttributes, TaskCreationAttributes&gt; implem
 <span class="cstat-no" title="statement not covered" >        return result &gt; 0;</span>
     }
 &nbsp;
-<span class="fstat-no" title="function not covered" >    static </span>async editTask(taskId: number, userId: string, guildId: string, newDescription: string): Promise&lt;Task | null&gt; {
+<span class="fstat-no" title="function not covered" >    static </span>async editTask(taskId: number, userId: string, guildId: string, newDescription: string, newDueDate?: Date | null): Promise&lt;Task | null&gt; {
         const task = <span class="cstat-no" title="statement not covered" >await (this as any).findOne({</span>
             where: { id: taskId, user_id: userId, guild_id: guildId }
         });
@@ -344,6 +356,9 @@ class Task extends TaskBase&lt;TaskAttributes, TaskCreationAttributes&gt; implem
 <span class="cstat-no" title="statement not covered" >        if (!task) <span class="cstat-no" title="statement not covered" >return null;</span></span>
 &nbsp;
 <span class="cstat-no" title="statement not covered" >        task.description = newDescription;</span>
+<span class="cstat-no" title="statement not covered" >        if (newDueDate !== undefined) {</span>
+<span class="cstat-no" title="statement not covered" >            task.due_date = newDueDate;</span>
+        }
 <span class="cstat-no" title="statement not covered" >        await task.save();</span>
 &nbsp;
 <span class="cstat-no" title="statement not covered" >        return task;</span>
@@ -358,7 +373,7 @@ export default Task;
             <div class='footer quiet pad2 space-top1 center small'>
                 Code coverage generated by
                 <a href="https://istanbul.js.org/" target="_blank" rel="noopener noreferrer">istanbul</a>
-                at 2025-09-29T00:07:10.476Z
+                at 2025-10-07T15:48:52.918Z
             </div>
         <script src="../../prettify.js"></script>
         <script>
@@ -370,3 +385,4 @@ export default Task;
         <script src="../../block-navigation.js"></script>
     </body>
 </html>
+    
