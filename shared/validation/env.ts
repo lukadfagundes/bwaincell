@@ -7,7 +7,8 @@ import { logger } from '../utils/logger';
  * Environment variable validation for Bwaincell bot
  */
 
-// Load environment variables
+// Load environment variables from .env file (only if not already set)
+// In production (Fly.io), env vars come from secrets, not .env file
 dotenv.config();
 
 /**
@@ -15,22 +16,14 @@ dotenv.config();
  */
 const envSchema = Joi.object({
   // Node environment
-  NODE_ENV: Joi.string()
-    .valid('development', 'production', 'test')
-    .default('development'),
+  NODE_ENV: Joi.string().valid('development', 'production', 'test').default('development'),
 
   // Discord configuration
-  DISCORD_TOKEN: Joi.string()
-    .required()
-    .description('Discord bot token'),
+  BOT_TOKEN: Joi.string().required().description('Discord bot token'),
 
-  CLIENT_ID: Joi.string()
-    .required()
-    .description('Discord application client ID'),
+  CLIENT_ID: Joi.string().required().description('Discord application client ID'),
 
-  GUILD_ID: Joi.string()
-    .optional()
-    .description('Discord guild ID for development'),
+  GUILD_ID: Joi.string().optional().description('Discord guild ID for development'),
 
   // Database configuration
   DATABASE_PATH: Joi.string()
@@ -53,7 +46,7 @@ const envSchema = Joi.object({
     .port()
     .optional()
     .default(3000)
-    .description('Port for health check endpoint')
+    .description('Port for health check endpoint'),
 }).unknown(); // Allow other env vars
 
 /**
@@ -61,7 +54,7 @@ const envSchema = Joi.object({
  */
 export interface ValidatedEnvironment {
   NODE_ENV: 'development' | 'production' | 'test';
-  DISCORD_TOKEN: string;
+  BOT_TOKEN: string;
   CLIENT_ID: string;
   GUILD_ID?: string;
   DATABASE_PATH: string;
@@ -76,23 +69,23 @@ export interface ValidatedEnvironment {
  */
 export function validateEnv(): ValidatedEnvironment {
   const { error, value } = envSchema.validate(process.env, {
-    abortEarly: false // Get all errors at once
+    abortEarly: false, // Get all errors at once
   });
 
   if (error) {
     const missingVars = error.details
-      .filter(detail => detail.type === 'any.required')
-      .map(detail => detail.path.join('.'));
+      .filter((detail) => detail.type === 'any.required')
+      .map((detail) => detail.path.join('.'));
 
     const errorMessage = `Environment validation failed: ${error.message}`;
 
     logger.error('Environment validation error', {
-      errors: error.details.map(detail => ({
+      errors: error.details.map((detail) => ({
         path: detail.path.join('.'),
         message: detail.message,
-        type: detail.type
+        type: detail.type,
       })),
-      missingVariables: missingVars
+      missingVariables: missingVars,
     });
 
     throw new EnvironmentError(errorMessage, missingVars);
@@ -102,7 +95,7 @@ export function validateEnv(): ValidatedEnvironment {
     nodeEnv: value.NODE_ENV,
     logLevel: value.LOG_LEVEL,
     hasGuildId: !!value.GUILD_ID,
-    hasGoogleCreds: !!value.GOOGLE_APPLICATION_CREDENTIALS
+    hasGoogleCreds: !!value.GOOGLE_APPLICATION_CREDENTIALS,
   });
 
   return value as ValidatedEnvironment;
@@ -113,9 +106,7 @@ export function validateEnv(): ValidatedEnvironment {
  * @param key - Environment variable key
  * @returns The validated value or undefined
  */
-export function getEnv<K extends keyof ValidatedEnvironment>(
-  key: K
-): ValidatedEnvironment[K] {
+export function getEnv<K extends keyof ValidatedEnvironment>(key: K): ValidatedEnvironment[K] {
   const env = validateEnv();
   return env[key];
 }
