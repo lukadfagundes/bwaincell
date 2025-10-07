@@ -47,6 +47,7 @@
     "node-cron": "^4.2.1",
     "sequelize": "^6.37.7",
     "sqlite3": "^5.1.7",
+    "trinity-method-sdk": "file:../Trinity Method SDK/trinity-method-sdk-1.0.0.tgz",
     "winston": "^3.17.0"
   },
   "devDependencies": {
