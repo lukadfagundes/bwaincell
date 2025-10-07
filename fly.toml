@@ -2,11 +2,17 @@
 #
 # See https://fly.io/docs/reference/configuration/ for information about how to use this file.
 #
+# Updated for PWA Phase 1: Backend API Integration
+# This configuration supports both Discord bot and HTTP API server
 
 app = 'bwaincell'
 primary_region = 'iad'
 
 [build]
+
+[env]
+  NODE_ENV = "production"
+  API_PORT = "3000"
 
 [http_service]
   internal_port = 3000
@@ -15,6 +21,16 @@ primary_region = 'iad'
   auto_start_machines = false
   min_machines_running = 1
   processes = ['app']
+
+  # Health check configuration
+  [http_service.checks]
+    [http_service.checks.health]
+      interval = "15s"
+      timeout = "10s"
+      grace_period = "30s"
+      method = "GET"
+      path = "/health"
+      protocol = "http"
 
 [[vm]]
   cpu_kind = 'shared'

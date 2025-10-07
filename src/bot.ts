@@ -14,6 +14,9 @@ import {
 } from '../utils/interactions';
 // Import the properly configured database with all models
 import { sequelize } from '../database';
+// Import API server
+import { createApiServer } from './api/server';
+import type { Server } from 'http';
 
 // Detect test environment
 const isTestEnvironment = process.env.NODE_ENV === 'test';
@@ -299,6 +302,9 @@ if (!isTestEnvironment && client) {
   setupEventHandlers();
 }
 
+// HTTP server reference for graceful shutdown
+let httpServer: Server | null = null;
+
 async function init() {
   try {
     logger.info('Initializing Bwaincell Bot...');
@@ -314,7 +320,35 @@ async function init() {
     await setupScheduler();
     await client!.login(env.BOT_TOKEN);
 
-    logger.info('Bot initialization complete');
+    // Start API HTTP server
+    const app = createApiServer();
+    const apiPort = parseInt(process.env.API_PORT || '3000', 10);
+
+    httpServer = app.listen(apiPort, () => {
+      logger.info('[API] HTTP server listening', {
+        port: apiPort,
+        environment: process.env.NODE_ENV || 'development',
+        pwaUrl: process.env.PWA_URL || 'http://localhost:3001',
+      });
+    });
+
+    // Handle HTTP server errors
+    httpServer.on('error', (error: NodeJS.ErrnoException) => {
+      if (error.code === 'EADDRINUSE') {
+        logger.error('[API] Port already in use', { port: apiPort });
+      } else {
+        logger.error('[API] HTTP server error', {
+          error: error.message,
+          code: error.code,
+        });
+      }
+    });
+
+    logger.info('Bot and API initialization complete', {
+      discordBot: 'running',
+      httpApi: 'running',
+      apiPort: apiPort,
+    });
   } catch (error) {
     logError(error as Error, { context: 'Bot initialization failed' });
 
@@ -328,15 +362,41 @@ async function init() {
 }
 
 // Handle process termination
-process.on('SIGINT', () => {
+process.on('SIGINT', async () => {
   logger.info('Received SIGINT, shutting down gracefully...');
-  client!.destroy();
+
+  // Close HTTP server
+  if (httpServer) {
+    httpServer.close(() => {
+      logger.info('[API] HTTP server closed');
+    });
+  }
+
+  // Destroy Discord client
+  if (client) {
+    await client.destroy();
+    logger.info('[BOT] Discord client disconnected');
+  }
+
   process.exit(0);
 });
 
-process.on('SIGTERM', () => {
+process.on('SIGTERM', async () => {
   logger.info('Received SIGTERM, shutting down gracefully...');
-  client!.destroy();
+
+  // Close HTTP server
+  if (httpServer) {
+    httpServer.close(() => {
+      logger.info('[API] HTTP server closed');
+    });
+  }
+
+  // Destroy Discord client
+  if (client) {
+    await client.destroy();
+    logger.info('[BOT] Discord client disconnected');
+  }
+
   process.exit(0);
 });
 
