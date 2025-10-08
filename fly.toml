@@ -23,14 +23,13 @@ primary_region = 'iad'
   processes = ['app']
 
   # Health check configuration
-  [http_service.checks]
-    [http_service.checks.health]
-      interval = "15s"
-      timeout = "10s"
-      grace_period = "30s"
-      method = "GET"
-      path = "/health"
-      protocol = "http"
+  [[http_service.checks]]
+    interval = "15s"
+    timeout = "10s"
+    grace_period = "30s"
+    method = "GET"
+    path = "/health"
+    protocol = "http"
 
 [[vm]]
   cpu_kind = 'shared'
