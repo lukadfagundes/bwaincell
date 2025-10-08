@@ -2,25 +2,14 @@ import { Request, Response, NextFunction } from 'express';
 import { logger } from '@shared/utils/logger';
 
 /**
- * Session data interface
+ * Session data interface - extends express-session
  */
 declare module 'express-session' {
   interface SessionData {
-    userId: string;
-    username: string;
-    guildId: string;
+    userId?: string;
+    username?: string;
+    guildId?: string;
   }
-}
-
-/**
- * Extended request interface with session user context
- */
-export interface SessionRequest extends Request {
-  session: {
-    userId: string;
-    username: string;
-    guildId: string;
-  } & Request['session'];
 }
 
 /**

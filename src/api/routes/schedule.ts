@@ -53,8 +53,8 @@ router.get('/', async (req: Request, res: Response) => {
     } else {
       // Get events based on filter
       events = await Schedule.getEvents(
-        req.user.discordId,
-        req.user.guildId,
+        req.session.userId!,
+        req.session.guildId!,
         filter as 'upcoming' | 'past' | 'all'
       );
     }
@@ -232,8 +232,8 @@ router.post('/', async (req: Request, res: Response) => {
     });
 
     const scheduleEvent = await Schedule.addEvent(
-      req.user.discordId,
-      req.user.guildId,
+      req.session.userId!,
+      req.session.guildId!,
       event.trim(),
       date,
       time,

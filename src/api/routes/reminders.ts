@@ -118,7 +118,7 @@ router.post('/', async (req: Request, res: Response) => {
     }
 
     // Use provided channel ID or fall back to a default (guild ID for now)
-    const validatedChannelId = channelId || req.user.guildId;
+    const validatedChannelId = channelId || req.session.guildId!;
 
     logger.debug('[API] Creating reminder', {
       message: message,
@@ -129,8 +129,8 @@ router.post('/', async (req: Request, res: Response) => {
     });
 
     const reminder = await Reminder.createReminder(
-      req.user.discordId,
-      req.user.guildId,
+      req.session.userId!,
+      req.session.guildId!,
       validatedChannelId,
       message.trim(),
       time,

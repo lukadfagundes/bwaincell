@@ -211,8 +211,8 @@ router.post('/', async (req: Request, res: Response) => {
     });
 
     const note = await Note.createNote(
-      req.user.discordId,
-      req.user.guildId,
+      req.session.userId!,
+      req.session.guildId!,
       title.trim(),
       content.trim(),
       validatedTags

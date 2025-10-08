@@ -260,16 +260,16 @@ router.post('/transactions', async (req: Request, res: Response) => {
     let transaction;
     if (type === 'expense') {
       transaction = await Budget.addExpense(
-        req.user.discordId,
-        req.user.guildId,
+        req.session.userId!,
+        req.session.guildId!,
         category.trim(),
         parsedAmount,
         description?.trim() || null
       );
     } else {
       transaction = await Budget.addIncome(
-        req.user.discordId,
-        req.user.guildId,
+        req.session.userId!,
+        req.session.guildId!,
         parsedAmount,
         description?.trim() || null
       );
