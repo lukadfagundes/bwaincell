@@ -1,9 +1,6 @@
 import { Router, Response } from 'express';
-import Note from '@database/models/Note';
-import {
-  authenticateUser,
-  AuthenticatedRequest,
-} from '../middleware/auth';
+import { Note } from '@database/index';
+import { authenticateUser, AuthenticatedRequest } from '../middleware/auth';
 import {
   successResponse,
   successMessageResponse,
@@ -44,17 +41,9 @@ router.get('/', async (req: AuthenticatedRequest, res: Response) => {
     let notes;
 
     if (search) {
-      notes = await Note.searchNotes(
-        req.user.discordId,
-        req.user.guildId,
-        search
-      );
+      notes = await Note.searchNotes(req.user.discordId, req.user.guildId, search);
     } else if (tag) {
-      notes = await Note.getNotesByTag(
-        req.user.discordId,
-        req.user.guildId,
-        tag
-      );
+      notes = await Note.getNotesByTag(req.user.discordId, req.user.guildId, tag);
     } else {
       notes = await Note.getNotes(req.user.discordId, req.user.guildId);
     }
@@ -138,11 +127,7 @@ router.get('/:id', async (req: AuthenticatedRequest, res: Response) => {
       userId: req.user.discordId,
     });
 
-    const note = await Note.getNote(
-      noteId,
-      req.user.discordId,
-      req.user.guildId
-    );
+    const note = await Note.getNote(noteId, req.user.discordId, req.user.guildId);
 
     if (!note) {
       const { response, statusCode } = notFoundError('Note');
@@ -186,30 +171,22 @@ router.post('/', async (req: AuthenticatedRequest, res: Response) => {
 
     // Validate required fields
     if (!title || typeof title !== 'string') {
-      const { response, statusCode } = validationError(
-        'Title is required and must be a string'
-      );
+      const { response, statusCode } = validationError('Title is required and must be a string');
       return res.status(statusCode).json(response);
     }
 
     if (title.trim().length === 0) {
-      const { response, statusCode } = validationError(
-        'Title cannot be empty'
-      );
+      const { response, statusCode } = validationError('Title cannot be empty');
       return res.status(statusCode).json(response);
     }
 
     if (!content || typeof content !== 'string') {
-      const { response, statusCode } = validationError(
-        'Content is required and must be a string'
-      );
+      const { response, statusCode } = validationError('Content is required and must be a string');
       return res.status(statusCode).json(response);
     }
 
     if (content.trim().length === 0) {
-      const { response, statusCode } = validationError(
-        'Content cannot be empty'
-      );
+      const { response, statusCode } = validationError('Content cannot be empty');
       return res.status(statusCode).json(response);
     }
 
@@ -217,9 +194,7 @@ router.post('/', async (req: AuthenticatedRequest, res: Response) => {
     let validatedTags: string[] = [];
     if (tags) {
       if (!Array.isArray(tags)) {
-        const { response, statusCode } = validationError(
-          'Tags must be an array'
-        );
+        const { response, statusCode } = validationError('Tags must be an array');
         return res.status(statusCode).json(response);
       }
 
@@ -298,9 +273,7 @@ router.patch('/:id', async (req: AuthenticatedRequest, res: Response) => {
 
     if (title !== undefined) {
       if (typeof title !== 'string' || title.trim().length === 0) {
-        const { response, statusCode } = validationError(
-          'Title must be a non-empty string'
-        );
+        const { response, statusCode } = validationError('Title must be a non-empty string');
         return res.status(statusCode).json(response);
       }
       updates.title = title.trim();
@@ -308,9 +281,7 @@ router.patch('/:id', async (req: AuthenticatedRequest, res: Response) => {
 
     if (content !== undefined) {
       if (typeof content !== 'string' || content.trim().length === 0) {
-        const { response, statusCode } = validationError(
-          'Content must be a non-empty string'
-        );
+        const { response, statusCode } = validationError('Content must be a non-empty string');
         return res.status(statusCode).json(response);
       }
       updates.content = content.trim();
@@ -318,9 +289,7 @@ router.patch('/:id', async (req: AuthenticatedRequest, res: Response) => {
 
     if (tags !== undefined) {
       if (!Array.isArray(tags)) {
-        const { response, statusCode } = validationError(
-          'Tags must be an array'
-        );
+        const { response, statusCode } = validationError('Tags must be an array');
         return res.status(statusCode).json(response);
       }
       updates.tags = tags
@@ -334,12 +303,7 @@ router.patch('/:id', async (req: AuthenticatedRequest, res: Response) => {
       userId: req.user.discordId,
     });
 
-    const note = await Note.updateNote(
-      noteId,
-      req.user.discordId,
-      req.user.guildId,
-      updates
-    );
+    const note = await Note.updateNote(noteId, req.user.discordId, req.user.guildId, updates);
 
     if (!note) {
       const { response, statusCode } = notFoundError('Note');
@@ -389,11 +353,7 @@ router.delete('/:id', async (req: AuthenticatedRequest, res: Response) => {
       userId: req.user.discordId,
     });
 
-    const deleted = await Note.deleteNote(
-      noteId,
-      req.user.discordId,
-      req.user.guildId
-    );
+    const deleted = await Note.deleteNote(noteId, req.user.discordId, req.user.guildId);
 
     if (!deleted) {
       const { response, statusCode } = notFoundError('Note');

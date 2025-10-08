@@ -24,16 +24,16 @@ export interface AuthenticatedRequest extends Request {
 /**
  * User credentials mapping
  * Environment variables required:
- * - LUKE_PASSWORD
- * - LUKE_DISCORD_ID
+ * - LUKA_PASSWORD
+ * - LUKA_DISCORD_ID
  * - WIFE_PASSWORD
  * - WIFE_DISCORD_ID
  * - GUILD_ID
  */
 const USERS: Record<string, User> = {
-  luke: {
-    password: process.env.LUKE_PASSWORD || '',
-    discordId: process.env.LUKE_DISCORD_ID || '',
+  luka: {
+    password: process.env.LUKA_PASSWORD || '',
+    discordId: process.env.LUKA_DISCORD_ID || '',
     guildId: process.env.GUILD_ID || '',
   },
   wife: {
@@ -52,11 +52,7 @@ const USERS: Record<string, User> = {
  * @param res - Express response object
  * @param next - Express next function
  */
-export function authenticateUser(
-  req: Request,
-  res: Response,
-  next: NextFunction
-): void {
+export function authenticateUser(req: Request, res: Response, next: NextFunction): void {
   const startTime = Date.now();
 
   logger.debug('[AUTH] Authentication attempt', {
@@ -85,9 +81,7 @@ export function authenticateUser(
   try {
     // Parse Basic Auth credentials
     const base64Credentials = authHeader.split(' ')[1];
-    const credentials = Buffer.from(base64Credentials, 'base64').toString(
-      'ascii'
-    );
+    const credentials = Buffer.from(base64Credentials, 'base64').toString('ascii');
     const [username, password] = credentials.split(':');
 
     // Validate credentials

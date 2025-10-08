@@ -1,9 +1,6 @@
 import { Router, Response } from 'express';
-import Budget from '@database/models/Budget';
-import {
-  authenticateUser,
-  AuthenticatedRequest,
-} from '../middleware/auth';
+import { Budget } from '@database/index';
+import { authenticateUser, AuthenticatedRequest } from '../middleware/auth';
 import {
   successResponse,
   successMessageResponse,
@@ -27,52 +24,45 @@ router.use(authenticateUser);
  * @query limit - Number of transactions to retrieve (default: 10, max: 100)
  * @returns Array of transactions
  */
-router.get(
-  '/transactions',
-  async (req: AuthenticatedRequest, res: Response) => {
-    const startTime = Date.now();
+router.get('/transactions', async (req: AuthenticatedRequest, res: Response) => {
+  const startTime = Date.now();
 
-    try {
-      let limit = parseInt(req.query.limit as string, 10) || 10;
+  try {
+    let limit = parseInt(req.query.limit as string, 10) || 10;
 
-      // Validate limit
-      if (isNaN(limit) || limit < 1) {
-        limit = 10;
-      }
-      if (limit > 100) {
-        limit = 100;
-      }
-
-      logger.debug('[API] Fetching budget transactions', {
-        userId: req.user.discordId,
-        limit: limit,
-      });
-
-      const transactions = await Budget.getRecentEntries(
-        req.user.discordId,
-        req.user.guildId,
-        limit
-      );
-
-      logger.info('[API] Budget transactions fetched successfully', {
-        userId: req.user.discordId,
-        count: transactions.length,
-        duration: Date.now() - startTime,
-      });
-
-      res.json(successResponse(transactions));
-    } catch (error) {
-      logger.error('[API] Error fetching budget transactions', {
-        error: error instanceof Error ? error.message : 'Unknown error',
-        stack: error instanceof Error ? error.stack : undefined,
-        userId: req.user?.discordId,
-      });
-
-      const { response, statusCode } = serverError(error as Error);
-      res.status(statusCode).json(response);
+    // Validate limit
+    if (isNaN(limit) || limit < 1) {
+      limit = 10;
     }
+    if (limit > 100) {
+      limit = 100;
+    }
+
+    logger.debug('[API] Fetching budget transactions', {
+      userId: req.user.discordId,
+      limit: limit,
+    });
+
+    const transactions = await Budget.getRecentEntries(req.user.discordId, req.user.guildId, limit);
+
+    logger.info('[API] Budget transactions fetched successfully', {
+      userId: req.user.discordId,
+      count: transactions.length,
+      duration: Date.now() - startTime,
+    });
+
+    res.json(successResponse(transactions));
+  } catch (error) {
+    logger.error('[API] Error fetching budget transactions', {
+      error: error instanceof Error ? error.message : 'Unknown error',
+      stack: error instanceof Error ? error.stack : undefined,
+      userId: req.user?.discordId,
+    });
+
+    const { response, statusCode } = serverError(error as Error);
+    res.status(statusCode).json(response);
   }
-);
+});
 
 /**
  * GET /api/budget/summary
@@ -91,9 +81,7 @@ router.get('/summary', async (req: AuthenticatedRequest, res: Response) => {
       month = parseInt(req.query.month as string, 10);
 
       if (isNaN(month) || month < 1 || month > 12) {
-        const { response, statusCode } = validationError(
-          'Month must be a number between 1 and 12'
-        );
+        const { response, statusCode } = validationError('Month must be a number between 1 and 12');
         return res.status(statusCode).json(response);
       }
     }
@@ -103,11 +91,7 @@ router.get('/summary', async (req: AuthenticatedRequest, res: Response) => {
       month: month,
     });
 
-    const summary = await Budget.getSummary(
-      req.user.discordId,
-      req.user.guildId,
-      month
-    );
+    const summary = await Budget.getSummary(req.user.discordId, req.user.guildId, month);
 
     logger.info('[API] Budget summary fetched successfully', {
       userId: req.user.discordId,
@@ -143,10 +127,7 @@ router.get('/categories', async (req: AuthenticatedRequest, res: Response) => {
       userId: req.user.discordId,
     });
 
-    const categories = await Budget.getCategories(
-      req.user.discordId,
-      req.user.guildId
-    );
+    const categories = await Budget.getCategories(req.user.discordId, req.user.guildId);
 
     logger.info('[API] Budget categories fetched successfully', {
       userId: req.user.discordId,
@@ -193,11 +174,7 @@ router.get('/trends', async (req: AuthenticatedRequest, res: Response) => {
       months: months,
     });
 
-    const trends = await Budget.getMonthlyTrend(
-      req.user.discordId,
-      req.user.guildId,
-      months
-    );
+    const trends = await Budget.getMonthlyTrend(req.user.discordId, req.user.guildId, months);
 
     logger.info('[API] Budget trends fetched successfully', {
       userId: req.user.discordId,
@@ -228,101 +205,92 @@ router.get('/trends', async (req: AuthenticatedRequest, res: Response) => {
  * @body description - Description (optional)
  * @returns Created transaction object
  */
-router.post(
-  '/transactions',
-  async (req: AuthenticatedRequest, res: Response) => {
-    const startTime = Date.now();
+router.post('/transactions', async (req: AuthenticatedRequest, res: Response) => {
+  const startTime = Date.now();
 
-    try {
-      const { type, amount, category, description } = req.body;
+  try {
+    const { type, amount, category, description } = req.body;
 
-      // Validate type
-      if (!type || !['expense', 'income'].includes(type)) {
-        const { response, statusCode } = validationError(
-          'Type is required and must be either "expense" or "income"'
-        );
-        return res.status(statusCode).json(response);
-      }
-
-      // Validate amount
-      if (amount === undefined || amount === null) {
-        const { response, statusCode } = validationError(
-          'Amount is required'
-        );
-        return res.status(statusCode).json(response);
-      }
-
-      const parsedAmount = parseFloat(amount);
-      if (isNaN(parsedAmount) || parsedAmount <= 0) {
-        const { response, statusCode } = validationError(
-          'Amount must be a positive number'
-        );
-        return res.status(statusCode).json(response);
-      }
-
-      // Validate category for expenses
-      if (type === 'expense') {
-        if (!category || typeof category !== 'string') {
-          const { response, statusCode } = validationError(
-            'Category is required for expenses and must be a string'
-          );
-          return res.status(statusCode).json(response);
-        }
-
-        if (category.trim().length === 0) {
-          const { response, statusCode } = validationError(
-            'Category cannot be empty'
-          );
-          return res.status(statusCode).json(response);
-        }
-      }
-
-      logger.debug('[API] Creating budget transaction', {
-        type: type,
-        amount: parsedAmount,
-        category: category,
-        userId: req.user.discordId,
-      });
-
-      let transaction;
-      if (type === 'expense') {
-        transaction = await Budget.addExpense(
-          req.user.discordId,
-          req.user.guildId,
-          category.trim(),
-          parsedAmount,
-          description?.trim() || null
-        );
-      } else {
-        transaction = await Budget.addIncome(
-          req.user.discordId,
-          req.user.guildId,
-          parsedAmount,
-          description?.trim() || null
-        );
-      }
-
-      logger.info('[API] Budget transaction created successfully', {
-        transactionId: transaction.id,
-        type: type,
-        amount: parsedAmount,
-        userId: req.user.discordId,
-        duration: Date.now() - startTime,
-      });
-
-      res.status(201).json(successResponse(transaction));
-    } catch (error) {
-      logger.error('[API] Error creating budget transaction', {
-        error: error instanceof Error ? error.message : 'Unknown error',
-        stack: error instanceof Error ? error.stack : undefined,
-        userId: req.user?.discordId,
-      });
-
-      const { response, statusCode } = serverError(error as Error);
-      res.status(statusCode).json(response);
+    // Validate type
+    if (!type || !['expense', 'income'].includes(type)) {
+      const { response, statusCode } = validationError(
+        'Type is required and must be either "expense" or "income"'
+      );
+      return res.status(statusCode).json(response);
     }
+
+    // Validate amount
+    if (amount === undefined || amount === null) {
+      const { response, statusCode } = validationError('Amount is required');
+      return res.status(statusCode).json(response);
+    }
+
+    const parsedAmount = parseFloat(amount);
+    if (isNaN(parsedAmount) || parsedAmount <= 0) {
+      const { response, statusCode } = validationError('Amount must be a positive number');
+      return res.status(statusCode).json(response);
+    }
+
+    // Validate category for expenses
+    if (type === 'expense') {
+      if (!category || typeof category !== 'string') {
+        const { response, statusCode } = validationError(
+          'Category is required for expenses and must be a string'
+        );
+        return res.status(statusCode).json(response);
+      }
+
+      if (category.trim().length === 0) {
+        const { response, statusCode } = validationError('Category cannot be empty');
+        return res.status(statusCode).json(response);
+      }
+    }
+
+    logger.debug('[API] Creating budget transaction', {
+      type: type,
+      amount: parsedAmount,
+      category: category,
+      userId: req.user.discordId,
+    });
+
+    let transaction;
+    if (type === 'expense') {
+      transaction = await Budget.addExpense(
+        req.user.discordId,
+        req.user.guildId,
+        category.trim(),
+        parsedAmount,
+        description?.trim() || null
+      );
+    } else {
+      transaction = await Budget.addIncome(
+        req.user.discordId,
+        req.user.guildId,
+        parsedAmount,
+        description?.trim() || null
+      );
+    }
+
+    logger.info('[API] Budget transaction created successfully', {
+      transactionId: transaction.id,
+      type: type,
+      amount: parsedAmount,
+      userId: req.user.discordId,
+      duration: Date.now() - startTime,
+    });
+
+    res.status(201).json(successResponse(transaction));
+  } catch (error) {
+    logger.error('[API] Error creating budget transaction', {
+      error: error instanceof Error ? error.message : 'Unknown error',
+      stack: error instanceof Error ? error.stack : undefined,
+      userId: req.user?.discordId,
+    });
+
+    const { response, statusCode } = serverError(error as Error);
+    res.status(statusCode).json(response);
   }
-);
+});
 
 /**
  * DELETE /api/budget/transactions/:id
@@ -331,56 +299,47 @@ router.post(
  * @param id - Transaction ID
  * @returns Success message
  */
-router.delete(
-  '/transactions/:id',
-  async (req: AuthenticatedRequest, res: Response) => {
-    const startTime = Date.now();
+router.delete('/transactions/:id', async (req: AuthenticatedRequest, res: Response) => {
+  const startTime = Date.now();
 
-    try {
-      const transactionId = parseInt(req.params.id, 10);
+  try {
+    const transactionId = parseInt(req.params.id, 10);
 
-      if (isNaN(transactionId)) {
-        const { response, statusCode } = validationError(
-          'Invalid transaction ID'
-        );
-        return res.status(statusCode).json(response);
-      }
-
-      logger.debug('[API] Deleting budget transaction', {
-        transactionId: transactionId,
-        userId: req.user.discordId,
-      });
-
-      const deleted = await Budget.deleteEntry(
-        transactionId,
-        req.user.discordId,
-        req.user.guildId
-      );
-
-      if (!deleted) {
-        const { response, statusCode } = notFoundError('Transaction');
-        return res.status(statusCode).json(response);
-      }
-
-      logger.info('[API] Budget transaction deleted successfully', {
-        transactionId: transactionId,
-        userId: req.user.discordId,
-        duration: Date.now() - startTime,
-      });
-
-      res.json(successMessageResponse('Transaction deleted successfully'));
-    } catch (error) {
-      logger.error('[API] Error deleting budget transaction', {
-        error: error instanceof Error ? error.message : 'Unknown error',
-        stack: error instanceof Error ? error.stack : undefined,
-        transactionId: req.params.id,
-        userId: req.user?.discordId,
-      });
-
-      const { response, statusCode } = serverError(error as Error);
-      res.status(statusCode).json(response);
+    if (isNaN(transactionId)) {
+      const { response, statusCode } = validationError('Invalid transaction ID');
+      return res.status(statusCode).json(response);
     }
+
+    logger.debug('[API] Deleting budget transaction', {
+      transactionId: transactionId,
+      userId: req.user.discordId,
+    });
+
+    const deleted = await Budget.deleteEntry(transactionId, req.user.discordId, req.user.guildId);
+
+    if (!deleted) {
+      const { response, statusCode } = notFoundError('Transaction');
+      return res.status(statusCode).json(response);
+    }
+
+    logger.info('[API] Budget transaction deleted successfully', {
+      transactionId: transactionId,
+      userId: req.user.discordId,
+      duration: Date.now() - startTime,
+    });
+
+    res.json(successMessageResponse('Transaction deleted successfully'));
+  } catch (error) {
+    logger.error('[API] Error deleting budget transaction', {
+      error: error instanceof Error ? error.message : 'Unknown error',
+      stack: error instanceof Error ? error.stack : undefined,
+      transactionId: req.params.id,
+      userId: req.user?.discordId,
+    });
+
+    const { response, statusCode } = serverError(error as Error);
+    res.status(statusCode).json(response);
   }
-);
+});
 
 export default router;

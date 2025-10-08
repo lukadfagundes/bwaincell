@@ -1,9 +1,6 @@
 import { Router, Response } from 'express';
-import Reminder from '@database/models/Reminder';
-import {
-  authenticateUser,
-  AuthenticatedRequest,
-} from '../middleware/auth';
+import { Reminder } from '@database/index';
+import { authenticateUser, AuthenticatedRequest } from '../middleware/auth';
 import {
   successResponse,
   successMessageResponse,
@@ -34,10 +31,7 @@ router.get('/', async (req: AuthenticatedRequest, res: Response) => {
       userId: req.user.discordId,
     });
 
-    const reminders = await Reminder.getUserReminders(
-      req.user.discordId,
-      req.user.guildId
-    );
+    const reminders = await Reminder.getUserReminders(req.user.discordId, req.user.guildId);
 
     logger.info('[API] Reminders fetched successfully', {
       userId: req.user.discordId,
@@ -77,32 +71,24 @@ router.post('/', async (req: AuthenticatedRequest, res: Response) => {
 
     // Validate required fields
     if (!message || typeof message !== 'string') {
-      const { response, statusCode } = validationError(
-        'Message is required and must be a string'
-      );
+      const { response, statusCode } = validationError('Message is required and must be a string');
       return res.status(statusCode).json(response);
     }
 
     if (message.trim().length === 0) {
-      const { response, statusCode } = validationError(
-        'Message cannot be empty'
-      );
+      const { response, statusCode } = validationError('Message cannot be empty');
       return res.status(statusCode).json(response);
     }
 
     if (!time || typeof time !== 'string') {
-      const { response, statusCode } = validationError(
-        'Time is required and must be a string'
-      );
+      const { response, statusCode } = validationError('Time is required and must be a string');
       return res.status(statusCode).json(response);
     }
 
     // Validate time format (HH:MM)
     const timeRegex = /^([01]\d|2[0-3]):([0-5]\d)$/;
     if (!timeRegex.test(time)) {
-      const { response, statusCode } = validationError(
-        'Time must be in HH:MM format (24-hour)'
-      );
+      const { response, statusCode } = validationError('Time must be in HH:MM format (24-hour)');
       return res.status(statusCode).json(response);
     }
 
@@ -256,11 +242,7 @@ router.delete('/:id', async (req: AuthenticatedRequest, res: Response) => {
       userId: req.user.discordId,
     });
 
-    const deleted = await Reminder.deleteReminder(
-      reminderId,
-      req.user.discordId,
-      req.user.guildId
-    );
+    const deleted = await Reminder.deleteReminder(reminderId, req.user.discordId, req.user.guildId);
 
     if (!deleted) {
       const { response, statusCode } = notFoundError('Reminder');

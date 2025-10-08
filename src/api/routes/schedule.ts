@@ -1,9 +1,6 @@
 import { Router, Response } from 'express';
-import Schedule from '@database/models/Schedule';
-import {
-  authenticateUser,
-  AuthenticatedRequest,
-} from '../middleware/auth';
+import { Schedule } from '@database/index';
+import { authenticateUser, AuthenticatedRequest } from '../middleware/auth';
 import {
   successResponse,
   successMessageResponse,
@@ -52,11 +49,7 @@ router.get('/', async (req: AuthenticatedRequest, res: Response) => {
 
     if (filter === 'upcoming' && !isNaN(days) && days > 0) {
       // Get upcoming events within specified days
-      events = await Schedule.getUpcomingEvents(
-        req.user.discordId,
-        req.user.guildId,
-        days
-      );
+      events = await Schedule.getUpcomingEvents(req.user.discordId, req.user.guildId, days);
     } else {
       // Get events based on filter
       events = await Schedule.getEvents(
@@ -96,16 +89,13 @@ router.get('/today', async (req: AuthenticatedRequest, res: Response) => {
   const startTime = Date.now();
 
   try {
-    logger.debug('[API] Fetching today\'s schedule events', {
+    logger.debug("[API] Fetching today's schedule events", {
       userId: req.user.discordId,
     });
 
-    const events = await Schedule.getTodaysEvents(
-      req.user.discordId,
-      req.user.guildId
-    );
+    const events = await Schedule.getTodaysEvents(req.user.discordId, req.user.guildId);
 
-    logger.info('[API] Today\'s schedule events fetched successfully', {
+    logger.info("[API] Today's schedule events fetched successfully", {
       userId: req.user.discordId,
       count: events.length,
       duration: Date.now() - startTime,
@@ -113,7 +103,7 @@ router.get('/today', async (req: AuthenticatedRequest, res: Response) => {
 
     res.json(successResponse(events));
   } catch (error) {
-    logger.error('[API] Error fetching today\'s schedule events', {
+    logger.error("[API] Error fetching today's schedule events", {
       error: error instanceof Error ? error.message : 'Unknown error',
       stack: error instanceof Error ? error.stack : undefined,
       userId: req.user?.discordId,
@@ -131,51 +121,44 @@ router.get('/today', async (req: AuthenticatedRequest, res: Response) => {
  * @param eventName - Event name (partial match supported)
  * @returns Event with time remaining
  */
-router.get(
-  '/countdown/:eventName',
-  async (req: AuthenticatedRequest, res: Response) => {
-    const startTime = Date.now();
+router.get('/countdown/:eventName', async (req: AuthenticatedRequest, res: Response) => {
+  const startTime = Date.now();
 
-    try {
-      const eventName = decodeURIComponent(req.params.eventName);
+  try {
+    const eventName = decodeURIComponent(req.params.eventName);
 
-      logger.debug('[API] Fetching event countdown', {
-        eventName: eventName,
-        userId: req.user.discordId,
-      });
+    logger.debug('[API] Fetching event countdown', {
+      eventName: eventName,
+      userId: req.user.discordId,
+    });
 
-      const countdown = await Schedule.getCountdown(
-        req.user.discordId,
-        req.user.guildId,
-        eventName
-      );
+    const countdown = await Schedule.getCountdown(req.user.discordId, req.user.guildId, eventName);
 
-      if (!countdown) {
-        const { response, statusCode } = notFoundError('Event');
-        return res.status(statusCode).json(response);
-      }
-
-      logger.info('[API] Event countdown fetched successfully', {
-        eventName: eventName,
-        userId: req.user.discordId,
-        timeLeft: countdown.timeLeft,
-        duration: Date.now() - startTime,
-      });
-
-      res.json(successResponse(countdown));
-    } catch (error) {
-      logger.error('[API] Error fetching event countdown', {
-        error: error instanceof Error ? error.message : 'Unknown error',
-        stack: error instanceof Error ? error.stack : undefined,
-        eventName: req.params.eventName,
-        userId: req.user?.discordId,
-      });
-
-      const { response, statusCode } = serverError(error as Error);
-      res.status(statusCode).json(response);
+    if (!countdown) {
+      const { response, statusCode } = notFoundError('Event');
+      return res.status(statusCode).json(response);
     }
+
+    logger.info('[API] Event countdown fetched successfully', {
+      eventName: eventName,
+      userId: req.user.discordId,
+      timeLeft: countdown.timeLeft,
+      duration: Date.now() - startTime,
+    });
+
+    res.json(successResponse(countdown));
+  } catch (error) {
+    logger.error('[API] Error fetching event countdown', {
+      error: error instanceof Error ? error.message : 'Unknown error',
+      stack: error instanceof Error ? error.stack : undefined,
+      eventName: req.params.eventName,
+      userId: req.user?.discordId,
+    });
+
+    const { response, statusCode } = serverError(error as Error);
+    res.status(statusCode).json(response);
   }
-);
+});
 
 /**
  * POST /api/schedule
@@ -202,25 +185,19 @@ router.post('/', async (req: AuthenticatedRequest, res: Response) => {
     }
 
     if (event.trim().length === 0) {
-      const { response, statusCode } = validationError(
-        'Event name cannot be empty'
-      );
+      const { response, statusCode } = validationError('Event name cannot be empty');
       return res.status(statusCode).json(response);
     }
 
     if (!date || typeof date !== 'string') {
-      const { response, statusCode } = validationError(
-        'Date is required and must be a string'
-      );
+      const { response, statusCode } = validationError('Date is required and must be a string');
       return res.status(statusCode).json(response);
     }
 
     // Validate date format (YYYY-MM-DD)
     const dateRegex = /^\d{4}-\d{2}-\d{2}$/;
     if (!dateRegex.test(date)) {
-      const { response, statusCode } = validationError(
-        'Date must be in YYYY-MM-DD format'
-      );
+      const { response, statusCode } = validationError('Date must be in YYYY-MM-DD format');
       return res.status(statusCode).json(response);
     }
 
@@ -232,18 +209,14 @@ router.post('/', async (req: AuthenticatedRequest, res: Response) => {
     }
 
     if (!time || typeof time !== 'string') {
-      const { response, statusCode } = validationError(
-        'Time is required and must be a string'
-      );
+      const { response, statusCode } = validationError('Time is required and must be a string');
       return res.status(statusCode).json(response);
     }
 
     // Validate time format (HH:MM)
     const timeRegex = /^([01]\d|2[0-3]):([0-5]\d)$/;
     if (!timeRegex.test(time)) {
-      const { response, statusCode } = validationError(
-        'Time must be in HH:MM format (24-hour)'
-      );
+      const { response, statusCode } = validationError('Time must be in HH:MM format (24-hour)');
       return res.status(statusCode).json(response);
     }
 
@@ -366,11 +339,7 @@ router.delete('/:id', async (req: AuthenticatedRequest, res: Response) => {
       userId: req.user.discordId,
     });
 
-    const deleted = await Schedule.deleteEvent(
-      eventId,
-      req.user.discordId,
-      req.user.guildId
-    );
+    const deleted = await Schedule.deleteEvent(eventId, req.user.discordId, req.user.guildId);
 
     if (!deleted) {
       const { response, statusCode } = notFoundError('Event');

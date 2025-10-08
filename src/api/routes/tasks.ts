@@ -1,9 +1,6 @@
 import { Router, Response } from 'express';
-import Task from '@database/models/Task';
-import {
-  authenticateUser,
-  AuthenticatedRequest,
-} from '../middleware/auth';
+import { Task } from '@database/index';
+import { authenticateUser, AuthenticatedRequest } from '../middleware/auth';
 import {
   successResponse,
   successMessageResponse,
@@ -93,10 +90,7 @@ router.get('/:id', async (req: AuthenticatedRequest, res: Response) => {
       userId: req.user.discordId,
     });
 
-    const tasks = await Task.getUserTasks(
-      req.user.discordId,
-      req.user.guildId
-    );
+    const tasks = await Task.getUserTasks(req.user.discordId, req.user.guildId);
     const task = tasks.find((t: any) => t.id === taskId);
 
     if (!task) {
@@ -147,9 +141,7 @@ router.post('/', async (req: AuthenticatedRequest, res: Response) => {
     }
 
     if (description.trim().length === 0) {
-      const { response, statusCode } = validationError(
-        'Description cannot be empty'
-      );
+      const { response, statusCode } = validationError('Description cannot be empty');
       return res.status(statusCode).json(response);
     }
 
@@ -158,9 +150,7 @@ router.post('/', async (req: AuthenticatedRequest, res: Response) => {
     if (dueDate) {
       parsedDueDate = new Date(dueDate);
       if (isNaN(parsedDueDate.getTime())) {
-        const { response, statusCode } = validationError(
-          'Invalid due date format'
-        );
+        const { response, statusCode } = validationError('Invalid due date format');
         return res.status(statusCode).json(response);
       }
     }
@@ -229,18 +219,12 @@ router.patch('/:id', async (req: AuthenticatedRequest, res: Response) => {
     // Handle completion status change
     if (completed !== undefined) {
       if (typeof completed !== 'boolean') {
-        const { response, statusCode } = validationError(
-          'Completed must be a boolean'
-        );
+        const { response, statusCode } = validationError('Completed must be a boolean');
         return res.status(statusCode).json(response);
       }
 
       if (completed) {
-        const task = await Task.completeTask(
-          taskId,
-          req.user.discordId,
-          req.user.guildId
-        );
+        const task = await Task.completeTask(taskId, req.user.discordId, req.user.guildId);
 
         if (!task) {
           const { response, statusCode } = notFoundError('Task');
@@ -267,9 +251,7 @@ router.patch('/:id', async (req: AuthenticatedRequest, res: Response) => {
         } else {
           parsedDueDate = new Date(dueDate);
           if (isNaN(parsedDueDate.getTime())) {
-            const { response, statusCode } = validationError(
-              'Invalid due date format'
-            );
+            const { response, statusCode } = validationError('Invalid due date format');
             return res.status(statusCode).json(response);
           }
         }
@@ -279,7 +261,7 @@ router.patch('/:id', async (req: AuthenticatedRequest, res: Response) => {
         taskId,
         req.user.discordId,
         req.user.guildId,
-        description !== undefined ? description.trim() : undefined as any,
+        description !== undefined ? description.trim() : (undefined as any),
         parsedDueDate
       );
 
@@ -298,9 +280,7 @@ router.patch('/:id', async (req: AuthenticatedRequest, res: Response) => {
     }
 
     // If no updates provided
-    const { response, statusCode } = validationError(
-      'No valid updates provided'
-    );
+    const { response, statusCode } = validationError('No valid updates provided');
     res.status(statusCode).json(response);
   } catch (error) {
     logger.error('[API] Error updating task', {
@@ -338,11 +318,7 @@ router.delete('/:id', async (req: AuthenticatedRequest, res: Response) => {
       userId: req.user.discordId,
     });
 
-    const deleted = await Task.deleteTask(
-      taskId,
-      req.user.discordId,
-      req.user.guildId
-    );
+    const deleted = await Task.deleteTask(taskId, req.user.discordId, req.user.guildId);
 
     if (!deleted) {
       const { response, statusCode } = notFoundError('Task');
