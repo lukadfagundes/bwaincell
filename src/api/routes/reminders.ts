@@ -1,6 +1,6 @@
-import { Router, Response } from 'express';
+import { Router, Response, Request } from 'express';
 import { Reminder } from '@database/index';
-import { authenticateUser, AuthenticatedRequest } from '../middleware/auth';
+import { requireSession } from '../middleware/requireSession';
 import {
   successResponse,
   successMessageResponse,
@@ -13,9 +13,9 @@ import { logger } from '@shared/utils/logger';
 const router = Router();
 
 /**
- * Apply authentication to all reminder routes
+ * Apply session authentication to all reminder routes
  */
-router.use(authenticateUser);
+router.use(requireSession);
 
 /**
  * GET /api/reminders
@@ -23,18 +23,18 @@ router.use(authenticateUser);
  *
  * @returns Array of reminders
  */
-router.get('/', async (req: AuthenticatedRequest, res: Response) => {
+router.get('/', async (req: Request, res: Response) => {
   const startTime = Date.now();
 
   try {
     logger.debug('[API] Fetching reminders', {
-      userId: req.user.discordId,
+      userId: req.session.userId,
     });
 
-    const reminders = await Reminder.getUserReminders(req.user.discordId, req.user.guildId);
+    const reminders = await Reminder.getUserReminders(req.session.userId!, req.session.guildId!);
 
     logger.info('[API] Reminders fetched successfully', {
-      userId: req.user.discordId,
+      userId: req.session.userId,
       count: reminders.length,
       duration: Date.now() - startTime,
     });
@@ -44,7 +44,7 @@ router.get('/', async (req: AuthenticatedRequest, res: Response) => {
     logger.error('[API] Error fetching reminders', {
       error: error instanceof Error ? error.message : 'Unknown error',
       stack: error instanceof Error ? error.stack : undefined,
-      userId: req.user?.discordId,
+      userId: req.session?.userId,
     });
 
     const { response, statusCode } = serverError(error as Error);
@@ -63,7 +63,7 @@ router.get('/', async (req: AuthenticatedRequest, res: Response) => {
  * @body channelId - Discord channel ID for notification (optional, uses default)
  * @returns Created reminder object
  */
-router.post('/', async (req: AuthenticatedRequest, res: Response) => {
+router.post('/', async (req: Request, res: Response) => {
   const startTime = Date.now();
 
   try {
@@ -125,7 +125,7 @@ router.post('/', async (req: AuthenticatedRequest, res: Response) => {
       time: time,
       frequency: validatedFrequency,
       dayOfWeek: validatedDayOfWeek,
-      userId: req.user.discordId,
+      userId: req.session.userId,
     });
 
     const reminder = await Reminder.createReminder(
@@ -140,7 +140,7 @@ router.post('/', async (req: AuthenticatedRequest, res: Response) => {
 
     logger.info('[API] Reminder created successfully', {
       reminderId: reminder.id,
-      userId: req.user.discordId,
+      userId: req.session.userId,
       nextTrigger: reminder.next_trigger,
       duration: Date.now() - startTime,
     });
@@ -150,7 +150,7 @@ router.post('/', async (req: AuthenticatedRequest, res: Response) => {
     logger.error('[API] Error creating reminder', {
       error: error instanceof Error ? error.message : 'Unknown error',
       stack: error instanceof Error ? error.stack : undefined,
-      userId: req.user?.discordId,
+      userId: req.session?.userId,
     });
 
     const { response, statusCode } = serverError(error as Error);
@@ -169,7 +169,7 @@ router.post('/', async (req: AuthenticatedRequest, res: Response) => {
  * @body dayOfWeek - New day of week (optional)
  * @returns Updated reminder object
  */
-router.patch('/:id', async (req: AuthenticatedRequest, res: Response) => {
+router.patch('/:id', async (req: Request, res: Response) => {
   const _startTime = Date.now();
 
   try {
@@ -197,7 +197,7 @@ router.patch('/:id', async (req: AuthenticatedRequest, res: Response) => {
 
     logger.debug('[API] Updating reminder', {
       reminderId: reminderId,
-      userId: req.user.discordId,
+      userId: req.session.userId,
     });
 
     // For this simplified version, we'll delete and recreate the reminder
@@ -211,7 +211,7 @@ router.patch('/:id', async (req: AuthenticatedRequest, res: Response) => {
       error: error instanceof Error ? error.message : 'Unknown error',
       stack: error instanceof Error ? error.stack : undefined,
       reminderId: req.params.id,
-      userId: req.user?.discordId,
+      userId: req.session?.userId,
     });
 
     const { response, statusCode } = serverError(error as Error);
@@ -226,7 +226,7 @@ router.patch('/:id', async (req: AuthenticatedRequest, res: Response) => {
  * @param id - Reminder ID
  * @returns Success message
  */
-router.delete('/:id', async (req: AuthenticatedRequest, res: Response) => {
+router.delete('/:id', async (req: Request, res: Response) => {
   const startTime = Date.now();
 
   try {
@@ -239,10 +239,14 @@ router.delete('/:id', async (req: AuthenticatedRequest, res: Response) => {
 
     logger.debug('[API] Deleting reminder', {
       reminderId: reminderId,
-      userId: req.user.discordId,
+      userId: req.session.userId,
     });
 
-    const deleted = await Reminder.deleteReminder(reminderId, req.user.discordId, req.user.guildId);
+    const deleted = await Reminder.deleteReminder(
+      reminderId,
+      req.session.userId!,
+      req.session.guildId!
+    );
 
     if (!deleted) {
       const { response, statusCode } = notFoundError('Reminder');
@@ -251,7 +255,7 @@ router.delete('/:id', async (req: AuthenticatedRequest, res: Response) => {
 
     logger.info('[API] Reminder deleted successfully', {
       reminderId: reminderId,
-      userId: req.user.discordId,
+      userId: req.session.userId,
       duration: Date.now() - startTime,
     });
 
@@ -261,7 +265,7 @@ router.delete('/:id', async (req: AuthenticatedRequest, res: Response) => {
       error: error instanceof Error ? error.message : 'Unknown error',
       stack: error instanceof Error ? error.stack : undefined,
       reminderId: req.params.id,
-      userId: req.user?.discordId,
+      userId: req.session?.userId,
     });
 
     const { response, statusCode } = serverError(error as Error);

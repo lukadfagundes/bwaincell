@@ -1,6 +1,6 @@
-import { Router, Response } from 'express';
+import { Router, Response, Request } from 'express';
 import { Task } from '@database/index';
-import { authenticateUser, AuthenticatedRequest } from '../middleware/auth';
+import { requireSession } from '../middleware/requireSession';
 import {
   successResponse,
   successMessageResponse,
@@ -13,9 +13,9 @@ import { logger } from '@shared/utils/logger';
 const router = Router();
 
 /**
- * Apply authentication to all task routes
+ * Apply session authentication to all task routes
  */
-router.use(authenticateUser);
+router.use(requireSession);
 
 /**
  * GET /api/tasks
@@ -24,7 +24,7 @@ router.use(authenticateUser);
  * @query filter - Optional filter: 'all' | 'pending' | 'completed' (default: 'all')
  * @returns Array of tasks
  */
-router.get('/', async (req: AuthenticatedRequest, res: Response) => {
+router.get('/', async (req: Request, res: Response) => {
   const startTime = Date.now();
 
   try {
@@ -38,18 +38,18 @@ router.get('/', async (req: AuthenticatedRequest, res: Response) => {
     }
 
     logger.debug('[API] Fetching tasks', {
-      userId: req.user.discordId,
+      userId: req.session.userId,
       filter: filter,
     });
 
     const tasks = await Task.getUserTasks(
-      req.user.discordId,
-      req.user.guildId,
+      req.session.userId!,
+      req.session.guildId!,
       filter as 'all' | 'pending' | 'completed'
     );
 
     logger.info('[API] Tasks fetched successfully', {
-      userId: req.user.discordId,
+      userId: req.session.userId,
       count: tasks.length,
       duration: Date.now() - startTime,
     });
@@ -59,7 +59,7 @@ router.get('/', async (req: AuthenticatedRequest, res: Response) => {
     logger.error('[API] Error fetching tasks', {
       error: error instanceof Error ? error.message : 'Unknown error',
       stack: error instanceof Error ? error.stack : undefined,
-      userId: req.user?.discordId,
+      userId: req.session?.userId,
     });
 
     const { response, statusCode } = serverError(error as Error);
@@ -74,7 +74,7 @@ router.get('/', async (req: AuthenticatedRequest, res: Response) => {
  * @param id - Task ID
  * @returns Single task object
  */
-router.get('/:id', async (req: AuthenticatedRequest, res: Response) => {
+router.get('/:id', async (req: Request, res: Response) => {
   const startTime = Date.now();
 
   try {
@@ -87,11 +87,11 @@ router.get('/:id', async (req: AuthenticatedRequest, res: Response) => {
 
     logger.debug('[API] Fetching task', {
       taskId: taskId,
-      userId: req.user.discordId,
+      userId: req.session.userId,
     });
 
-    const tasks = await Task.getUserTasks(req.user.discordId, req.user.guildId);
-    const task = tasks.find((t: any) => t.id === taskId);
+    const tasks = await Task.getUserTasks(req.session.userId!, req.session.guildId!);
+    const task = tasks.find((t) => t.id === taskId);
 
     if (!task) {
       const { response, statusCode } = notFoundError('Task');
@@ -100,7 +100,7 @@ router.get('/:id', async (req: AuthenticatedRequest, res: Response) => {
 
     logger.info('[API] Task fetched successfully', {
       taskId: taskId,
-      userId: req.user.discordId,
+      userId: req.session.userId,
       duration: Date.now() - startTime,
     });
 
@@ -110,7 +110,7 @@ router.get('/:id', async (req: AuthenticatedRequest, res: Response) => {
       error: error instanceof Error ? error.message : 'Unknown error',
       stack: error instanceof Error ? error.stack : undefined,
       taskId: req.params.id,
-      userId: req.user?.discordId,
+      userId: req.session?.userId,
     });
 
     const { response, statusCode } = serverError(error as Error);
@@ -126,7 +126,7 @@ router.get('/:id', async (req: AuthenticatedRequest, res: Response) => {
  * @body dueDate - Due date in ISO format (optional)
  * @returns Created task object
  */
-router.post('/', async (req: AuthenticatedRequest, res: Response) => {
+router.post('/', async (req: Request, res: Response) => {
   const startTime = Date.now();
 
   try {
@@ -158,19 +158,19 @@ router.post('/', async (req: AuthenticatedRequest, res: Response) => {
     logger.debug('[API] Creating task', {
       description: description,
       dueDate: parsedDueDate,
-      userId: req.user.discordId,
+      userId: req.session.userId,
     });
 
     const task = await Task.createTask(
-      req.user.discordId,
-      req.user.guildId,
+      req.session.userId!,
+      req.session.guildId!,
       description.trim(),
       parsedDueDate
     );
 
     logger.info('[API] Task created successfully', {
       taskId: task.id,
-      userId: req.user.discordId,
+      userId: req.session.userId,
       duration: Date.now() - startTime,
     });
 
@@ -179,7 +179,7 @@ router.post('/', async (req: AuthenticatedRequest, res: Response) => {
     logger.error('[API] Error creating task', {
       error: error instanceof Error ? error.message : 'Unknown error',
       stack: error instanceof Error ? error.stack : undefined,
-      userId: req.user?.discordId,
+      userId: req.session?.userId,
     });
 
     const { response, statusCode } = serverError(error as Error);
@@ -197,7 +197,7 @@ router.post('/', async (req: AuthenticatedRequest, res: Response) => {
  * @body completed - Completion status (optional)
  * @returns Updated task object
  */
-router.patch('/:id', async (req: AuthenticatedRequest, res: Response) => {
+router.patch('/:id', async (req: Request, res: Response) => {
   const startTime = Date.now();
 
   try {
@@ -212,7 +212,7 @@ router.patch('/:id', async (req: AuthenticatedRequest, res: Response) => {
 
     logger.debug('[API] Updating task', {
       taskId: taskId,
-      userId: req.user.discordId,
+      userId: req.session.userId,
       updates: { description, dueDate, completed },
     });
 
@@ -224,7 +224,7 @@ router.patch('/:id', async (req: AuthenticatedRequest, res: Response) => {
       }
 
       if (completed) {
-        const task = await Task.completeTask(taskId, req.user.discordId, req.user.guildId);
+        const task = await Task.completeTask(taskId, req.session.userId!, req.session.guildId!);
 
         if (!task) {
           const { response, statusCode } = notFoundError('Task');
@@ -233,7 +233,7 @@ router.patch('/:id', async (req: AuthenticatedRequest, res: Response) => {
 
         logger.info('[API] Task marked as completed', {
           taskId: taskId,
-          userId: req.user.discordId,
+          userId: req.session.userId,
           duration: Date.now() - startTime,
         });
 
@@ -259,9 +259,9 @@ router.patch('/:id', async (req: AuthenticatedRequest, res: Response) => {
 
       const task = await Task.editTask(
         taskId,
-        req.user.discordId,
-        req.user.guildId,
-        description !== undefined ? description.trim() : (undefined as any),
+        req.session.userId!,
+        req.session.guildId!,
+        description !== undefined ? description.trim() : undefined,
         parsedDueDate
       );
 
@@ -272,7 +272,7 @@ router.patch('/:id', async (req: AuthenticatedRequest, res: Response) => {
 
       logger.info('[API] Task updated successfully', {
         taskId: taskId,
-        userId: req.user.discordId,
+        userId: req.session.userId,
         duration: Date.now() - startTime,
       });
 
@@ -287,7 +287,7 @@ router.patch('/:id', async (req: AuthenticatedRequest, res: Response) => {
       error: error instanceof Error ? error.message : 'Unknown error',
       stack: error instanceof Error ? error.stack : undefined,
       taskId: req.params.id,
-      userId: req.user?.discordId,
+      userId: req.session?.userId,
     });
 
     const { response, statusCode } = serverError(error as Error);
@@ -302,7 +302,7 @@ router.patch('/:id', async (req: AuthenticatedRequest, res: Response) => {
  * @param id - Task ID
  * @returns Success message
  */
-router.delete('/:id', async (req: AuthenticatedRequest, res: Response) => {
+router.delete('/:id', async (req: Request, res: Response) => {
   const startTime = Date.now();
 
   try {
@@ -315,10 +315,10 @@ router.delete('/:id', async (req: AuthenticatedRequest, res: Response) => {
 
     logger.debug('[API] Deleting task', {
       taskId: taskId,
-      userId: req.user.discordId,
+      userId: req.session.userId,
     });
 
-    const deleted = await Task.deleteTask(taskId, req.user.discordId, req.user.guildId);
+    const deleted = await Task.deleteTask(taskId, req.session.userId!, req.session.guildId!);
 
     if (!deleted) {
       const { response, statusCode } = notFoundError('Task');
@@ -327,7 +327,7 @@ router.delete('/:id', async (req: AuthenticatedRequest, res: Response) => {
 
     logger.info('[API] Task deleted successfully', {
       taskId: taskId,
-      userId: req.user.discordId,
+      userId: req.session.userId,
       duration: Date.now() - startTime,
     });
 
@@ -337,7 +337,7 @@ router.delete('/:id', async (req: AuthenticatedRequest, res: Response) => {
       error: error instanceof Error ? error.message : 'Unknown error',
       stack: error instanceof Error ? error.stack : undefined,
       taskId: req.params.id,
-      userId: req.user?.discordId,
+      userId: req.session?.userId,
     });
 
     const { response, statusCode } = serverError(error as Error);

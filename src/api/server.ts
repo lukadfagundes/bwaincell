@@ -1,8 +1,10 @@
 import express, { Application, Request, Response, NextFunction } from 'express';
 import cors from 'cors';
 import { logger } from '@shared/utils/logger';
+import { sessionMiddleware } from './middleware/session';
 
 // Import route modules
+import authRouter from './routes/auth';
 import tasksRouter from './routes/tasks';
 import listsRouter from './routes/lists';
 import notesRouter from './routes/notes';
@@ -22,20 +24,29 @@ export function createApiServer(): Application {
 
   const app = express();
 
-  // CORS configuration
-  const corsOrigin = process.env.PWA_URL || 'http://localhost:3001';
+  // CORS configuration - MUST be before session middleware
+  const corsOrigins = [
+    process.env.PWA_URL || 'http://localhost:3001',
+    'https://bwain-app.vercel.app',
+    'http://localhost:3000',
+  ];
+
   app.use(
     cors({
-      origin: corsOrigin,
-      credentials: true,
+      origin: corsOrigins,
+      credentials: true, // Allow cookies
       methods: ['GET', 'POST', 'PATCH', 'DELETE', 'OPTIONS'],
       allowedHeaders: ['Content-Type', 'Authorization'],
     })
   );
 
   logger.info('[API-SERVER] CORS configured', {
-    origin: corsOrigin,
+    origins: corsOrigins,
+    credentials: true,
   });
+
+  // Session middleware - MUST be after CORS and before routes
+  app.use(sessionMiddleware);
 
   // Body parsing middleware
   app.use(express.json({ limit: '10mb' }));
@@ -87,6 +98,7 @@ export function createApiServer(): Application {
       version: '1.0.0',
       description: 'REST API for Bwaincell Discord bot features',
       endpoints: {
+        auth: '/api/auth',
         tasks: '/api/tasks',
         lists: '/api/lists',
         notes: '/api/notes',
@@ -94,12 +106,16 @@ export function createApiServer(): Application {
         budget: '/api/budget',
         schedule: '/api/schedule',
       },
-      authentication: 'Basic Auth required for all /api/* endpoints',
+      authentication:
+        'Session-based authentication required for all /api/* endpoints (except /api/auth)',
       documentation: 'See README.md for API documentation',
     });
   });
 
-  // Register API routes (all require authentication)
+  // Register authentication routes (no session required)
+  app.use('/api/auth', authRouter);
+
+  // Register API routes (all require session authentication)
   app.use('/api/tasks', tasksRouter);
   app.use('/api/lists', listsRouter);
   app.use('/api/notes', notesRouter);
@@ -109,6 +125,7 @@ export function createApiServer(): Application {
 
   logger.info('[API-SERVER] API routes registered', {
     routes: [
+      '/api/auth',
       '/api/tasks',
       '/api/lists',
       '/api/notes',

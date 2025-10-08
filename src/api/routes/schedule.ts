@@ -1,6 +1,6 @@
-import { Router, Response } from 'express';
+import { Router, Response, Request } from 'express';
 import { Schedule } from '@database/index';
-import { authenticateUser, AuthenticatedRequest } from '../middleware/auth';
+import { requireSession } from '../middleware/requireSession';
 import {
   successResponse,
   successMessageResponse,
@@ -13,9 +13,9 @@ import { logger } from '@shared/utils/logger';
 const router = Router();
 
 /**
- * Apply authentication to all schedule routes
+ * Apply session authentication to all schedule routes
  */
-router.use(authenticateUser);
+router.use(requireSession);
 
 /**
  * GET /api/schedule
@@ -25,7 +25,7 @@ router.use(authenticateUser);
  * @query days - Number of days for upcoming events (default: 7)
  * @returns Array of schedule events
  */
-router.get('/', async (req: AuthenticatedRequest, res: Response) => {
+router.get('/', async (req: Request, res: Response) => {
   const startTime = Date.now();
 
   try {
@@ -40,7 +40,7 @@ router.get('/', async (req: AuthenticatedRequest, res: Response) => {
     }
 
     logger.debug('[API] Fetching schedule events', {
-      userId: req.user.discordId,
+      userId: req.session.userId,
       filter: filter,
       days: days,
     });
@@ -49,7 +49,7 @@ router.get('/', async (req: AuthenticatedRequest, res: Response) => {
 
     if (filter === 'upcoming' && !isNaN(days) && days > 0) {
       // Get upcoming events within specified days
-      events = await Schedule.getUpcomingEvents(req.user.discordId, req.user.guildId, days);
+      events = await Schedule.getUpcomingEvents(req.session.userId!, req.session.guildId!, days);
     } else {
       // Get events based on filter
       events = await Schedule.getEvents(
@@ -60,7 +60,7 @@ router.get('/', async (req: AuthenticatedRequest, res: Response) => {
     }
 
     logger.info('[API] Schedule events fetched successfully', {
-      userId: req.user.discordId,
+      userId: req.session.userId,
       count: events.length,
       filter: filter,
       duration: Date.now() - startTime,
@@ -71,7 +71,7 @@ router.get('/', async (req: AuthenticatedRequest, res: Response) => {
     logger.error('[API] Error fetching schedule events', {
       error: error instanceof Error ? error.message : 'Unknown error',
       stack: error instanceof Error ? error.stack : undefined,
-      userId: req.user?.discordId,
+      userId: req.session?.userId,
     });
 
     const { response, statusCode } = serverError(error as Error);
@@ -85,18 +85,18 @@ router.get('/', async (req: AuthenticatedRequest, res: Response) => {
  *
  * @returns Array of today's events
  */
-router.get('/today', async (req: AuthenticatedRequest, res: Response) => {
+router.get('/today', async (req: Request, res: Response) => {
   const startTime = Date.now();
 
   try {
     logger.debug("[API] Fetching today's schedule events", {
-      userId: req.user.discordId,
+      userId: req.session.userId,
     });
 
-    const events = await Schedule.getTodaysEvents(req.user.discordId, req.user.guildId);
+    const events = await Schedule.getTodaysEvents(req.session.userId!, req.session.guildId!);
 
     logger.info("[API] Today's schedule events fetched successfully", {
-      userId: req.user.discordId,
+      userId: req.session.userId,
       count: events.length,
       duration: Date.now() - startTime,
     });
@@ -106,7 +106,7 @@ router.get('/today', async (req: AuthenticatedRequest, res: Response) => {
     logger.error("[API] Error fetching today's schedule events", {
       error: error instanceof Error ? error.message : 'Unknown error',
       stack: error instanceof Error ? error.stack : undefined,
-      userId: req.user?.discordId,
+      userId: req.session?.userId,
     });
 
     const { response, statusCode } = serverError(error as Error);
@@ -121,7 +121,7 @@ router.get('/today', async (req: AuthenticatedRequest, res: Response) => {
  * @param eventName - Event name (partial match supported)
  * @returns Event with time remaining
  */
-router.get('/countdown/:eventName', async (req: AuthenticatedRequest, res: Response) => {
+router.get('/countdown/:eventName', async (req: Request, res: Response) => {
   const startTime = Date.now();
 
   try {
@@ -129,10 +129,14 @@ router.get('/countdown/:eventName', async (req: AuthenticatedRequest, res: Respo
 
     logger.debug('[API] Fetching event countdown', {
       eventName: eventName,
-      userId: req.user.discordId,
+      userId: req.session.userId,
     });
 
-    const countdown = await Schedule.getCountdown(req.user.discordId, req.user.guildId, eventName);
+    const countdown = await Schedule.getCountdown(
+      req.session.userId!,
+      req.session.guildId!,
+      eventName
+    );
 
     if (!countdown) {
       const { response, statusCode } = notFoundError('Event');
@@ -141,7 +145,7 @@ router.get('/countdown/:eventName', async (req: AuthenticatedRequest, res: Respo
 
     logger.info('[API] Event countdown fetched successfully', {
       eventName: eventName,
-      userId: req.user.discordId,
+      userId: req.session.userId,
       timeLeft: countdown.timeLeft,
       duration: Date.now() - startTime,
     });
@@ -152,7 +156,7 @@ router.get('/countdown/:eventName', async (req: AuthenticatedRequest, res: Respo
       error: error instanceof Error ? error.message : 'Unknown error',
       stack: error instanceof Error ? error.stack : undefined,
       eventName: req.params.eventName,
-      userId: req.user?.discordId,
+      userId: req.session?.userId,
     });
 
     const { response, statusCode } = serverError(error as Error);
@@ -170,7 +174,7 @@ router.get('/countdown/:eventName', async (req: AuthenticatedRequest, res: Respo
  * @body description - Event description (optional)
  * @returns Created event object
  */
-router.post('/', async (req: AuthenticatedRequest, res: Response) => {
+router.post('/', async (req: Request, res: Response) => {
   const startTime = Date.now();
 
   try {
@@ -224,7 +228,7 @@ router.post('/', async (req: AuthenticatedRequest, res: Response) => {
       event: event,
       date: date,
       time: time,
-      userId: req.user.discordId,
+      userId: req.session.userId,
     });
 
     const scheduleEvent = await Schedule.addEvent(
@@ -238,7 +242,7 @@ router.post('/', async (req: AuthenticatedRequest, res: Response) => {
 
     logger.info('[API] Schedule event created successfully', {
       eventId: scheduleEvent.id,
-      userId: req.user.discordId,
+      userId: req.session.userId,
       duration: Date.now() - startTime,
     });
 
@@ -247,7 +251,7 @@ router.post('/', async (req: AuthenticatedRequest, res: Response) => {
     logger.error('[API] Error creating schedule event', {
       error: error instanceof Error ? error.message : 'Unknown error',
       stack: error instanceof Error ? error.stack : undefined,
-      userId: req.user?.discordId,
+      userId: req.session?.userId,
     });
 
     const { response, statusCode } = serverError(error as Error);
@@ -266,7 +270,7 @@ router.post('/', async (req: AuthenticatedRequest, res: Response) => {
  * @body description - New description (optional)
  * @returns Updated event object
  */
-router.patch('/:id', async (req: AuthenticatedRequest, res: Response) => {
+router.patch('/:id', async (req: Request, res: Response) => {
   const _startTime = Date.now();
 
   try {
@@ -294,7 +298,7 @@ router.patch('/:id', async (req: AuthenticatedRequest, res: Response) => {
 
     logger.debug('[API] Updating schedule event', {
       eventId: eventId,
-      userId: req.user.discordId,
+      userId: req.session.userId,
     });
 
     // For this simplified version, we'll inform users that updates aren't supported
@@ -308,7 +312,7 @@ router.patch('/:id', async (req: AuthenticatedRequest, res: Response) => {
       error: error instanceof Error ? error.message : 'Unknown error',
       stack: error instanceof Error ? error.stack : undefined,
       eventId: req.params.id,
-      userId: req.user?.discordId,
+      userId: req.session?.userId,
     });
 
     const { response, statusCode } = serverError(error as Error);
@@ -323,7 +327,7 @@ router.patch('/:id', async (req: AuthenticatedRequest, res: Response) => {
  * @param id - Event ID
  * @returns Success message
  */
-router.delete('/:id', async (req: AuthenticatedRequest, res: Response) => {
+router.delete('/:id', async (req: Request, res: Response) => {
   const startTime = Date.now();
 
   try {
@@ -336,10 +340,10 @@ router.delete('/:id', async (req: AuthenticatedRequest, res: Response) => {
 
     logger.debug('[API] Deleting schedule event', {
       eventId: eventId,
-      userId: req.user.discordId,
+      userId: req.session.userId,
     });
 
-    const deleted = await Schedule.deleteEvent(eventId, req.user.discordId, req.user.guildId);
+    const deleted = await Schedule.deleteEvent(eventId, req.session.userId!, req.session.guildId!);
 
     if (!deleted) {
       const { response, statusCode } = notFoundError('Event');
@@ -348,7 +352,7 @@ router.delete('/:id', async (req: AuthenticatedRequest, res: Response) => {
 
     logger.info('[API] Schedule event deleted successfully', {
       eventId: eventId,
-      userId: req.user.discordId,
+      userId: req.session.userId,
       duration: Date.now() - startTime,
     });
 
@@ -358,7 +362,7 @@ router.delete('/:id', async (req: AuthenticatedRequest, res: Response) => {
       error: error instanceof Error ? error.message : 'Unknown error',
       stack: error instanceof Error ? error.stack : undefined,
       eventId: req.params.id,
-      userId: req.user?.discordId,
+      userId: req.session?.userId,
     });
 
     const { response, statusCode } = serverError(error as Error);

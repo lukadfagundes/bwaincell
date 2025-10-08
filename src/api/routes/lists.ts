@@ -1,6 +1,6 @@
-import { Router, Response } from 'express';
+import { Router, Response, Request } from 'express';
 import { List } from '@database/index';
-import { authenticateUser, AuthenticatedRequest } from '../middleware/auth';
+import { requireSession } from '../middleware/requireSession';
 import {
   successResponse,
   successMessageResponse,
@@ -13,9 +13,9 @@ import { logger } from '@shared/utils/logger';
 const router = Router();
 
 /**
- * Apply authentication to all list routes
+ * Apply session authentication to all list routes
  */
-router.use(authenticateUser);
+router.use(requireSession);
 
 /**
  * GET /api/lists
@@ -23,18 +23,18 @@ router.use(authenticateUser);
  *
  * @returns Array of lists with items
  */
-router.get('/', async (req: AuthenticatedRequest, res: Response) => {
+router.get('/', async (req: Request, res: Response) => {
   const startTime = Date.now();
 
   try {
     logger.debug('[API] Fetching lists', {
-      userId: req.user.discordId,
+      userId: req.session.userId,
     });
 
-    const lists = await List.getUserLists(req.user.discordId, req.user.guildId);
+    const lists = await List.getUserLists(req.session.userId!, req.session.guildId!);
 
     logger.info('[API] Lists fetched successfully', {
-      userId: req.user.discordId,
+      userId: req.session.userId,
       count: lists.length,
       duration: Date.now() - startTime,
     });
@@ -44,7 +44,7 @@ router.get('/', async (req: AuthenticatedRequest, res: Response) => {
     logger.error('[API] Error fetching lists', {
       error: error instanceof Error ? error.message : 'Unknown error',
       stack: error instanceof Error ? error.stack : undefined,
-      userId: req.user?.discordId,
+      userId: req.session?.userId,
     });
 
     const { response, statusCode } = serverError(error as Error);
@@ -59,7 +59,7 @@ router.get('/', async (req: AuthenticatedRequest, res: Response) => {
  * @param name - List name
  * @returns Single list object with items
  */
-router.get('/:name', async (req: AuthenticatedRequest, res: Response) => {
+router.get('/:name', async (req: Request, res: Response) => {
   const startTime = Date.now();
 
   try {
@@ -67,10 +67,10 @@ router.get('/:name', async (req: AuthenticatedRequest, res: Response) => {
 
     logger.debug('[API] Fetching list', {
       listName: listName,
-      userId: req.user.discordId,
+      userId: req.session.userId,
     });
 
-    const list = await List.getList(req.user.discordId, req.user.guildId, listName);
+    const list = await List.getList(req.session.userId!, req.session.guildId!, listName);
 
     if (!list) {
       const { response, statusCode } = notFoundError('List');
@@ -79,7 +79,7 @@ router.get('/:name', async (req: AuthenticatedRequest, res: Response) => {
 
     logger.info('[API] List fetched successfully', {
       listName: listName,
-      userId: req.user.discordId,
+      userId: req.session.userId,
       itemCount: list.items?.length || 0,
       duration: Date.now() - startTime,
     });
@@ -90,7 +90,7 @@ router.get('/:name', async (req: AuthenticatedRequest, res: Response) => {
       error: error instanceof Error ? error.message : 'Unknown error',
       stack: error instanceof Error ? error.stack : undefined,
       listName: req.params.name,
-      userId: req.user?.discordId,
+      userId: req.session?.userId,
     });
 
     const { response, statusCode } = serverError(error as Error);
@@ -105,7 +105,7 @@ router.get('/:name', async (req: AuthenticatedRequest, res: Response) => {
  * @body name - List name (required)
  * @returns Created list object
  */
-router.post('/', async (req: AuthenticatedRequest, res: Response) => {
+router.post('/', async (req: Request, res: Response) => {
   const startTime = Date.now();
 
   try {
@@ -124,10 +124,10 @@ router.post('/', async (req: AuthenticatedRequest, res: Response) => {
 
     logger.debug('[API] Creating list', {
       name: name,
-      userId: req.user.discordId,
+      userId: req.session.userId,
     });
 
-    const list = await List.createList(req.user.discordId, req.user.guildId, name.trim());
+    const list = await List.createList(req.session.userId!, req.session.guildId!, name.trim());
 
     if (!list) {
       const { response, statusCode } = validationError('A list with this name already exists');
@@ -137,7 +137,7 @@ router.post('/', async (req: AuthenticatedRequest, res: Response) => {
     logger.info('[API] List created successfully', {
       listId: list.id,
       name: name,
-      userId: req.user.discordId,
+      userId: req.session.userId,
       duration: Date.now() - startTime,
     });
 
@@ -146,7 +146,7 @@ router.post('/', async (req: AuthenticatedRequest, res: Response) => {
     logger.error('[API] Error creating list', {
       error: error instanceof Error ? error.message : 'Unknown error',
       stack: error instanceof Error ? error.stack : undefined,
-      userId: req.user?.discordId,
+      userId: req.session?.userId,
     });
 
     const { response, statusCode } = serverError(error as Error);
@@ -162,7 +162,7 @@ router.post('/', async (req: AuthenticatedRequest, res: Response) => {
  * @body item - Item text (required)
  * @returns Updated list object
  */
-router.post('/:name/items', async (req: AuthenticatedRequest, res: Response) => {
+router.post('/:name/items', async (req: Request, res: Response) => {
   const startTime = Date.now();
 
   try {
@@ -183,10 +183,15 @@ router.post('/:name/items', async (req: AuthenticatedRequest, res: Response) => 
     logger.debug('[API] Adding item to list', {
       listName: listName,
       item: item,
-      userId: req.user.discordId,
+      userId: req.session.userId,
     });
 
-    const list = await List.addItem(req.user.discordId, req.user.guildId, listName, item.trim());
+    const list = await List.addItem(
+      req.session.userId!,
+      req.session.guildId!,
+      listName,
+      item.trim()
+    );
 
     if (!list) {
       const { response, statusCode } = notFoundError('List');
@@ -195,7 +200,7 @@ router.post('/:name/items', async (req: AuthenticatedRequest, res: Response) => 
 
     logger.info('[API] Item added to list successfully', {
       listName: listName,
-      userId: req.user.discordId,
+      userId: req.session.userId,
       itemCount: list.items?.length || 0,
       duration: Date.now() - startTime,
     });
@@ -206,7 +211,7 @@ router.post('/:name/items', async (req: AuthenticatedRequest, res: Response) => 
       error: error instanceof Error ? error.message : 'Unknown error',
       stack: error instanceof Error ? error.stack : undefined,
       listName: req.params.name,
-      userId: req.user?.discordId,
+      userId: req.session?.userId,
     });
 
     const { response, statusCode } = serverError(error as Error);
@@ -222,7 +227,7 @@ router.post('/:name/items', async (req: AuthenticatedRequest, res: Response) => 
  * @param itemText - Item text to toggle
  * @returns Updated list object
  */
-router.patch('/:name/items/:itemText/toggle', async (req: AuthenticatedRequest, res: Response) => {
+router.patch('/:name/items/:itemText/toggle', async (req: Request, res: Response) => {
   const startTime = Date.now();
 
   try {
@@ -232,10 +237,15 @@ router.patch('/:name/items/:itemText/toggle', async (req: AuthenticatedRequest, 
     logger.debug('[API] Toggling list item', {
       listName: listName,
       itemText: itemText,
-      userId: req.user.discordId,
+      userId: req.session.userId,
     });
 
-    const list = await List.toggleItem(req.user.discordId, req.user.guildId, listName, itemText);
+    const list = await List.toggleItem(
+      req.session.userId!,
+      req.session.guildId!,
+      listName,
+      itemText
+    );
 
     if (!list) {
       const { response, statusCode } = notFoundError('List or item');
@@ -245,7 +255,7 @@ router.patch('/:name/items/:itemText/toggle', async (req: AuthenticatedRequest, 
     logger.info('[API] List item toggled successfully', {
       listName: listName,
       itemText: itemText,
-      userId: req.user.discordId,
+      userId: req.session.userId,
       duration: Date.now() - startTime,
     });
 
@@ -256,7 +266,7 @@ router.patch('/:name/items/:itemText/toggle', async (req: AuthenticatedRequest, 
       stack: error instanceof Error ? error.stack : undefined,
       listName: req.params.name,
       itemText: req.params.itemText,
-      userId: req.user?.discordId,
+      userId: req.session?.userId,
     });
 
     const { response, statusCode } = serverError(error as Error);
@@ -272,7 +282,7 @@ router.patch('/:name/items/:itemText/toggle', async (req: AuthenticatedRequest, 
  * @param itemText - Item text to remove
  * @returns Updated list object
  */
-router.delete('/:name/items/:itemText', async (req: AuthenticatedRequest, res: Response) => {
+router.delete('/:name/items/:itemText', async (req: Request, res: Response) => {
   const startTime = Date.now();
 
   try {
@@ -282,10 +292,15 @@ router.delete('/:name/items/:itemText', async (req: AuthenticatedRequest, res: R
     logger.debug('[API] Removing item from list', {
       listName: listName,
       itemText: itemText,
-      userId: req.user.discordId,
+      userId: req.session.userId,
     });
 
-    const list = await List.removeItem(req.user.discordId, req.user.guildId, listName, itemText);
+    const list = await List.removeItem(
+      req.session.userId!,
+      req.session.guildId!,
+      listName,
+      itemText
+    );
 
     if (!list) {
       const { response, statusCode } = notFoundError('List or item');
@@ -295,7 +310,7 @@ router.delete('/:name/items/:itemText', async (req: AuthenticatedRequest, res: R
     logger.info('[API] Item removed from list successfully', {
       listName: listName,
       itemText: itemText,
-      userId: req.user.discordId,
+      userId: req.session.userId,
       itemCount: list.items?.length || 0,
       duration: Date.now() - startTime,
     });
@@ -307,7 +322,7 @@ router.delete('/:name/items/:itemText', async (req: AuthenticatedRequest, res: R
       stack: error instanceof Error ? error.stack : undefined,
       listName: req.params.name,
       itemText: req.params.itemText,
-      userId: req.user?.discordId,
+      userId: req.session?.userId,
     });
 
     const { response, statusCode } = serverError(error as Error);
@@ -322,7 +337,7 @@ router.delete('/:name/items/:itemText', async (req: AuthenticatedRequest, res: R
  * @param name - List name
  * @returns Updated list object
  */
-router.post('/:name/clear-completed', async (req: AuthenticatedRequest, res: Response) => {
+router.post('/:name/clear-completed', async (req: Request, res: Response) => {
   const startTime = Date.now();
 
   try {
@@ -330,10 +345,10 @@ router.post('/:name/clear-completed', async (req: AuthenticatedRequest, res: Res
 
     logger.debug('[API] Clearing completed items from list', {
       listName: listName,
-      userId: req.user.discordId,
+      userId: req.session.userId,
     });
 
-    const list = await List.clearCompleted(req.user.discordId, req.user.guildId, listName);
+    const list = await List.clearCompleted(req.session.userId!, req.session.guildId!, listName);
 
     if (!list) {
       const { response, statusCode } = notFoundError('List');
@@ -342,7 +357,7 @@ router.post('/:name/clear-completed', async (req: AuthenticatedRequest, res: Res
 
     logger.info('[API] Completed items cleared successfully', {
       listName: listName,
-      userId: req.user.discordId,
+      userId: req.session.userId,
       remainingItems: list.items?.length || 0,
       duration: Date.now() - startTime,
     });
@@ -353,7 +368,7 @@ router.post('/:name/clear-completed', async (req: AuthenticatedRequest, res: Res
       error: error instanceof Error ? error.message : 'Unknown error',
       stack: error instanceof Error ? error.stack : undefined,
       listName: req.params.name,
-      userId: req.user?.discordId,
+      userId: req.session?.userId,
     });
 
     const { response, statusCode } = serverError(error as Error);
@@ -368,7 +383,7 @@ router.post('/:name/clear-completed', async (req: AuthenticatedRequest, res: Res
  * @param name - List name
  * @returns Success message
  */
-router.delete('/:name', async (req: AuthenticatedRequest, res: Response) => {
+router.delete('/:name', async (req: Request, res: Response) => {
   const startTime = Date.now();
 
   try {
@@ -376,10 +391,10 @@ router.delete('/:name', async (req: AuthenticatedRequest, res: Response) => {
 
     logger.debug('[API] Deleting list', {
       listName: listName,
-      userId: req.user.discordId,
+      userId: req.session.userId,
     });
 
-    const deleted = await List.deleteList(req.user.discordId, req.user.guildId, listName);
+    const deleted = await List.deleteList(req.session.userId!, req.session.guildId!, listName);
 
     if (!deleted) {
       const { response, statusCode } = notFoundError('List');
@@ -388,7 +403,7 @@ router.delete('/:name', async (req: AuthenticatedRequest, res: Response) => {
 
     logger.info('[API] List deleted successfully', {
       listName: listName,
-      userId: req.user.discordId,
+      userId: req.session.userId,
       duration: Date.now() - startTime,
     });
 
@@ -398,7 +413,7 @@ router.delete('/:name', async (req: AuthenticatedRequest, res: Response) => {
       error: error instanceof Error ? error.message : 'Unknown error',
       stack: error instanceof Error ? error.stack : undefined,
       listName: req.params.name,
-      userId: req.user?.discordId,
+      userId: req.session?.userId,
     });
 
     const { response, statusCode } = serverError(error as Error);
