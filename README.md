@@ -73,7 +73,7 @@ A pure utility Discord bot for personal server management, providing task manage
 1. **Clone the repository**
 
 ```bash
-cd "C:/Users/lukaf/Desktop/Dev Work/Bwaincell"
+git clone https://www.github.com/lukadfagundes/bwaincell.git
 ```
 
 2. **Install dependencies**

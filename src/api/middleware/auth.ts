@@ -24,21 +24,21 @@ export interface AuthenticatedRequest extends Request {
 /**
  * User credentials mapping
  * Environment variables required:
- * - LUKA_PASSWORD
- * - LUKA_DISCORD_ID
- * - WIFE_PASSWORD
- * - WIFE_DISCORD_ID
+ * - STRAWHATLUKA_PASSWORD
+ * - STRAWHATLUKA_DISCORD_ID
+ * - DANDELION_PASSWORD
+ * - DANDELION_DISCORD_ID
  * - GUILD_ID
  */
 const USERS: Record<string, User> = {
-  luka: {
-    password: process.env.LUKA_PASSWORD || '',
-    discordId: process.env.LUKA_DISCORD_ID || '',
+  strawhatluka: {
+    password: process.env.STRAWHATLUKA_PASSWORD || '',
+    discordId: process.env.STRAWHATLUKA_DISCORD_ID || '',
     guildId: process.env.GUILD_ID || '',
   },
-  wife: {
-    password: process.env.WIFE_PASSWORD || '',
-    discordId: process.env.WIFE_DISCORD_ID || '',
+  dandelion: {
+    password: process.env.DANDELION_PASSWORD || '',
+    discordId: process.env.DANDELION_DISCORD_ID || '',
     guildId: process.env.GUILD_ID || '',
   },
 };
