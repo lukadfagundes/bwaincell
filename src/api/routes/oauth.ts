@@ -4,6 +4,12 @@ import { User } from '@database/models/User';
 import { logger } from '@shared/utils/logger';
 import jwt from 'jsonwebtoken';
 
+// Validate JWT_SECRET is set - fail fast for security
+if (!process.env.JWT_SECRET) {
+  throw new Error('CRITICAL: JWT_SECRET environment variable is required');
+}
+const JWT_SECRET = process.env.JWT_SECRET;
+
 const router = Router();
 
 /**
@@ -35,13 +41,16 @@ router.post('/google/verify', async (req: Request, res: Response) => {
     let user = await User.findOne({ where: { googleId: googleUser.googleId } });
 
     if (!user) {
-      // Map email to Discord ID (migration from Basic Auth)
-      let discordId = process.env.STRAWHATLUKA_DISCORD_ID || '';
-      const guildId = process.env.GUILD_ID || '';
+      // Map email to Discord ID using environment variables
+      // Email-to-Discord ID mapping configured in environment
+      const emailToDiscordMap: Record<string, string> = {
+        [process.env.STRAWHATLUKA_EMAIL || '']: process.env.STRAWHATLUKA_DISCORD_ID || '',
+        [process.env.DANDELION_EMAIL || '']: process.env.DANDELION_DISCORD_ID || '',
+      };
 
-      if (googleUser.email === 'caitlintmentink@gmail.com') {
-        discordId = process.env.DANDELION_DISCORD_ID || '';
-      }
+      const discordId =
+        emailToDiscordMap[googleUser.email] || process.env.STRAWHATLUKA_DISCORD_ID || '';
+      const guildId = process.env.GUILD_ID || '';
 
       // Create new user
       user = await User.create({
@@ -65,15 +74,14 @@ router.post('/google/verify', async (req: Request, res: Response) => {
 
       // Update Discord IDs if they're missing (migration support)
       if (!user.discordId || !user.guildId) {
-        let discordId = process.env.STRAWHATLUKA_DISCORD_ID || '';
-        const guildId = process.env.GUILD_ID || '';
+        const emailToDiscordMap: Record<string, string> = {
+          [process.env.STRAWHATLUKA_EMAIL || '']: process.env.STRAWHATLUKA_DISCORD_ID || '',
+          [process.env.DANDELION_EMAIL || '']: process.env.DANDELION_DISCORD_ID || '',
+        };
 
-        if (googleUser.email === 'caitlintmentink@gmail.com') {
-          discordId = process.env.DANDELION_DISCORD_ID || '';
-        }
-
-        user.discordId = discordId;
-        user.guildId = guildId;
+        user.discordId =
+          emailToDiscordMap[googleUser.email] || process.env.STRAWHATLUKA_DISCORD_ID || '';
+        user.guildId = process.env.GUILD_ID || '';
       }
 
       await user.save();
@@ -138,7 +146,7 @@ router.post('/refresh', async (req: Request, res: Response) => {
     }
 
     // Verify refresh token
-    const decoded = jwt.verify(refreshToken, process.env.JWT_SECRET || 'fallback-secret') as {
+    const decoded = jwt.verify(refreshToken, JWT_SECRET) as {
       googleId: string;
     };
 
@@ -188,7 +196,7 @@ router.post('/logout', async (req: Request, res: Response) => {
 
     if (refreshToken) {
       // Find user and clear refresh token
-      const decoded = jwt.verify(refreshToken, process.env.JWT_SECRET || 'fallback-secret') as {
+      const decoded = jwt.verify(refreshToken, JWT_SECRET) as {
         googleId: string;
       };
 

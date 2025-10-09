@@ -7,6 +7,12 @@ const client = new OAuth2Client(process.env.GOOGLE_CLIENT_ID);
 
 const ALLOWED_EMAILS = (process.env.ALLOWED_GOOGLE_EMAILS || '').split(',').map((e) => e.trim());
 
+// Validate JWT_SECRET is set - fail fast for security
+if (!process.env.JWT_SECRET) {
+  throw new Error('CRITICAL: JWT_SECRET environment variable is required');
+}
+const JWT_SECRET = process.env.JWT_SECRET;
+
 /**
  * Extended request with authenticated user
  */
@@ -77,7 +83,7 @@ export function generateAccessToken(user: {
       discordId: user.discordId,
       guildId: user.guildId,
     },
-    process.env.JWT_SECRET || 'fallback-secret',
+    JWT_SECRET,
     { expiresIn: '1h' }
   );
 }
@@ -86,7 +92,7 @@ export function generateAccessToken(user: {
  * Generate JWT refresh token
  */
 export function generateRefreshToken(googleId: string): string {
-  return jwt.sign({ googleId }, process.env.JWT_SECRET || 'fallback-secret', { expiresIn: '7d' });
+  return jwt.sign({ googleId }, JWT_SECRET, { expiresIn: '7d' });
 }
 
 /**
@@ -114,7 +120,7 @@ export async function authenticateToken(
 
   try {
     const token = authHeader.split(' ')[1];
-    const decoded = jwt.verify(token, process.env.JWT_SECRET || 'fallback-secret') as {
+    const decoded = jwt.verify(token, JWT_SECRET) as {
       googleId: string;
       email: string;
       discordId: string;
