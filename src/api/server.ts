@@ -24,18 +24,23 @@ export function createApiServer(): Application {
   const app = express();
 
   // CORS configuration - MUST be before session middleware
+  // Safari-specific: Include both with and without trailing slash
   const corsOrigins = [
     process.env.PWA_URL || 'http://localhost:3001',
     'https://bwain-app.vercel.app',
+    'https://bwain-app.vercel.app/', // Safari sends trailing slash
     'http://localhost:3000',
+    'http://localhost:3001',
   ];
 
   app.use(
     cors({
       origin: corsOrigins,
-      credentials: true, // Allow cookies
+      credentials: true, // Required for Authorization headers
       methods: ['GET', 'POST', 'PATCH', 'DELETE', 'OPTIONS'],
       allowedHeaders: ['Content-Type', 'Authorization'],
+      exposedHeaders: ['Content-Type', 'Authorization'], // Safari requirement
+      maxAge: 86400, // Cache preflight for 24 hours
     })
   );
 
