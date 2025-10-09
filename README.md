@@ -9,6 +9,12 @@ A comprehensive backend API for personal productivity management, combining Disc
 
 ---
 
+**_A note before you begin_**
+
+Bwaincell is a Discord bot that works to also serve information to the Bwain.app companion app I built, I'll provide the link to it below. The bot and app were developed for personal use for me and my wife and my iteration of it won't be available to access publically, however, feel free to tinker and make it your own!
+
+https://github.com/lukadfagundes/bwain.app
+
 ## Overview
 
 Bwaincell is a dual-purpose productivity platform that provides:
@@ -640,19 +646,6 @@ MIT License - see [LICENSE](LICENSE) file for details.
 
 ---
 
-## 🔱 Trinity Method
+Created by a man who loves his wife.
 
-This project uses the **Trinity Method** - an investigation-first development methodology.
-
-**Trinity Agents:**
-
-- **Aly (CTO):** Strategic planning
-- **AJ (Lead Dev):** Implementation
-- **JUNO (QA):** Quality auditing
-- **TAN, ZEN, INO:** Deployment specialists
-
-For Trinity documentation, see `trinity/knowledge-base/`.
-
----
-
-_Deployed with Trinity Method SDK v1.0.1_
+Luka Fagundes
