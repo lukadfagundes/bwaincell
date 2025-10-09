@@ -3,6 +3,7 @@ import cors from 'cors';
 import { logger } from '@shared/utils/logger';
 
 // Import route modules
+import healthRouter from './routes/health';
 import tasksRouter from './routes/tasks';
 import listsRouter from './routes/lists';
 import notesRouter from './routes/notes';
@@ -106,6 +107,7 @@ export function createApiServer(): Application {
   });
 
   // Register API routes (all require Basic Auth)
+  app.use('/api/health', healthRouter);
   app.use('/api/tasks', tasksRouter);
   app.use('/api/lists', listsRouter);
   app.use('/api/notes', notesRouter);
