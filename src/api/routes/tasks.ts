@@ -1,6 +1,6 @@
 import { Router, Response } from 'express';
 import { Task } from '@database/index';
-import { authenticateUser, AuthenticatedRequest } from '../middleware/auth';
+import { AuthenticatedRequest } from '../middleware/oauth';
 import {
   successResponse,
   successMessageResponse,
@@ -11,11 +11,6 @@ import {
 import { logger } from '@shared/utils/logger';
 
 const router = Router();
-
-/**
- * Apply Basic Auth to all task routes
- */
-router.use(authenticateUser);
 
 /**
  * GET /api/tasks
@@ -232,6 +227,31 @@ router.patch('/:id', async (req: AuthenticatedRequest, res: Response) => {
         }
 
         logger.info('[API] Task marked as completed', {
+          taskId: taskId,
+          userId: req.user.discordId,
+          duration: Date.now() - startTime,
+        });
+
+        return res.json(successResponse(task));
+      } else {
+        // Uncomplete the task by updating completed field to false
+        const task = await Task.findOne({
+          where: {
+            id: taskId,
+            user_id: req.user.discordId,
+            guild_id: req.user.guildId,
+          },
+        });
+
+        if (!task) {
+          const { response, statusCode } = notFoundError('Task');
+          return res.status(statusCode).json(response);
+        }
+
+        task.completed = false;
+        await task.save();
+
+        logger.info('[API] Task marked as incomplete', {
           taskId: taskId,
           userId: req.user.discordId,
           duration: Date.now() - startTime,

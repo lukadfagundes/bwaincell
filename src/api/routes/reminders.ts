@@ -1,6 +1,6 @@
 import { Router, Response } from 'express';
 import { Reminder } from '@database/index';
-import { authenticateUser, AuthenticatedRequest } from '../middleware/auth';
+import { AuthenticatedRequest } from '../middleware/oauth';
 import {
   successResponse,
   successMessageResponse,
@@ -11,11 +11,6 @@ import {
 import { logger } from '@shared/utils/logger';
 
 const router = Router();
-
-/**
- * Apply Basic Auth to all reminder routes
- */
-router.use(authenticateUser);
 
 /**
  * GET /api/reminders

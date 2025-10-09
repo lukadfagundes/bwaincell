@@ -10,6 +10,10 @@ import notesRouter from './routes/notes';
 import remindersRouter from './routes/reminders';
 import budgetRouter from './routes/budget';
 import scheduleRouter from './routes/schedule';
+import oauthRouter from './routes/oauth';
+
+// Import OAuth middleware
+import { authenticateToken } from './middleware/oauth';
 
 /**
  * Create and configure Express application for API server
@@ -106,19 +110,27 @@ export function createApiServer(): Application {
         budget: '/api/budget',
         schedule: '/api/schedule',
       },
-      authentication: 'Basic Authentication required for all /api/* endpoints',
+      authentication:
+        'Bearer token authentication (Google OAuth) required for all /api/* endpoints',
       documentation: 'See README.md for API documentation',
     });
   });
 
-  // Register API routes (all require Basic Auth)
+  // Register OAuth routes (public, no authentication required)
+  app.use('/api/auth', oauthRouter);
+
+  logger.info('[API-SERVER] OAuth routes registered', {
+    routes: ['/api/auth/google/verify', '/api/auth/refresh', '/api/auth/logout'],
+  });
+
+  // Register API routes (all require Bearer token authentication)
   app.use('/api/health', healthRouter);
-  app.use('/api/tasks', tasksRouter);
-  app.use('/api/lists', listsRouter);
-  app.use('/api/notes', notesRouter);
-  app.use('/api/reminders', remindersRouter);
-  app.use('/api/budget', budgetRouter);
-  app.use('/api/schedule', scheduleRouter);
+  app.use('/api/tasks', authenticateToken, tasksRouter);
+  app.use('/api/lists', authenticateToken, listsRouter);
+  app.use('/api/notes', authenticateToken, notesRouter);
+  app.use('/api/reminders', authenticateToken, remindersRouter);
+  app.use('/api/budget', authenticateToken, budgetRouter);
+  app.use('/api/schedule', authenticateToken, scheduleRouter);
 
   logger.info('[API-SERVER] API routes registered', {
     routes: [

@@ -1,6 +1,6 @@
 import { Router, Response } from 'express';
 import { Schedule } from '@database/index';
-import { authenticateUser, AuthenticatedRequest } from '../middleware/auth';
+import { AuthenticatedRequest } from '../middleware/oauth';
 import {
   successResponse,
   successMessageResponse,
@@ -11,11 +11,6 @@ import {
 import { logger } from '@shared/utils/logger';
 
 const router = Router();
-
-/**
- * Apply Basic Auth to all schedule routes
- */
-router.use(authenticateUser);
 
 /**
  * GET /api/schedule
