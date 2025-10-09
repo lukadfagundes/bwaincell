@@ -21,8 +21,7 @@
     "noImplicitReturns": false,
     "noFallthroughCasesInSwitch": true,
     "moduleResolution": "node",
-    "types": ["node", "jest", "express-session"],
-    "typeRoots": ["./node_modules/@types", "./src/types"],
+    "types": ["node", "jest"],
     "baseUrl": ".",
     "paths": {
       "@shared/*": ["shared/*"],

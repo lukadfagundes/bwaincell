@@ -1,10 +1,8 @@
 import express, { Application, Request, Response, NextFunction } from 'express';
 import cors from 'cors';
 import { logger } from '@shared/utils/logger';
-import { sessionMiddleware } from './middleware/session';
 
 // Import route modules
-import authRouter from './routes/auth';
 import tasksRouter from './routes/tasks';
 import listsRouter from './routes/lists';
 import notesRouter from './routes/notes';
@@ -44,9 +42,6 @@ export function createApiServer(): Application {
     origins: corsOrigins,
     credentials: true,
   });
-
-  // Session middleware - MUST be after CORS and before routes
-  app.use(sessionMiddleware);
 
   // Body parsing middleware
   app.use(express.json({ limit: '10mb' }));
@@ -98,7 +93,6 @@ export function createApiServer(): Application {
       version: '1.0.0',
       description: 'REST API for Bwaincell Discord bot features',
       endpoints: {
-        auth: '/api/auth',
         tasks: '/api/tasks',
         lists: '/api/lists',
         notes: '/api/notes',
@@ -106,16 +100,12 @@ export function createApiServer(): Application {
         budget: '/api/budget',
         schedule: '/api/schedule',
       },
-      authentication:
-        'Session-based authentication required for all /api/* endpoints (except /api/auth)',
+      authentication: 'Basic Authentication required for all /api/* endpoints',
       documentation: 'See README.md for API documentation',
     });
   });
 
-  // Register authentication routes (no session required)
-  app.use('/api/auth', authRouter);
-
-  // Register API routes (all require session authentication)
+  // Register API routes (all require Basic Auth)
   app.use('/api/tasks', tasksRouter);
   app.use('/api/lists', listsRouter);
   app.use('/api/notes', notesRouter);
@@ -125,7 +115,6 @@ export function createApiServer(): Application {
 
   logger.info('[API-SERVER] API routes registered', {
     routes: [
-      '/api/auth',
       '/api/tasks',
       '/api/lists',
       '/api/notes',

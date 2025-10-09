@@ -1,6 +1,6 @@
-import { Router, Response, Request } from 'express';
+import { Router, Response } from 'express';
 import { Note } from '@database/index';
-import { requireSession } from '../middleware/requireSession';
+import { authenticateUser, AuthenticatedRequest } from '../middleware/auth';
 import {
   successResponse,
   successMessageResponse,
@@ -13,9 +13,9 @@ import { logger } from '@shared/utils/logger';
 const router = Router();
 
 /**
- * Apply session authentication to all note routes
+ * Apply Basic Auth to all note routes
  */
-router.use(requireSession);
+router.use(authenticateUser);
 
 /**
  * GET /api/notes
@@ -25,7 +25,7 @@ router.use(requireSession);
  * @query tag - Optional tag filter
  * @returns Array of notes
  */
-router.get('/', async (req: Request, res: Response) => {
+router.get('/', async (req: AuthenticatedRequest, res: Response) => {
   const startTime = Date.now();
 
   try {
@@ -33,7 +33,7 @@ router.get('/', async (req: Request, res: Response) => {
     const tag = req.query.tag as string;
 
     logger.debug('[API] Fetching notes', {
-      userId: req.session.userId,
+      userId: req.user.discordId,
       search: search,
       tag: tag,
     });
@@ -41,15 +41,15 @@ router.get('/', async (req: Request, res: Response) => {
     let notes;
 
     if (search) {
-      notes = await Note.searchNotes(req.session.userId!, req.session.guildId!, search);
+      notes = await Note.searchNotes(req.user.discordId!, req.user.guildId!, search);
     } else if (tag) {
-      notes = await Note.getNotesByTag(req.session.userId!, req.session.guildId!, tag);
+      notes = await Note.getNotesByTag(req.user.discordId!, req.user.guildId!, tag);
     } else {
-      notes = await Note.getNotes(req.session.userId!, req.session.guildId!);
+      notes = await Note.getNotes(req.user.discordId!, req.user.guildId!);
     }
 
     logger.info('[API] Notes fetched successfully', {
-      userId: req.session.userId,
+      userId: req.user.discordId,
       count: notes.length,
       search: search,
       tag: tag,
@@ -61,7 +61,7 @@ router.get('/', async (req: Request, res: Response) => {
     logger.error('[API] Error fetching notes', {
       error: error instanceof Error ? error.message : 'Unknown error',
       stack: error instanceof Error ? error.stack : undefined,
-      userId: req.session?.userId,
+      userId: req.user?.discordId,
     });
 
     const { response, statusCode } = serverError(error as Error);
@@ -75,18 +75,18 @@ router.get('/', async (req: Request, res: Response) => {
  *
  * @returns Array of tag strings
  */
-router.get('/tags', async (req: Request, res: Response) => {
+router.get('/tags', async (req: AuthenticatedRequest, res: Response) => {
   const startTime = Date.now();
 
   try {
     logger.debug('[API] Fetching note tags', {
-      userId: req.session.userId,
+      userId: req.user.discordId,
     });
 
-    const tags = await Note.getAllTags(req.session.userId!, req.session.guildId!);
+    const tags = await Note.getAllTags(req.user.discordId!, req.user.guildId!);
 
     logger.info('[API] Note tags fetched successfully', {
-      userId: req.session.userId,
+      userId: req.user.discordId,
       count: tags.length,
       duration: Date.now() - startTime,
     });
@@ -96,7 +96,7 @@ router.get('/tags', async (req: Request, res: Response) => {
     logger.error('[API] Error fetching note tags', {
       error: error instanceof Error ? error.message : 'Unknown error',
       stack: error instanceof Error ? error.stack : undefined,
-      userId: req.session?.userId,
+      userId: req.user?.discordId,
     });
 
     const { response, statusCode } = serverError(error as Error);
@@ -111,7 +111,7 @@ router.get('/tags', async (req: Request, res: Response) => {
  * @param id - Note ID
  * @returns Single note object
  */
-router.get('/:id', async (req: Request, res: Response) => {
+router.get('/:id', async (req: AuthenticatedRequest, res: Response) => {
   const startTime = Date.now();
 
   try {
@@ -124,10 +124,10 @@ router.get('/:id', async (req: Request, res: Response) => {
 
     logger.debug('[API] Fetching note', {
       noteId: noteId,
-      userId: req.session.userId,
+      userId: req.user.discordId,
     });
 
-    const note = await Note.getNote(noteId, req.session.userId!, req.session.guildId!);
+    const note = await Note.getNote(noteId, req.user.discordId!, req.user.guildId!);
 
     if (!note) {
       const { response, statusCode } = notFoundError('Note');
@@ -136,7 +136,7 @@ router.get('/:id', async (req: Request, res: Response) => {
 
     logger.info('[API] Note fetched successfully', {
       noteId: noteId,
-      userId: req.session.userId,
+      userId: req.user.discordId,
       duration: Date.now() - startTime,
     });
 
@@ -146,7 +146,7 @@ router.get('/:id', async (req: Request, res: Response) => {
       error: error instanceof Error ? error.message : 'Unknown error',
       stack: error instanceof Error ? error.stack : undefined,
       noteId: req.params.id,
-      userId: req.session?.userId,
+      userId: req.user?.discordId,
     });
 
     const { response, statusCode } = serverError(error as Error);
@@ -163,7 +163,7 @@ router.get('/:id', async (req: Request, res: Response) => {
  * @body tags - Array of tags (optional)
  * @returns Created note object
  */
-router.post('/', async (req: Request, res: Response) => {
+router.post('/', async (req: AuthenticatedRequest, res: Response) => {
   const startTime = Date.now();
 
   try {
@@ -207,12 +207,12 @@ router.post('/', async (req: Request, res: Response) => {
       title: title,
       contentLength: content.length,
       tags: validatedTags,
-      userId: req.session.userId,
+      userId: req.user.discordId,
     });
 
     const note = await Note.createNote(
-      req.session.userId!,
-      req.session.guildId!,
+      req.user.discordId!,
+      req.user.guildId!,
       title.trim(),
       content.trim(),
       validatedTags
@@ -220,7 +220,7 @@ router.post('/', async (req: Request, res: Response) => {
 
     logger.info('[API] Note created successfully', {
       noteId: note.id,
-      userId: req.session.userId,
+      userId: req.user.discordId,
       duration: Date.now() - startTime,
     });
 
@@ -229,7 +229,7 @@ router.post('/', async (req: Request, res: Response) => {
     logger.error('[API] Error creating note', {
       error: error instanceof Error ? error.message : 'Unknown error',
       stack: error instanceof Error ? error.stack : undefined,
-      userId: req.session?.userId,
+      userId: req.user?.discordId,
     });
 
     const { response, statusCode } = serverError(error as Error);
@@ -247,7 +247,7 @@ router.post('/', async (req: Request, res: Response) => {
  * @body tags - New tags array (optional)
  * @returns Updated note object
  */
-router.patch('/:id', async (req: Request, res: Response) => {
+router.patch('/:id', async (req: AuthenticatedRequest, res: Response) => {
   const startTime = Date.now();
 
   try {
@@ -300,10 +300,10 @@ router.patch('/:id', async (req: Request, res: Response) => {
     logger.debug('[API] Updating note', {
       noteId: noteId,
       updates: Object.keys(updates),
-      userId: req.session.userId,
+      userId: req.user.discordId,
     });
 
-    const note = await Note.updateNote(noteId, req.session.userId!, req.session.guildId!, updates);
+    const note = await Note.updateNote(noteId, req.user.discordId!, req.user.guildId!, updates);
 
     if (!note) {
       const { response, statusCode } = notFoundError('Note');
@@ -312,7 +312,7 @@ router.patch('/:id', async (req: Request, res: Response) => {
 
     logger.info('[API] Note updated successfully', {
       noteId: noteId,
-      userId: req.session.userId,
+      userId: req.user.discordId,
       duration: Date.now() - startTime,
     });
 
@@ -322,7 +322,7 @@ router.patch('/:id', async (req: Request, res: Response) => {
       error: error instanceof Error ? error.message : 'Unknown error',
       stack: error instanceof Error ? error.stack : undefined,
       noteId: req.params.id,
-      userId: req.session?.userId,
+      userId: req.user?.discordId,
     });
 
     const { response, statusCode } = serverError(error as Error);
@@ -337,7 +337,7 @@ router.patch('/:id', async (req: Request, res: Response) => {
  * @param id - Note ID
  * @returns Success message
  */
-router.delete('/:id', async (req: Request, res: Response) => {
+router.delete('/:id', async (req: AuthenticatedRequest, res: Response) => {
   const startTime = Date.now();
 
   try {
@@ -350,10 +350,10 @@ router.delete('/:id', async (req: Request, res: Response) => {
 
     logger.debug('[API] Deleting note', {
       noteId: noteId,
-      userId: req.session.userId,
+      userId: req.user.discordId,
     });
 
-    const deleted = await Note.deleteNote(noteId, req.session.userId!, req.session.guildId!);
+    const deleted = await Note.deleteNote(noteId, req.user.discordId!, req.user.guildId!);
 
     if (!deleted) {
       const { response, statusCode } = notFoundError('Note');
@@ -362,7 +362,7 @@ router.delete('/:id', async (req: Request, res: Response) => {
 
     logger.info('[API] Note deleted successfully', {
       noteId: noteId,
-      userId: req.session.userId,
+      userId: req.user.discordId,
       duration: Date.now() - startTime,
     });
 
@@ -372,7 +372,7 @@ router.delete('/:id', async (req: Request, res: Response) => {
       error: error instanceof Error ? error.message : 'Unknown error',
       stack: error instanceof Error ? error.stack : undefined,
       noteId: req.params.id,
-      userId: req.session?.userId,
+      userId: req.user?.discordId,
     });
 
     const { response, statusCode } = serverError(error as Error);

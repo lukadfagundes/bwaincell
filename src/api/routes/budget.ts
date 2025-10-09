@@ -1,6 +1,6 @@
-import { Router, Response, Request } from 'express';
+import { Router, Response } from 'express';
 import { Budget } from '@database/index';
-import { requireSession } from '../middleware/requireSession';
+import { authenticateUser, AuthenticatedRequest } from '../middleware/auth';
 import {
   successResponse,
   successMessageResponse,
@@ -13,9 +13,9 @@ import { logger } from '@shared/utils/logger';
 const router = Router();
 
 /**
- * Apply session authentication to all budget routes
+ * Apply Basic Auth to all budget routes
  */
-router.use(requireSession);
+router.use(authenticateUser);
 
 /**
  * GET /api/budget/transactions
@@ -24,7 +24,7 @@ router.use(requireSession);
  * @query limit - Number of transactions to retrieve (default: 10, max: 100)
  * @returns Array of transactions
  */
-router.get('/transactions', async (req: Request, res: Response) => {
+router.get('/transactions', async (req: AuthenticatedRequest, res: Response) => {
   const startTime = Date.now();
 
   try {
@@ -39,18 +39,18 @@ router.get('/transactions', async (req: Request, res: Response) => {
     }
 
     logger.debug('[API] Fetching budget transactions', {
-      userId: req.session.userId,
+      userId: req.user.discordId,
       limit: limit,
     });
 
     const transactions = await Budget.getRecentEntries(
-      req.session.userId!,
-      req.session.guildId!,
+      req.user.discordId!,
+      req.user.guildId!,
       limit
     );
 
     logger.info('[API] Budget transactions fetched successfully', {
-      userId: req.session.userId,
+      userId: req.user.discordId,
       count: transactions.length,
       duration: Date.now() - startTime,
     });
@@ -60,7 +60,7 @@ router.get('/transactions', async (req: Request, res: Response) => {
     logger.error('[API] Error fetching budget transactions', {
       error: error instanceof Error ? error.message : 'Unknown error',
       stack: error instanceof Error ? error.stack : undefined,
-      userId: req.session?.userId,
+      userId: req.user?.discordId,
     });
 
     const { response, statusCode } = serverError(error as Error);
@@ -75,7 +75,7 @@ router.get('/transactions', async (req: Request, res: Response) => {
  * @query month - Month number (1-12) (optional, defaults to current month)
  * @returns Budget summary with income, expenses, balance, and categories
  */
-router.get('/summary', async (req: Request, res: Response) => {
+router.get('/summary', async (req: AuthenticatedRequest, res: Response) => {
   const startTime = Date.now();
 
   try {
@@ -91,14 +91,14 @@ router.get('/summary', async (req: Request, res: Response) => {
     }
 
     logger.debug('[API] Fetching budget summary', {
-      userId: req.session.userId,
+      userId: req.user.discordId,
       month: month,
     });
 
-    const summary = await Budget.getSummary(req.session.userId!, req.session.guildId!, month);
+    const summary = await Budget.getSummary(req.user.discordId!, req.user.guildId!, month);
 
     logger.info('[API] Budget summary fetched successfully', {
-      userId: req.session.userId,
+      userId: req.user.discordId,
       month: month,
       entryCount: summary.entryCount,
       duration: Date.now() - startTime,
@@ -109,7 +109,7 @@ router.get('/summary', async (req: Request, res: Response) => {
     logger.error('[API] Error fetching budget summary', {
       error: error instanceof Error ? error.message : 'Unknown error',
       stack: error instanceof Error ? error.stack : undefined,
-      userId: req.session?.userId,
+      userId: req.user?.discordId,
     });
 
     const { response, statusCode } = serverError(error as Error);
@@ -123,18 +123,18 @@ router.get('/summary', async (req: Request, res: Response) => {
  *
  * @returns Array of categories with total amounts
  */
-router.get('/categories', async (req: Request, res: Response) => {
+router.get('/categories', async (req: AuthenticatedRequest, res: Response) => {
   const startTime = Date.now();
 
   try {
     logger.debug('[API] Fetching budget categories', {
-      userId: req.session.userId,
+      userId: req.user.discordId,
     });
 
-    const categories = await Budget.getCategories(req.session.userId!, req.session.guildId!);
+    const categories = await Budget.getCategories(req.user.discordId!, req.user.guildId!);
 
     logger.info('[API] Budget categories fetched successfully', {
-      userId: req.session.userId,
+      userId: req.user.discordId,
       count: categories.length,
       duration: Date.now() - startTime,
     });
@@ -144,7 +144,7 @@ router.get('/categories', async (req: Request, res: Response) => {
     logger.error('[API] Error fetching budget categories', {
       error: error instanceof Error ? error.message : 'Unknown error',
       stack: error instanceof Error ? error.stack : undefined,
-      userId: req.session?.userId,
+      userId: req.user?.discordId,
     });
 
     const { response, statusCode } = serverError(error as Error);
@@ -159,7 +159,7 @@ router.get('/categories', async (req: Request, res: Response) => {
  * @query months - Number of months to retrieve (default: 6, max: 12)
  * @returns Array of monthly trends
  */
-router.get('/trends', async (req: Request, res: Response) => {
+router.get('/trends', async (req: AuthenticatedRequest, res: Response) => {
   const startTime = Date.now();
 
   try {
@@ -174,14 +174,14 @@ router.get('/trends', async (req: Request, res: Response) => {
     }
 
     logger.debug('[API] Fetching budget trends', {
-      userId: req.session.userId,
+      userId: req.user.discordId,
       months: months,
     });
 
-    const trends = await Budget.getMonthlyTrend(req.session.userId!, req.session.guildId!, months);
+    const trends = await Budget.getMonthlyTrend(req.user.discordId!, req.user.guildId!, months);
 
     logger.info('[API] Budget trends fetched successfully', {
-      userId: req.session.userId,
+      userId: req.user.discordId,
       months: months,
       duration: Date.now() - startTime,
     });
@@ -191,7 +191,7 @@ router.get('/trends', async (req: Request, res: Response) => {
     logger.error('[API] Error fetching budget trends', {
       error: error instanceof Error ? error.message : 'Unknown error',
       stack: error instanceof Error ? error.stack : undefined,
-      userId: req.session?.userId,
+      userId: req.user?.discordId,
     });
 
     const { response, statusCode } = serverError(error as Error);
@@ -209,7 +209,7 @@ router.get('/trends', async (req: Request, res: Response) => {
  * @body description - Description (optional)
  * @returns Created transaction object
  */
-router.post('/transactions', async (req: Request, res: Response) => {
+router.post('/transactions', async (req: AuthenticatedRequest, res: Response) => {
   const startTime = Date.now();
 
   try {
@@ -254,22 +254,22 @@ router.post('/transactions', async (req: Request, res: Response) => {
       type: type,
       amount: parsedAmount,
       category: category,
-      userId: req.session.userId,
+      userId: req.user.discordId,
     });
 
     let transaction;
     if (type === 'expense') {
       transaction = await Budget.addExpense(
-        req.session.userId!,
-        req.session.guildId!,
+        req.user.discordId!,
+        req.user.guildId!,
         category.trim(),
         parsedAmount,
         description?.trim() || null
       );
     } else {
       transaction = await Budget.addIncome(
-        req.session.userId!,
-        req.session.guildId!,
+        req.user.discordId!,
+        req.user.guildId!,
         parsedAmount,
         description?.trim() || null
       );
@@ -279,7 +279,7 @@ router.post('/transactions', async (req: Request, res: Response) => {
       transactionId: transaction.id,
       type: type,
       amount: parsedAmount,
-      userId: req.session.userId,
+      userId: req.user.discordId,
       duration: Date.now() - startTime,
     });
 
@@ -288,7 +288,7 @@ router.post('/transactions', async (req: Request, res: Response) => {
     logger.error('[API] Error creating budget transaction', {
       error: error instanceof Error ? error.message : 'Unknown error',
       stack: error instanceof Error ? error.stack : undefined,
-      userId: req.session?.userId,
+      userId: req.user?.discordId,
     });
 
     const { response, statusCode } = serverError(error as Error);
@@ -303,7 +303,7 @@ router.post('/transactions', async (req: Request, res: Response) => {
  * @param id - Transaction ID
  * @returns Success message
  */
-router.delete('/transactions/:id', async (req: Request, res: Response) => {
+router.delete('/transactions/:id', async (req: AuthenticatedRequest, res: Response) => {
   const startTime = Date.now();
 
   try {
@@ -316,14 +316,10 @@ router.delete('/transactions/:id', async (req: Request, res: Response) => {
 
     logger.debug('[API] Deleting budget transaction', {
       transactionId: transactionId,
-      userId: req.session.userId,
+      userId: req.user.discordId,
     });
 
-    const deleted = await Budget.deleteEntry(
-      transactionId,
-      req.session.userId!,
-      req.session.guildId!
-    );
+    const deleted = await Budget.deleteEntry(transactionId, req.user.discordId!, req.user.guildId!);
 
     if (!deleted) {
       const { response, statusCode } = notFoundError('Transaction');
@@ -332,7 +328,7 @@ router.delete('/transactions/:id', async (req: Request, res: Response) => {
 
     logger.info('[API] Budget transaction deleted successfully', {
       transactionId: transactionId,
-      userId: req.session.userId,
+      userId: req.user.discordId,
       duration: Date.now() - startTime,
     });
 
@@ -342,7 +338,7 @@ router.delete('/transactions/:id', async (req: Request, res: Response) => {
       error: error instanceof Error ? error.message : 'Unknown error',
       stack: error instanceof Error ? error.stack : undefined,
       transactionId: req.params.id,
-      userId: req.session?.userId,
+      userId: req.user?.discordId,
     });
 
     const { response, statusCode } = serverError(error as Error);
