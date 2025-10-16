@@ -138,7 +138,8 @@ export default {
     const subcommand = interaction.options.getSubcommand();
     const userId = interaction.user.id;
     const guildId = interaction.guild?.id;
-    const channelId = interaction.channel?.id;
+    // Use configured announcement channel, fall back to command channel if not set
+    const channelId = config.settings.defaultReminderChannel || interaction.channel?.id;
 
     if (!guildId) {
       await interaction.editReply({
