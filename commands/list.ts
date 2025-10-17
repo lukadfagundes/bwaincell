@@ -519,16 +519,16 @@ export default {
             return;
           }
 
-          // Phase 6: Add messages as list items (first 1000 chars, skip empty)
+          // Phase 6: Add messages as list items (first 1000 chars, include empty as placeholder)
           let itemsCreated = 0;
 
           for (const message of userMessages) {
             const content = message.content.substring(0, 1000).trim();
 
-            // Skip empty messages
-            if (content.length === 0) continue;
+            // If empty, add placeholder text
+            const itemText = content.length === 0 ? '(empty message)' : content;
 
-            await List.addItem(userId, guildId, listName, content);
+            await List.addItem(userId, guildId, listName, itemText);
             itemsCreated++;
           }
 
