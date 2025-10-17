@@ -11,7 +11,6 @@ import {
 } from 'discord.js';
 import { logger } from '../shared/utils/logger';
 import List from '../database/models/List';
-import { Model } from 'sequelize';
 
 export default {
   data: new SlashCommandBuilder()
@@ -87,14 +86,7 @@ export default {
       const channelName = channel.name;
       let listName = channelName;
 
-      const ListModel = List as typeof Model;
-      const existingList = await ListModel.findOne({
-        where: {
-          name: listName,
-          guild_id: guildId,
-          user_id: userId,
-        },
-      });
+      const existingList = await List.getList(userId, guildId, listName);
 
       if (existingList) {
         listName = `${channelName} Consolidated List`;
@@ -142,24 +134,12 @@ export default {
         .setTimestamp();
 
       // Add preview of first 10 items
-      const updatedList = await ListModel.findOne({
-        where: {
-          name: listName,
-          guild_id: guildId,
-          user_id: userId,
-        },
-      });
-
-      interface ListItemData {
-        text: string;
-        completed: boolean;
-        added_at: Date;
-      }
+      const updatedList = await List.getList(userId, guildId, listName);
 
       if (updatedList && updatedList.items && updatedList.items.length > 0) {
         const previewItems = updatedList.items.slice(0, 10);
         const itemList = previewItems
-          .map((item: ListItemData, idx: number) => {
+          .map((item: any, idx: number) => {
             const preview = item.text.substring(0, 50);
             return `${idx + 1}. ${preview}${item.text.length > 50 ? '...' : ''}`;
           })
