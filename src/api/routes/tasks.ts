@@ -38,7 +38,6 @@ router.get('/', async (req: AuthenticatedRequest, res: Response) => {
     });
 
     const tasks = await Task.getUserTasks(
-      req.user.discordId,
       req.user.guildId,
       filter as 'all' | 'pending' | 'completed'
     );
@@ -85,7 +84,7 @@ router.get('/:id', async (req: AuthenticatedRequest, res: Response) => {
       userId: req.user.discordId,
     });
 
-    const tasks = await Task.getUserTasks(req.user.discordId, req.user.guildId);
+    const tasks = await Task.getUserTasks(req.user.guildId);
     const task = tasks.find((t) => t.id === taskId);
 
     if (!task) {
@@ -157,10 +156,10 @@ router.post('/', async (req: AuthenticatedRequest, res: Response) => {
     });
 
     const task = await Task.createTask(
-      req.user.discordId,
       req.user.guildId,
       description.trim(),
-      parsedDueDate
+      parsedDueDate,
+      req.user.discordId
     );
 
     logger.info('[API] Task created successfully', {
@@ -219,7 +218,7 @@ router.patch('/:id', async (req: AuthenticatedRequest, res: Response) => {
       }
 
       if (completed) {
-        const task = await Task.completeTask(taskId, req.user.discordId, req.user.guildId);
+        const task = await Task.completeTask(taskId, req.user.guildId);
 
         if (!task) {
           const { response, statusCode } = notFoundError('Task');
@@ -279,7 +278,6 @@ router.patch('/:id', async (req: AuthenticatedRequest, res: Response) => {
 
       const task = await Task.editTask(
         taskId,
-        req.user.discordId,
         req.user.guildId,
         description !== undefined ? description.trim() : undefined,
         parsedDueDate
@@ -338,7 +336,7 @@ router.delete('/:id', async (req: AuthenticatedRequest, res: Response) => {
       userId: req.user.discordId,
     });
 
-    const deleted = await Task.deleteTask(taskId, req.user.discordId, req.user.guildId);
+    const deleted = await Task.deleteTask(taskId, req.user.guildId);
 
     if (!deleted) {
       const { response, statusCode } = notFoundError('Task');

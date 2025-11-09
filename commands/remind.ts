@@ -170,12 +170,13 @@ export default {
           }
 
           const reminder = await Reminder.createReminder(
-            userId,
             guildId,
             channelId,
             message,
             time,
-            'once'
+            'once',
+            null,
+            userId
           );
 
           // Add reminder to scheduler
@@ -237,12 +238,13 @@ export default {
           }
 
           const reminder = await Reminder.createReminder(
-            userId,
             guildId,
             channelId,
             message,
             time,
-            'daily'
+            'daily',
+            null,
+            userId
           );
 
           // Add reminder to scheduler
@@ -305,13 +307,13 @@ export default {
           }
 
           const reminder = await Reminder.createReminder(
-            userId,
             guildId,
             channelId,
             message,
             time,
             'weekly',
-            dayOfWeek
+            dayOfWeek,
+            userId
           );
 
           // Add reminder to scheduler
@@ -372,7 +374,7 @@ export default {
         }
 
         case 'list': {
-          const reminders = await Reminder.getUserReminders(userId, guildId);
+          const reminders = await Reminder.getUserReminders(guildId);
 
           if (reminders.length === 0) {
             const emptyEmbed = new EmbedBuilder()
@@ -508,7 +510,7 @@ export default {
 
         case 'delete': {
           const reminderId = interaction.options.getInteger('reminder_id', true);
-          const deleted: boolean = await Reminder.deleteReminder(reminderId, userId, guildId);
+          const deleted: boolean = await Reminder.deleteReminder(reminderId, guildId);
 
           if (!deleted) {
             await interaction.editReply({
@@ -578,7 +580,7 @@ export default {
       }
 
       try {
-        const reminders = await Reminder.getUserReminders(userId, guildId);
+        const reminders = await Reminder.getUserReminders(guildId);
 
         const dayNames = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
         const choices = reminders.slice(0, 25).map((reminder) => {

@@ -40,38 +40,33 @@ class List extends ListBase<ListAttributes, ListCreationAttributes> implements L
   }
 
   // Helper method to find list case-insensitively
+  // NOTE: Filters by guild_id only for shared household access (WO-015)
   private static async findListCaseInsensitive(
-    userId: string,
     guildId: string,
     listName: string
   ): Promise<any | null> {
     const lists = await (this as any).findAll({
-      where: { user_id: userId, guild_id: guildId },
+      where: { guild_id: guildId },
     });
 
     return lists.find((l: any) => l.name.toLowerCase() === listName.toLowerCase()) || null;
   }
 
-  static async createList(userId: string, guildId: string, name: string): Promise<List | null> {
-    const existing = await this.findListCaseInsensitive(userId, guildId, name);
+  static async createList(guildId: string, name: string, userId?: string): Promise<List | null> {
+    const existing = await this.findListCaseInsensitive(guildId, name);
 
     if (existing) return null;
 
     return await (this as any).create({
-      user_id: userId,
+      user_id: userId || 'system', // Keep for audit trail
       guild_id: guildId,
       name,
       items: [],
     });
   }
 
-  static async addItem(
-    userId: string,
-    guildId: string,
-    listName: string,
-    item: string
-  ): Promise<List | null> {
-    const list = await this.findListCaseInsensitive(userId, guildId, listName);
+  static async addItem(guildId: string, listName: string, item: string): Promise<List | null> {
+    const list = await this.findListCaseInsensitive(guildId, listName);
 
     if (!list) return null;
 
@@ -90,12 +85,11 @@ class List extends ListBase<ListAttributes, ListCreationAttributes> implements L
   }
 
   static async removeItem(
-    userId: string,
     guildId: string,
     listName: string,
     itemText: string
   ): Promise<List | null> {
-    const list = await this.findListCaseInsensitive(userId, guildId, listName);
+    const list = await this.findListCaseInsensitive(guildId, listName);
 
     if (!list) return null;
 
@@ -114,21 +108,17 @@ class List extends ListBase<ListAttributes, ListCreationAttributes> implements L
     return list;
   }
 
-  static async getList(userId: string, guildId: string, listName: string): Promise<List | null> {
-    return await this.findListCaseInsensitive(userId, guildId, listName);
+  static async getList(guildId: string, listName: string): Promise<List | null> {
+    return await this.findListCaseInsensitive(guildId, listName);
   }
 
-  static async getUserLists(userId: string, guildId: string): Promise<List[]> {
-    const where = { user_id: userId, guild_id: guildId };
+  static async getUserLists(guildId: string): Promise<List[]> {
+    const where = { guild_id: guildId };
     return await (this as any).findAll({ where, order: [['created_at', 'DESC']] });
   }
 
-  static async clearCompleted(
-    userId: string,
-    guildId: string,
-    listName: string
-  ): Promise<List | null> {
-    const list = await this.findListCaseInsensitive(userId, guildId, listName);
+  static async clearCompleted(guildId: string, listName: string): Promise<List | null> {
+    const list = await this.findListCaseInsensitive(guildId, listName);
 
     if (!list) return null;
 
@@ -140,8 +130,8 @@ class List extends ListBase<ListAttributes, ListCreationAttributes> implements L
     return list;
   }
 
-  static async deleteList(userId: string, guildId: string, listName: string): Promise<boolean> {
-    const targetList = await this.findListCaseInsensitive(userId, guildId, listName);
+  static async deleteList(guildId: string, listName: string): Promise<boolean> {
+    const targetList = await this.findListCaseInsensitive(guildId, listName);
 
     if (!targetList) return false;
 
@@ -153,12 +143,11 @@ class List extends ListBase<ListAttributes, ListCreationAttributes> implements L
   }
 
   static async toggleItem(
-    userId: string,
     guildId: string,
     listName: string,
     itemText: string
   ): Promise<List | null> {
-    const list = await this.findListCaseInsensitive(userId, guildId, listName);
+    const list = await this.findListCaseInsensitive(guildId, listName);
 
     if (!list) return null;
 

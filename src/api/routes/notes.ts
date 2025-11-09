@@ -36,11 +36,11 @@ router.get('/', async (req: AuthenticatedRequest, res: Response) => {
     let notes;
 
     if (search) {
-      notes = await Note.searchNotes(req.user.discordId!, req.user.guildId!, search);
+      notes = await Note.searchNotes(req.user.guildId!, search);
     } else if (tag) {
-      notes = await Note.getNotesByTag(req.user.discordId!, req.user.guildId!, tag);
+      notes = await Note.getNotesByTag(req.user.guildId!, tag);
     } else {
-      notes = await Note.getNotes(req.user.discordId!, req.user.guildId!);
+      notes = await Note.getNotes(req.user.guildId!);
     }
 
     logger.info('[API] Notes fetched successfully', {
@@ -78,7 +78,7 @@ router.get('/tags', async (req: AuthenticatedRequest, res: Response) => {
       userId: req.user.discordId,
     });
 
-    const tags = await Note.getAllTags(req.user.discordId!, req.user.guildId!);
+    const tags = await Note.getAllTags(req.user.guildId!);
 
     logger.info('[API] Note tags fetched successfully', {
       userId: req.user.discordId,
@@ -122,7 +122,7 @@ router.get('/:id', async (req: AuthenticatedRequest, res: Response) => {
       userId: req.user.discordId,
     });
 
-    const note = await Note.getNote(noteId, req.user.discordId!, req.user.guildId!);
+    const note = await Note.getNote(noteId, req.user.guildId!);
 
     if (!note) {
       const { response, statusCode } = notFoundError('Note');
@@ -206,11 +206,11 @@ router.post('/', async (req: AuthenticatedRequest, res: Response) => {
     });
 
     const note = await Note.createNote(
-      req.user.discordId!,
       req.user.guildId!,
       title.trim(),
       content.trim(),
-      validatedTags
+      validatedTags,
+      req.user.discordId
     );
 
     logger.info('[API] Note created successfully', {
@@ -298,7 +298,7 @@ router.patch('/:id', async (req: AuthenticatedRequest, res: Response) => {
       userId: req.user.discordId,
     });
 
-    const note = await Note.updateNote(noteId, req.user.discordId!, req.user.guildId!, updates);
+    const note = await Note.updateNote(noteId, req.user.guildId!, updates);
 
     if (!note) {
       const { response, statusCode } = notFoundError('Note');
@@ -348,7 +348,7 @@ router.delete('/:id', async (req: AuthenticatedRequest, res: Response) => {
       userId: req.user.discordId,
     });
 
-    const deleted = await Note.deleteNote(noteId, req.user.discordId!, req.user.guildId!);
+    const deleted = await Note.deleteNote(noteId, req.user.guildId!);
 
     if (!deleted) {
       const { response, statusCode } = notFoundError('Note');

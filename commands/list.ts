@@ -134,7 +134,7 @@ export default {
 
     try {
       if (focused.name === 'list_name') {
-        const lists = await List.getUserLists(userId, guildId);
+        const lists = await List.getUserLists(guildId);
         const choices = lists.map((list: any) => list.name).slice(0, 25);
 
         const filtered = choices.filter((choice: string) =>
@@ -147,7 +147,7 @@ export default {
       } else if (focused.name === 'item') {
         const listName = interaction.options.getString('list_name');
         if (listName) {
-          const list = await List.getList(userId, guildId, listName);
+          const list = await List.getList(guildId, listName);
           if (list && list.items) {
             const items = list.items.map((item: any) => item.text).slice(0, 25);
             const filtered = items.filter((item: string) =>
@@ -192,7 +192,7 @@ export default {
       switch (subcommand) {
         case 'create': {
           const name = interaction.options.getString('name', true);
-          const list = await List.createList(userId, guildId, name);
+          const list = await List.createList(guildId, name, userId);
 
           if (!list) {
             await interaction.editReply({
@@ -227,7 +227,7 @@ export default {
         case 'add': {
           const listName = interaction.options.getString('list_name', true);
           const item = interaction.options.getString('item', true);
-          const list = await List.addItem(userId, guildId, listName, item);
+          const list = await List.addItem(guildId, listName, item);
 
           if (!list) {
             await interaction.editReply({
@@ -249,7 +249,7 @@ export default {
 
         case 'show': {
           const listName = interaction.options.getString('list_name', true);
-          const list = await List.getList(userId, guildId, listName);
+          const list = await List.getList(guildId, listName);
 
           if (!list) {
             await interaction.editReply({
@@ -308,7 +308,7 @@ export default {
         case 'remove': {
           const listName = interaction.options.getString('list_name', true);
           const item = interaction.options.getString('item', true);
-          const list = await List.removeItem(userId, guildId, listName, item);
+          const list = await List.removeItem(guildId, listName, item);
 
           if (!list) {
             await interaction.editReply({
@@ -325,7 +325,7 @@ export default {
 
         case 'clear': {
           const listName = interaction.options.getString('list_name', true);
-          const list = await List.clearCompleted(userId, guildId, listName);
+          const list = await List.clearCompleted(guildId, listName);
 
           if (!list) {
             await interaction.editReply({
@@ -364,7 +364,7 @@ export default {
         }
 
         case 'all': {
-          const lists = await List.getUserLists(userId, guildId);
+          const lists = await List.getUserLists(guildId);
 
           if (lists.length === 0) {
             await interaction.editReply({
@@ -412,7 +412,7 @@ export default {
         case 'complete': {
           const listName = interaction.options.getString('list_name', true);
           const item = interaction.options.getString('item', true);
-          const list = await List.toggleItem(userId, guildId, listName, item);
+          const list = await List.toggleItem(guildId, listName, item);
 
           if (!list) {
             await interaction.editReply({
@@ -503,14 +503,14 @@ export default {
           const channelName = channel.name;
           let listName = channelName;
 
-          const existingList = await List.getList(userId, guildId, listName);
+          const existingList = await List.getList(guildId, listName);
 
           if (existingList) {
             listName = `${channelName} Consolidated List`;
           }
 
           // Phase 5: Create list
-          const newList = await List.createList(userId, guildId, listName);
+          const newList = await List.createList(guildId, listName, userId);
 
           if (!newList) {
             await interaction.editReply({
@@ -528,7 +528,7 @@ export default {
             // Skip empty messages
             if (content.length === 0) continue;
 
-            await List.addItem(userId, guildId, listName, content);
+            await List.addItem(guildId, listName, content);
             itemsCreated++;
           }
 
@@ -551,7 +551,7 @@ export default {
             .setTimestamp();
 
           // Add preview of first 10 items
-          const updatedList = await List.getList(userId, guildId, listName);
+          const updatedList = await List.getList(guildId, listName);
 
           if (updatedList && updatedList.items && updatedList.items.length > 0) {
             const previewItems = updatedList.items.slice(0, 10);

@@ -44,14 +44,10 @@ router.get('/', async (req: AuthenticatedRequest, res: Response) => {
 
     if (filter === 'upcoming' && !isNaN(days) && days > 0) {
       // Get upcoming events within specified days
-      events = await Schedule.getUpcomingEvents(req.user.discordId!, req.user.guildId!, days);
+      events = await Schedule.getUpcomingEvents(req.user.guildId!, days);
     } else {
       // Get events based on filter
-      events = await Schedule.getEvents(
-        req.user.discordId!,
-        req.user.guildId!,
-        filter as 'upcoming' | 'past' | 'all'
-      );
+      events = await Schedule.getEvents(req.user.guildId!, filter as 'upcoming' | 'past' | 'all');
     }
 
     logger.info('[API] Schedule events fetched successfully', {
@@ -88,7 +84,7 @@ router.get('/today', async (req: AuthenticatedRequest, res: Response) => {
       userId: req.user.discordId,
     });
 
-    const events = await Schedule.getTodaysEvents(req.user.discordId!, req.user.guildId!);
+    const events = await Schedule.getTodaysEvents(req.user.guildId!);
 
     logger.info("[API] Today's schedule events fetched successfully", {
       userId: req.user.discordId,
@@ -127,11 +123,7 @@ router.get('/countdown/:eventName', async (req: AuthenticatedRequest, res: Respo
       userId: req.user.discordId,
     });
 
-    const countdown = await Schedule.getCountdown(
-      req.user.discordId!,
-      req.user.guildId!,
-      eventName
-    );
+    const countdown = await Schedule.getCountdown(req.user.guildId!, eventName);
 
     if (!countdown) {
       const { response, statusCode } = notFoundError('Event');
@@ -227,12 +219,12 @@ router.post('/', async (req: AuthenticatedRequest, res: Response) => {
     });
 
     const scheduleEvent = await Schedule.addEvent(
-      req.user.discordId!,
       req.user.guildId!,
       event.trim(),
       date,
       time,
-      description?.trim() || null
+      description?.trim() || null,
+      req.user.discordId
     );
 
     logger.info('[API] Schedule event created successfully', {
@@ -338,7 +330,7 @@ router.delete('/:id', async (req: AuthenticatedRequest, res: Response) => {
       userId: req.user.discordId,
     });
 
-    const deleted = await Schedule.deleteEvent(eventId, req.user.discordId!, req.user.guildId!);
+    const deleted = await Schedule.deleteEvent(eventId, req.user.guildId!);
 
     if (!deleted) {
       const { response, statusCode } = notFoundError('Event');

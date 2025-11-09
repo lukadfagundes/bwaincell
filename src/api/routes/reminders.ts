@@ -26,7 +26,7 @@ router.get('/', async (req: AuthenticatedRequest, res: Response) => {
       userId: req.user.discordId,
     });
 
-    const reminders = await Reminder.getUserReminders(req.user.discordId!, req.user.guildId!);
+    const reminders = await Reminder.getUserReminders(req.user.guildId!);
 
     logger.info('[API] Reminders fetched successfully', {
       userId: req.user.discordId,
@@ -124,13 +124,13 @@ router.post('/', async (req: AuthenticatedRequest, res: Response) => {
     });
 
     const reminder = await Reminder.createReminder(
-      req.user.discordId!,
       req.user.guildId!,
       validatedChannelId,
       message.trim(),
       time,
       validatedFrequency as 'once' | 'daily' | 'weekly',
-      validatedDayOfWeek
+      validatedDayOfWeek,
+      req.user.discordId
     );
 
     logger.info('[API] Reminder created successfully', {
@@ -237,11 +237,7 @@ router.delete('/:id', async (req: AuthenticatedRequest, res: Response) => {
       userId: req.user.discordId,
     });
 
-    const deleted = await Reminder.deleteReminder(
-      reminderId,
-      req.user.discordId!,
-      req.user.guildId!
-    );
+    const deleted = await Reminder.deleteReminder(reminderId, req.user.guildId!);
 
     if (!deleted) {
       const { response, statusCode } = notFoundError('Reminder');

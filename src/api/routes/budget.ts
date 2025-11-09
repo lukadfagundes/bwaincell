@@ -38,11 +38,7 @@ router.get('/transactions', async (req: AuthenticatedRequest, res: Response) => 
       limit: limit,
     });
 
-    const transactions = await Budget.getRecentEntries(
-      req.user.discordId!,
-      req.user.guildId!,
-      limit
-    );
+    const transactions = await Budget.getRecentEntries(req.user.guildId!, limit);
 
     logger.info('[API] Budget transactions fetched successfully', {
       userId: req.user.discordId,
@@ -90,7 +86,7 @@ router.get('/summary', async (req: AuthenticatedRequest, res: Response) => {
       month: month,
     });
 
-    const summary = await Budget.getSummary(req.user.discordId!, req.user.guildId!, month);
+    const summary = await Budget.getSummary(req.user.guildId!, month);
 
     logger.info('[API] Budget summary fetched successfully', {
       userId: req.user.discordId,
@@ -126,7 +122,7 @@ router.get('/categories', async (req: AuthenticatedRequest, res: Response) => {
       userId: req.user.discordId,
     });
 
-    const categories = await Budget.getCategories(req.user.discordId!, req.user.guildId!);
+    const categories = await Budget.getCategories(req.user.guildId!);
 
     logger.info('[API] Budget categories fetched successfully', {
       userId: req.user.discordId,
@@ -173,7 +169,7 @@ router.get('/trends', async (req: AuthenticatedRequest, res: Response) => {
       months: months,
     });
 
-    const trends = await Budget.getMonthlyTrend(req.user.discordId!, req.user.guildId!, months);
+    const trends = await Budget.getMonthlyTrend(req.user.guildId!, months);
 
     logger.info('[API] Budget trends fetched successfully', {
       userId: req.user.discordId,
@@ -255,18 +251,18 @@ router.post('/transactions', async (req: AuthenticatedRequest, res: Response) =>
     let transaction;
     if (type === 'expense') {
       transaction = await Budget.addExpense(
-        req.user.discordId!,
         req.user.guildId!,
         category.trim(),
         parsedAmount,
-        description?.trim() || null
+        description?.trim() || null,
+        req.user.discordId
       );
     } else {
       transaction = await Budget.addIncome(
-        req.user.discordId!,
         req.user.guildId!,
         parsedAmount,
-        description?.trim() || null
+        description?.trim() || null,
+        req.user.discordId
       );
     }
 
@@ -314,7 +310,7 @@ router.delete('/transactions/:id', async (req: AuthenticatedRequest, res: Respon
       userId: req.user.discordId,
     });
 
-    const deleted = await Budget.deleteEntry(transactionId, req.user.discordId!, req.user.guildId!);
+    const deleted = await Budget.deleteEntry(transactionId, req.user.guildId!);
 
     if (!deleted) {
       const { response, statusCode } = notFoundError('Transaction');

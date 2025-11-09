@@ -51,18 +51,18 @@ class Reminder
   }
 
   static async createReminder(
-    userId: string,
     guildId: string,
     channelId: string,
     message: string,
     time: string,
     frequency: ReminderFrequency = 'once',
-    dayOfWeek: number | null = null
+    dayOfWeek: number | null = null,
+    userId?: string
   ): Promise<Reminder> {
     const nextTrigger = this.calculateNextTrigger(time, frequency, dayOfWeek);
 
     return await (this as any).create({
-      user_id: userId,
+      user_id: userId || 'system', // Keep for audit trail (WO-015)
       guild_id: guildId,
       channel_id: channelId,
       message,
@@ -141,21 +141,18 @@ class Reminder
     });
   }
 
-  static async getUserReminders(userId: string, guildId: string): Promise<Reminder[]> {
+  // NOTE: Filters by guild_id only for shared household access (WO-015)
+  static async getUserReminders(guildId: string): Promise<Reminder[]> {
     return await (this as any).findAll({
-      where: { user_id: userId, guild_id: guildId, active: true },
+      where: { guild_id: guildId, active: true },
       order: [['next_trigger', 'ASC']],
     });
   }
 
-  static async deleteReminder(
-    reminderId: number,
-    userId: string,
-    guildId: string
-  ): Promise<boolean> {
+  static async deleteReminder(reminderId: number, guildId: string): Promise<boolean> {
     const result = await (this as any).update(
       { active: false },
-      { where: { id: reminderId, user_id: userId, guild_id: guildId } }
+      { where: { id: reminderId, guild_id: guildId } }
     );
 
     return result[0] > 0;

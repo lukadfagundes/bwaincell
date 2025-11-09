@@ -26,7 +26,7 @@ router.get('/', async (req: AuthenticatedRequest, res: Response) => {
       userId: req.user.discordId,
     });
 
-    const lists = await List.getUserLists(req.user.discordId!, req.user.guildId!);
+    const lists = await List.getUserLists(req.user.guildId!);
 
     logger.info('[API] Lists fetched successfully', {
       userId: req.user.discordId,
@@ -65,7 +65,7 @@ router.get('/:name', async (req: AuthenticatedRequest, res: Response) => {
       userId: req.user.discordId,
     });
 
-    const list = await List.getList(req.user.discordId!, req.user.guildId!, listName);
+    const list = await List.getList(req.user.guildId!, listName);
 
     if (!list) {
       const { response, statusCode } = notFoundError('List');
@@ -122,7 +122,7 @@ router.post('/', async (req: AuthenticatedRequest, res: Response) => {
       userId: req.user.discordId,
     });
 
-    const list = await List.createList(req.user.discordId!, req.user.guildId!, name.trim());
+    const list = await List.createList(req.user.guildId!, name.trim(), req.user.discordId);
 
     if (!list) {
       const { response, statusCode } = validationError('A list with this name already exists');
@@ -181,7 +181,7 @@ router.post('/:name/items', async (req: AuthenticatedRequest, res: Response) => 
       userId: req.user.discordId,
     });
 
-    const list = await List.addItem(req.user.discordId!, req.user.guildId!, listName, item.trim());
+    const list = await List.addItem(req.user.guildId!, listName, item.trim());
 
     if (!list) {
       const { response, statusCode } = notFoundError('List');
@@ -230,7 +230,7 @@ router.patch('/:name/items/:itemText/toggle', async (req: AuthenticatedRequest, 
       userId: req.user.discordId,
     });
 
-    const list = await List.toggleItem(req.user.discordId!, req.user.guildId!, listName, itemText);
+    const list = await List.toggleItem(req.user.guildId!, listName, itemText);
 
     if (!list) {
       const { response, statusCode } = notFoundError('List or item');
@@ -280,7 +280,7 @@ router.delete('/:name/items/:itemText', async (req: AuthenticatedRequest, res: R
       userId: req.user.discordId,
     });
 
-    const list = await List.removeItem(req.user.discordId!, req.user.guildId!, listName, itemText);
+    const list = await List.removeItem(req.user.guildId!, listName, itemText);
 
     if (!list) {
       const { response, statusCode } = notFoundError('List or item');
@@ -328,7 +328,7 @@ router.post('/:name/clear-completed', async (req: AuthenticatedRequest, res: Res
       userId: req.user.discordId,
     });
 
-    const list = await List.clearCompleted(req.user.discordId!, req.user.guildId!, listName);
+    const list = await List.clearCompleted(req.user.guildId!, listName);
 
     if (!list) {
       const { response, statusCode } = notFoundError('List');
@@ -374,7 +374,7 @@ router.delete('/:name', async (req: AuthenticatedRequest, res: Response) => {
       userId: req.user.discordId,
     });
 
-    const deleted = await List.deleteList(req.user.discordId!, req.user.guildId!, listName);
+    const deleted = await List.deleteList(req.user.guildId!, listName);
 
     if (!deleted) {
       const { response, statusCode } = notFoundError('List');
