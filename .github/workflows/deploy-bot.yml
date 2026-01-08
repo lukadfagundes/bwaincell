@@ -262,43 +262,6 @@ jobs:
             echo "✅ All health checks passed"
             echo "Deployment verified successfully"
 
-      - name: Send Discord notification on success
-        if: success()
-        uses: sarisia/actions-status-discord@v1
-        with:
-          webhook: ${{ secrets.DISCORD_WEBHOOK_URL }}
-          status: success
-          title: "✅ Bwaincell Deployed to Raspberry Pi"
-          description: |
-            **Commit:** `${{ github.event.head_commit.message }}`
-            **Author:** ${{ github.actor }}
-            **Branch:** `main`
-
-            **Status:** Bot Connected
-
-            [View Logs](${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }})
-          color: 0x00FF00
-          username: GitHub Actions
-
-      - name: Send Discord notification on failure
-        if: failure()
-        uses: sarisia/actions-status-discord@v1
-        with:
-          webhook: ${{ secrets.DISCORD_WEBHOOK_URL }}
-          status: failure
-          title: "❌ Bwaincell Pi Deployment Failed"
-          description: |
-            **Commit:** `${{ github.event.head_commit.message }}`
-            **Author:** ${{ github.actor }}
-            **Branch:** `main`
-
-            Deployment to Raspberry Pi failed.
-            **Automatic rollback will be attempted.**
-
-            [View Logs](${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }})
-          color: 0xFF0000
-          username: GitHub Actions
-
   # ---------------------------------------------------------------------------
   # Automatic Rollback (on deployment failure)
   # ---------------------------------------------------------------------------
@@ -433,21 +396,3 @@ jobs:
 
             echo "✅ Bot healthy after rollback"
             echo "========================================"
-
-      - name: Send rollback notification
-        if: always()
-        uses: sarisia/actions-status-discord@v1
-        with:
-          webhook: ${{ secrets.DISCORD_WEBHOOK_URL }}
-          status: ${{ job.status }}
-          title: "🔄 Automatic Rollback ${{ job.status == 'success' && 'Successful' || 'Failed' }}"
-          description: |
-            **Original Commit:** `${{ github.event.head_commit.message }}`
-            **Author:** ${{ github.actor }}
-            **Action:** Deployment failed, rolled back to previous version
-
-            ${{ job.status == 'success' && '✅ Bot restored to previous working state' || '❌ Rollback failed - manual intervention required' }}
-
-            [View Logs](${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }})
-          color: ${{ job.status == 'success' && '0xFFA500' || '0xFF0000' }}
-          username: GitHub Actions
