@@ -48,7 +48,7 @@ const schemas = {
       allowNull: false,
     },
     items: {
-      type: DataTypes.JSON,
+      type: DataTypes.JSONB,
       defaultValue: [],
     },
     user_id: {
@@ -188,7 +188,7 @@ const schemas = {
       allowNull: true,
     },
     amount: {
-      type: DataTypes.FLOAT,
+      type: DataTypes.DECIMAL(10, 2),
       allowNull: false,
     },
     description: {
@@ -224,7 +224,7 @@ const schemas = {
       allowNull: false,
     },
     tags: {
-      type: DataTypes.JSON,
+      type: DataTypes.JSONB,
       defaultValue: [],
     },
     created_at: {
