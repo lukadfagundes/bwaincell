@@ -34,24 +34,8 @@ tmp/
 temp/
 *.tmp
 
-# Personal Files
-TESTING_CHECKLIST.md
-USER_GUIDE.md
-
-# Trinity Files/Folders
+# Trinity Method SDK
 .claude/
 trinity/
-CLAUDE.md
-
-# Testing
-TESTING_CHECKLIST.md
-USER_GUIDE.md
-
-# Trinity Method deployment files
-.claude/
-trinity/
-trinity-hooks/
-CLAUDE.md
+*CLAUDE.md
 TRINITY.md
-
-DEPLOYMENT.md

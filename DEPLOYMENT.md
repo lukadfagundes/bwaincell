@@ -1,0 +1,393 @@
+# Bwaincell Deployment Guide
+
+Complete guide for deploying the Bwaincell backend (Discord bot + API) to Fly.io and the PWA frontend to Vercel.
+
+---
+
+## Prerequisites
+
+- [Fly.io CLI](https://fly.io/docs/hands-on/install-flyctl/) installed and authenticated
+- [Vercel CLI](https://vercel.com/docs/cli) installed and authenticated (or use Vercel Dashboard)
+- Git repository set up and connected to GitHub
+- All required environment variables ready
+
+---
+
+## Part 1: Prepare Backend for Deployment
+
+### Step 1: Remove Trinity Method SDK Dependency
+
+The `trinity-method-sdk` is a local file dependency that will break Docker builds. Remove it before deploying:
+
+```bash
+# Navigate to backend directory
+cd "C:\Users\lukaf\Desktop\Dev Work\Bwaincell"
+
+# Remove the dependency
+npm uninstall trinity-method-sdk
+
+# Verify it's removed from package.json
+# The line "trinity-method-sdk": "file:../Trinity Method SDK/trinity-method-sdk-1.0.0.tgz" should be gone
+```
+
+### Step 2: Commit Changes to Git
+
+```bash
+# Add the updated package files
+git add package.json package-lock.json
+
+# Commit the changes
+git commit -m "Remove trinity-method-sdk dependency for deployment"
+
+# Push to main branch
+git push origin main
+```
+
+---
+
+## Part 2: Deploy Backend to Fly.io
+
+### Step 1: Set Fly.io Secrets
+
+Set all required environment variables as Fly.io secrets:
+
+```bash
+# Navigate to backend directory (if not already there)
+cd "C:\Users\lukaf\Desktop\Dev Work\Bwaincell"
+
+# Discord Bot Configuration
+fly secrets set BOT_TOKEN=your_actual_discord_bot_token
+fly secrets set CLIENT_ID=your_discord_client_id
+fly secrets set GUILD_ID=your_discord_guild_id
+
+# User Authentication - strawhatluka
+fly secrets set STRAWHATLUKA_PASSWORD=your_strawhatluka_password
+fly secrets set STRAWHATLUKA_DISCORD_ID=your_strawhatluka_discord_user_id
+
+# User Authentication - dandelion
+fly secrets set DANDELION_PASSWORD=your_dandelion_password
+fly secrets set DANDELION_DISCORD_ID=your_dandelion_discord_user_id
+
+# Application Settings
+fly secrets set TIMEZONE=America/Los_Angeles
+fly secrets set DELETE_COMMAND_AFTER=5000
+
+# Optional: Google Calendar Integration
+fly secrets set GOOGLE_CLIENT_ID=your_google_client_id
+fly secrets set GOOGLE_CLIENT_SECRET=your_google_client_secret
+fly secrets set GOOGLE_REDIRECT_URI=https://bwaincell.fly.dev/oauth2callback
+fly secrets set GOOGLE_CALENDAR_ID=primary
+```
+
+### Step 2: Verify fly.toml Configuration
+
+Ensure your `fly.toml` has the correct settings to keep machines running:
+
+```toml
+[http_service]
+  internal_port = 3000
+  force_https = true
+  auto_stop_machines = 'off'
+  auto_start_machines = false
+  min_machines_running = 1
+  processes = ['app']
+```
+
+### Step 3: Deploy to Fly.io
+
+```bash
+# Deploy the application
+fly deploy
+
+# Wait for deployment to complete
+# The build should succeed now that trinity-method-sdk is removed
+```
+
+### Step 4: Verify Deployment
+
+```bash
+# Check app status
+fly status
+
+# View logs
+fly logs
+
+# Check health endpoint
+curl https://bwaincell.fly.dev/health
+```
+
+### Step 5: Ensure Machines Stay Running
+
+```bash
+# If machines are stopped, start them manually
+fly machine start <machine-id>
+
+# Verify machines are running
+fly status
+
+# The output should show STATE as "started" not "stopped"
+```
+
+---
+
+## Part 3: Deploy PWA Frontend to Vercel
+
+### Step 1: Set Vercel Environment Variables
+
+**Option A: Using Vercel CLI**
+
+```bash
+# Navigate to PWA directory
+cd "C:\Users\lukaf\Desktop\Dev Work\bwaincell-pwa"
+
+# Set the production API URL
+vercel env add NEXT_PUBLIC_API_URL production
+
+# When prompted, enter:
+# https://bwaincell.fly.dev
+```
+
+**Option B: Using Vercel Dashboard**
+
+1. Go to https://vercel.com/dashboard
+2. Select your `bwaincell-pwa` project
+3. Navigate to **Settings** → **Environment Variables**
+4. Add new variable:
+   - **Name:** `NEXT_PUBLIC_API_URL`
+   - **Value:** `https://bwaincell.fly.dev`
+   - **Environment:** Production (checked)
+5. Click **Save**
+
+### Step 2: Deploy to Vercel
+
+**Using Vercel CLI:**
+
+```bash
+# Still in bwaincell-pwa directory
+vercel --prod
+
+# Follow the prompts to confirm deployment
+```
+
+**Using GitHub Integration (Automatic):**
+
+If you have Vercel connected to your GitHub repository:
+
+```bash
+# Commit and push your changes
+git add .
+git commit -m "Deploy PWA with dark mode fixes"
+git push origin main
+
+# Vercel will automatically deploy from the main branch
+```
+
+### Step 3: Verify PWA Deployment
+
+1. Visit your Vercel deployment URL (e.g., `https://bwain.app`)
+2. Test login with credentials:
+   - Username: `strawhatluka` or `dandelion`
+   - Password: (your set password)
+3. Verify dark mode toggle works
+4. Test API connectivity (create a task, list, note, etc.)
+
+---
+
+## Part 4: Post-Deployment Checklist
+
+### Backend (Fly.io)
+
+- [ ] Machines are running (not stopped)
+- [ ] Health endpoint responding: `https://bwaincell.fly.dev/health`
+- [ ] Discord bot is online in your server
+- [ ] API authentication working (test with login)
+- [ ] Database persisting data correctly
+
+### Frontend (Vercel)
+
+- [ ] PWA loads without errors
+- [ ] Login works for both users (strawhatluka, dandelion)
+- [ ] API connection successful (NEXT_PUBLIC_API_URL set correctly)
+- [ ] Dark mode toggle functional
+- [ ] All features working (Tasks, Lists, Notes, Reminders, Budget, Schedule)
+- [ ] PWA installable on devices
+
+---
+
+## Troubleshooting
+
+### Backend Deployment Issues
+
+**Problem: Build fails with "trinity-method-sdk" error**
+
+```bash
+# Solution: Remove the dependency
+npm uninstall trinity-method-sdk
+git add package.json package-lock.json
+git commit -m "Remove trinity-method-sdk dependency"
+git push origin main
+fly deploy
+```
+
+**Problem: Machines keep stopping**
+
+```bash
+# Solution: Start machines manually
+fly machine start <machine-id>
+
+# Verify fly.toml has:
+# auto_stop_machines = 'off'
+# min_machines_running = 1
+```
+
+**Problem: Health check failing**
+
+```bash
+# Check logs
+fly logs
+
+# Verify the /health endpoint exists in your code
+# It should be in src/api/index.ts
+```
+
+### Frontend Deployment Issues
+
+**Problem: "Cannot connect to server" error**
+
+```bash
+# Verify NEXT_PUBLIC_API_URL is set correctly
+vercel env ls
+
+# Should show:
+# NEXT_PUBLIC_API_URL = https://bwaincell.fly.dev (Production)
+```
+
+**Problem: Dark mode not working**
+
+```bash
+# Verify tailwind.config.ts has CSS variable mappings
+# See INV-001 investigation for details
+# Should have been fixed in recent commits
+```
+
+**Problem: Login fails with 401**
+
+```bash
+# Verify Fly.io secrets are set correctly
+fly secrets list
+
+# Should show STRAWHATLUKA_PASSWORD, DANDELION_PASSWORD, etc.
+```
+
+---
+
+## Monitoring & Maintenance
+
+### Fly.io Monitoring
+
+```bash
+# View real-time logs
+fly logs
+
+# Check resource usage
+fly status
+
+# View metrics in dashboard
+fly dashboard
+```
+
+### Vercel Monitoring
+
+```bash
+# View deployment logs
+vercel logs
+
+# Check build status
+vercel ls
+
+# View analytics in dashboard
+# Visit https://vercel.com/dashboard
+```
+
+---
+
+## Environment Variables Reference
+
+### Backend (Fly.io Secrets)
+
+| Variable                  | Description                        | Example                                    |
+| ------------------------- | ---------------------------------- | ------------------------------------------ |
+| `BOT_TOKEN`               | Discord bot token                  | `MTIzNDU2Nzg5...`                          |
+| `CLIENT_ID`               | Discord application client ID      | `123456789012345678`                       |
+| `GUILD_ID`                | Discord server/guild ID            | `987654321098765432`                       |
+| `STRAWHATLUKA_PASSWORD`   | Password for strawhatluka user     | `your_secure_password`                     |
+| `STRAWHATLUKA_DISCORD_ID` | Discord user ID for strawhatluka   | `123456789012345678`                       |
+| `DANDELION_PASSWORD`      | Password for dandelion user        | `your_secure_password`                     |
+| `DANDELION_DISCORD_ID`    | Discord user ID for dandelion      | `987654321098765432`                       |
+| `TIMEZONE`                | Application timezone               | `America/Los_Angeles`                      |
+| `DELETE_COMMAND_AFTER`    | Discord command cleanup delay (ms) | `5000`                                     |
+| `GOOGLE_CLIENT_ID`        | Google OAuth client ID (optional)  | `123456789...`                             |
+| `GOOGLE_CLIENT_SECRET`    | Google OAuth secret (optional)     | `GOCSPX-...`                               |
+| `GOOGLE_REDIRECT_URI`     | OAuth callback URL (optional)      | `https://bwaincell.fly.dev/oauth2callback` |
+| `GOOGLE_CALENDAR_ID`      | Google Calendar ID (optional)      | `primary`                                  |
+
+### Frontend (Vercel Environment Variables)
+
+| Variable              | Description     | Value                       |
+| --------------------- | --------------- | --------------------------- |
+| `NEXT_PUBLIC_API_URL` | Backend API URL | `https://bwaincell.fly.dev` |
+
+---
+
+## Quick Deployment Commands
+
+### Full Deployment from Scratch
+
+```bash
+# 1. Prepare backend
+cd "C:\Users\lukaf\Desktop\Dev Work\Bwaincell"
+npm uninstall trinity-method-sdk
+git add package.json package-lock.json
+git commit -m "Prepare for deployment"
+git push origin main
+
+# 2. Set Fly.io secrets (run all fly secrets set commands from above)
+
+# 3. Deploy backend
+fly deploy
+
+# 4. Deploy frontend
+cd "C:\Users\lukaf\Desktop\Dev Work\bwaincell-pwa"
+vercel --prod
+```
+
+### Quick Redeploy (after code changes)
+
+```bash
+# Backend
+cd "C:\Users\lukaf\Desktop\Dev Work\Bwaincell"
+git add .
+git commit -m "Your changes"
+git push origin main
+fly deploy
+
+# Frontend
+cd "C:\Users\lukaf\Desktop\Dev Work\bwaincell-pwa"
+git add .
+git commit -m "Your changes"
+git push origin main
+vercel --prod
+```
+
+---
+
+## Support
+
+- **Fly.io Docs:** https://fly.io/docs/
+- **Vercel Docs:** https://vercel.com/docs
+- **Bwaincell Issues:** Check trinity/investigations/ for documented issues
+
+---
+
+**Last Updated:** 2025-10-07
+**Version:** 1.0.0
