@@ -1,393 +1,571 @@
-# Bwaincell Deployment Guide
+# Bwaincell - Raspberry Pi Deployment Guide
 
-Complete guide for deploying the Bwaincell backend (Discord bot + API) to Fly.io and the PWA frontend to Vercel.
+## Migration from Fly.io to Raspberry Pi 4B
+
+Deploy Bwaincell from Fly.io ($50/month) to sunny-pi (Raspberry Pi 4B) and save **~$575/year**.
+
+---
+
+## Migration Overview
+
+| Metric             | Fly.io (Current) | Raspberry Pi (Target)   |
+| ------------------ | ---------------- | ----------------------- |
+| **Monthly Cost**   | $50              | $2 (electricity)        |
+| **Annual Cost**    | $600             | $24                     |
+| **Annual Savings** | -                | **$576 (96%)**          |
+| **Uptime**         | 99.9% managed    | Depends on Pi           |
+| **Scaling**        | Automatic        | Limited to Pi resources |
+
+### Raspberry Pi 4B Capacity Analysis
+
+**sunny-pi Current State:**
+
+- **RAM:** 3.7 GB total, 3.2 GB free, 538 MB used
+- **CPU:** 4 cores, load average 0.44 (11% utilization)
+- **Disk:** 28 GB total, 4.8 GB free (83% used)
+- **Currently Running:** sunny-stack-bot + PostgreSQL
+
+**Bwaincell Requirements:**
+
+- **RAM:** ~60-100 MB (Discord bot + Express API)
+- **CPU:** <5% average (event-driven workload)
+- **Disk:** ~300-400 MB (Docker image + SQLite database)
+
+**Verdict:** ✅ **Plenty of capacity** - sunny-pi can easily handle Bwaincell
 
 ---
 
 ## Prerequisites
 
-- [Fly.io CLI](https://fly.io/docs/hands-on/install-flyctl/) installed and authenticated
-- [Vercel CLI](https://vercel.com/docs/cli) installed and authenticated (or use Vercel Dashboard)
-- Git repository set up and connected to GitHub
-- All required environment variables ready
+### 1. GitHub Secrets
 
----
+Add these to your repository (`Settings` → `Secrets and variables` → `Actions`):
 
-## Part 1: Prepare Backend for Deployment
+| Secret Name           | Description                         | Example                                  |
+| --------------------- | ----------------------------------- | ---------------------------------------- |
+| `PI_HOST`             | sunny-pi IP or hostname             | `192.168.1.100` or `sunny-pi.local`      |
+| `PI_USERNAME`         | SSH username                        | `your_username`                          |
+| `PI_SSH_KEY`          | Private SSH key                     | `-----BEGIN OPENSSH PRIVATE KEY-----...` |
+| `PI_SSH_PASSPHRASE`   | SSH key passphrase (if any)         | `your_passphrase`                        |
+| `PI_SSH_PORT`         | SSH port (default 22)               | `22`                                     |
+| `DISCORD_WEBHOOK_URL` | (Optional) Deployment notifications | `https://discord.com/api/webhooks/...`   |
 
-### Step 1: Remove Trinity Method SDK Dependency
-
-The `trinity-method-sdk` is a local file dependency that will break Docker builds. Remove it before deploying:
-
-```bash
-# Navigate to backend directory
-cd "C:\Users\lukaf\Desktop\Dev Work\Bwaincell"
-
-# Remove the dependency
-npm uninstall trinity-method-sdk
-
-# Verify it's removed from package.json
-# The line "trinity-method-sdk": "file:../Trinity Method SDK/trinity-method-sdk-1.0.0.tgz" should be gone
-```
-
-### Step 2: Commit Changes to Git
+### 2. Verify SSH Access
 
 ```bash
-# Add the updated package files
-git add package.json package-lock.json
+# Test connection to sunny-pi
+ssh sunny-pi
 
-# Commit the changes
-git commit -m "Remove trinity-method-sdk dependency for deployment"
-
-# Push to main branch
-git push origin main
+# Should connect successfully
 ```
 
 ---
 
-## Part 2: Deploy Backend to Fly.io
+## Part 1: Setup on Raspberry Pi
 
-### Step 1: Set Fly.io Secrets
+### Step 1: Create Project Directory
 
-Set all required environment variables as Fly.io secrets:
+SSH into sunny-pi and create the bwaincell directory:
 
 ```bash
-# Navigate to backend directory (if not already there)
-cd "C:\Users\lukaf\Desktop\Dev Work\Bwaincell"
+ssh sunny-pi
+mkdir -p ~/bwaincell
+cd ~/bwaincell
+```
 
+### Step 2: Clone Repository
+
+```bash
+# Clone your repository (replace with your actual repo URL)
+git clone https://github.com/<your-username>/bwaincell.git .
+
+# Verify files
+ls -la
+```
+
+### Step 3: Create Environment File
+
+Create `.env` with your production credentials:
+
+```bash
+cd ~/bwaincell
+nano .env
+```
+
+Paste your environment variables (copy from Fly.io secrets):
+
+```env
 # Discord Bot Configuration
-fly secrets set BOT_TOKEN=your_actual_discord_bot_token
-fly secrets set CLIENT_ID=your_discord_client_id
-fly secrets set GUILD_ID=your_discord_guild_id
+BOT_TOKEN=your_discord_bot_token
+CLIENT_ID=your_discord_client_id
+GUILD_ID=your_discord_guild_id
 
-# User Authentication - strawhatluka
-fly secrets set STRAWHATLUKA_PASSWORD=your_strawhatluka_password
-fly secrets set STRAWHATLUKA_DISCORD_ID=your_strawhatluka_discord_user_id
-
-# User Authentication - dandelion
-fly secrets set DANDELION_PASSWORD=your_dandelion_password
-fly secrets set DANDELION_DISCORD_ID=your_dandelion_discord_user_id
+# Google OAuth (if using API authentication)
+GOOGLE_CLIENT_ID=your_google_client_id
+GOOGLE_CLIENT_SECRET=your_google_client_secret
+JWT_SECRET=your_jwt_secret_key
 
 # Application Settings
-fly secrets set TIMEZONE=America/Los_Angeles
-fly secrets set DELETE_COMMAND_AFTER=5000
+NODE_ENV=production
+PORT=3000
+TZ=America/Chicago  # Your timezone
+DELETE_COMMAND_AFTER=5000
 
-# Optional: Google Calendar Integration
-fly secrets set GOOGLE_CLIENT_ID=your_google_client_id
-fly secrets set GOOGLE_CLIENT_SECRET=your_google_client_secret
-fly secrets set GOOGLE_REDIRECT_URI=https://bwaincell.fly.dev/oauth2callback
-fly secrets set GOOGLE_CALENDAR_ID=primary
+# Google Calendar (optional)
+GOOGLE_CALENDAR_ID=primary
+GOOGLE_REDIRECT_URI=http://your-domain.com/oauth2callback
 ```
 
-### Step 2: Verify fly.toml Configuration
+Save and exit (`Ctrl+X`, `Y`, `Enter`).
 
-Ensure your `fly.toml` has the correct settings to keep machines running:
-
-```toml
-[http_service]
-  internal_port = 3000
-  force_https = true
-  auto_stop_machines = 'off'
-  auto_start_machines = false
-  min_machines_running = 1
-  processes = ['app']
-```
-
-### Step 3: Deploy to Fly.io
+### Step 4: Set Proper Permissions
 
 ```bash
-# Deploy the application
-fly deploy
+# Protect .env file
+chmod 600 .env
 
-# Wait for deployment to complete
-# The build should succeed now that trinity-method-sdk is removed
-```
-
-### Step 4: Verify Deployment
-
-```bash
-# Check app status
-fly status
-
-# View logs
-fly logs
-
-# Check health endpoint
-curl https://bwaincell.fly.dev/health
-```
-
-### Step 5: Ensure Machines Stay Running
-
-```bash
-# If machines are stopped, start them manually
-fly machine start <machine-id>
-
-# Verify machines are running
-fly status
-
-# The output should show STATE as "started" not "stopped"
+# Create data and logs directories
+mkdir -p data logs
 ```
 
 ---
 
-## Part 3: Deploy PWA Frontend to Vercel
+## Part 2: Deployment Methods
 
-### Step 1: Set Vercel Environment Variables
+### Method 1: Automatic Deployment via GitHub Actions (Recommended)
 
-**Option A: Using Vercel CLI**
-
-```bash
-# Navigate to PWA directory
-cd "C:\Users\lukaf\Desktop\Dev Work\bwaincell-pwa"
-
-# Set the production API URL
-vercel env add NEXT_PUBLIC_API_URL production
-
-# When prompted, enter:
-# https://bwaincell.fly.dev
-```
-
-**Option B: Using Vercel Dashboard**
-
-1. Go to https://vercel.com/dashboard
-2. Select your `bwaincell-pwa` project
-3. Navigate to **Settings** → **Environment Variables**
-4. Add new variable:
-   - **Name:** `NEXT_PUBLIC_API_URL`
-   - **Value:** `https://bwaincell.fly.dev`
-   - **Environment:** Production (checked)
-5. Click **Save**
-
-### Step 2: Deploy to Vercel
-
-**Using Vercel CLI:**
+Once GitHub Secrets are configured, simply push to `main`:
 
 ```bash
-# Still in bwaincell-pwa directory
-vercel --prod
-
-# Follow the prompts to confirm deployment
-```
-
-**Using GitHub Integration (Automatic):**
-
-If you have Vercel connected to your GitHub repository:
-
-```bash
-# Commit and push your changes
+# From your local machine
 git add .
-git commit -m "Deploy PWA with dark mode fixes"
+git commit -m "Deploy to Raspberry Pi"
+git push origin main
+```
+
+**The workflow will automatically:**
+
+1. ✅ Backup current running image
+2. ✅ Pull latest code on Pi
+3. ✅ Build ARM64-optimized Docker image
+4. ✅ Deploy with docker-compose
+5. ✅ Run health checks
+6. ✅ Verify Discord connection
+7. ✅ Send Discord notification
+8. ✅ Auto-rollback if deployment fails
+
+**Monitor deployment:**
+
+- GitHub Actions: `https://github.com/<your-repo>/actions`
+- Discord notification (if webhook configured)
+
+---
+
+### Method 2: Manual Deployment
+
+For manual control or testing:
+
+```bash
+# SSH into sunny-pi
+ssh sunny-pi
+cd ~/bwaincell
+
+# Pull latest code
+git pull origin main
+
+# Build Docker image (ARM64 optimized)
+docker build --no-cache -t bwaincell:latest -f Dockerfile .
+
+# Start the bot
+docker compose up -d
+
+# Check status
+docker compose ps
+docker compose logs -f
+
+# Verify health
+curl http://localhost:3000/health
+```
+
+---
+
+## Part 3: Monitoring & Management
+
+### Check Bot Status
+
+```bash
+# Container status
+ssh sunny-pi "docker ps | grep bwaincell"
+
+# Quick health check
+ssh sunny-pi "curl -s http://localhost:3000/health"
+```
+
+### View Logs
+
+```bash
+# Real-time logs
+ssh sunny-pi "docker logs -f bwaincell-bot"
+
+# Last 100 lines
+ssh sunny-pi "docker logs --tail=100 bwaincell-bot"
+
+# Follow logs for specific keyword
+ssh sunny-pi "docker logs -f bwaincell-bot | grep 'Ready!'"
+```
+
+### Resource Usage
+
+```bash
+# Current resource usage
+ssh sunny-pi "docker stats bwaincell-bot --no-stream"
+
+# Output example:
+# NAME           CPU %  MEM USAGE / LIMIT   MEM %
+# bwaincell-bot  0.5%   85MB / 512MB        16.6%
+```
+
+### Restart Bot
+
+```bash
+# Graceful restart
+ssh sunny-pi "cd ~/bwaincell && docker compose restart"
+
+# Full rebuild and restart
+ssh sunny-pi "cd ~/bwaincell && docker compose down && docker compose up -d --build"
+```
+
+---
+
+## Part 4: Updating the Bot
+
+### Code Changes
+
+```bash
+# Make changes locally, then commit and push
+git add .
+git commit -m "Your changes"
 git push origin main
 
-# Vercel will automatically deploy from the main branch
+# GitHub Actions automatically deploys
 ```
 
-### Step 3: Verify PWA Deployment
+### Dependency Updates
 
-1. Visit your Vercel deployment URL (e.g., `https://bwain.app`)
-2. Test login with credentials:
-   - Username: `strawhatluka` or `dandelion`
-   - Password: (your set password)
-3. Verify dark mode toggle works
-4. Test API connectivity (create a task, list, note, etc.)
+```bash
+# Update packages locally
+npm update
+
+# Commit changes
+git add package.json package-lock.json
+git commit -m "Update dependencies"
+git push origin main
+
+# GitHub Actions rebuilds with new dependencies
+```
+
+### Emergency Rollback
+
+```bash
+ssh sunny-pi
+cd ~/bwaincell
+
+# Stop current version
+docker compose down
+
+# Restore previous image (auto-tagged during deployment)
+docker tag bwaincell:backup bwaincell:latest
+
+# Start previous version
+docker compose up -d
+
+# Verify
+docker logs -f bwaincell-bot
+```
 
 ---
 
-## Part 4: Post-Deployment Checklist
+## Part 5: Backup & Restore
 
-### Backend (Fly.io)
+### Backup SQLite Database
 
-- [ ] Machines are running (not stopped)
-- [ ] Health endpoint responding: `https://bwaincell.fly.dev/health`
-- [ ] Discord bot is online in your server
-- [ ] API authentication working (test with login)
-- [ ] Database persisting data correctly
+```bash
+# Create timestamped backup
+ssh sunny-pi "cd ~/bwaincell && cp data/bwaincell.sqlite data/bwaincell.sqlite.backup-$(date +%Y%m%d-%H%M%S)"
 
-### Frontend (Vercel)
+# Download to local machine
+scp sunny-pi:~/bwaincell/data/bwaincell.sqlite ./bwaincell-backup-$(date +%Y%m%d).sqlite
+```
 
-- [ ] PWA loads without errors
-- [ ] Login works for both users (strawhatluka, dandelion)
-- [ ] API connection successful (NEXT_PUBLIC_API_URL set correctly)
-- [ ] Dark mode toggle functional
-- [ ] All features working (Tasks, Lists, Notes, Reminders, Budget, Schedule)
-- [ ] PWA installable on devices
+### Automated Daily Backups (Cron Job)
+
+```bash
+ssh sunny-pi
+
+# Add to crontab
+crontab -e
+
+# Add this line (runs daily at 2 AM):
+0 2 * * * cd ~/bwaincell && cp data/bwaincell.sqlite data/backups/bwaincell-$(date +\%Y\%m\%d).sqlite && find data/backups -name "bwaincell-*.sqlite" -mtime +7 -delete
+```
+
+### Restore from Backup
+
+```bash
+# Upload backup to Pi
+scp ./bwaincell-backup.sqlite sunny-pi:~/bwaincell/data/bwaincell.sqlite
+
+# Restart bot to use restored database
+ssh sunny-pi "cd ~/bwaincell && docker compose restart"
+```
 
 ---
 
 ## Troubleshooting
 
-### Backend Deployment Issues
-
-**Problem: Build fails with "trinity-method-sdk" error**
-
-```bash
-# Solution: Remove the dependency
-npm uninstall trinity-method-sdk
-git add package.json package-lock.json
-git commit -m "Remove trinity-method-sdk dependency"
-git push origin main
-fly deploy
-```
-
-**Problem: Machines keep stopping**
-
-```bash
-# Solution: Start machines manually
-fly machine start <machine-id>
-
-# Verify fly.toml has:
-# auto_stop_machines = 'off'
-# min_machines_running = 1
-```
-
-**Problem: Health check failing**
+### Bot Won't Start
 
 ```bash
 # Check logs
-fly logs
+ssh sunny-pi "docker logs bwaincell-bot"
 
-# Verify the /health endpoint exists in your code
-# It should be in src/api/index.ts
+# Common issues:
+# - Missing .env file
+# - Invalid BOT_TOKEN
+# - Permission errors on data/ directory
+# - Port 3000 already in use
 ```
 
-### Frontend Deployment Issues
-
-**Problem: "Cannot connect to server" error**
+**Solutions:**
 
 ```bash
-# Verify NEXT_PUBLIC_API_URL is set correctly
-vercel env ls
+# Verify .env exists
+ssh sunny-pi "ls -la ~/bwaincell/.env"
 
-# Should show:
-# NEXT_PUBLIC_API_URL = https://bwaincell.fly.dev (Production)
+# Check port availability
+ssh sunny-pi "lsof -i :3000"
+
+# Fix permissions
+ssh sunny-pi "cd ~/bwaincell && sudo chown -R 1001:1001 data logs"
 ```
 
-**Problem: Dark mode not working**
+### Build Fails
 
 ```bash
-# Verify tailwind.config.ts has CSS variable mappings
-# See INV-001 investigation for details
-# Should have been fixed in recent commits
+# Clear Docker cache
+ssh sunny-pi "docker builder prune -af"
+
+# Rebuild from scratch
+ssh sunny-pi "cd ~/bwaincell && docker build --no-cache --pull -t bwaincell:latest ."
 ```
 
-**Problem: Login fails with 401**
+### Disk Space Full
 
 ```bash
-# Verify Fly.io secrets are set correctly
-fly secrets list
+# Check disk usage
+ssh sunny-pi "df -h"
 
-# Should show STRAWHATLUKA_PASSWORD, DANDELION_PASSWORD, etc.
+# Clean Docker images
+ssh sunny-pi "docker system prune -a --volumes"
+
+# Clean old logs
+ssh sunny-pi "sudo journalctl --vacuum-time=7d"
+
+# Remove old database backups (keep last 7 days)
+ssh sunny-pi "find ~/bwaincell/data/backups -name 'bwaincell-*.sqlite' -mtime +7 -delete"
+```
+
+### Health Check Failing
+
+```bash
+# Test health endpoint manually
+ssh sunny-pi "curl -v http://localhost:3000/health"
+
+# Check if Express API is running
+ssh sunny-pi "docker logs bwaincell-bot | grep 'Server listening'"
+
+# Verify port mapping
+ssh sunny-pi "docker port bwaincell-bot"
+```
+
+### Discord Bot Offline
+
+```bash
+# Check Discord connection in logs
+ssh sunny-pi "docker logs bwaincell-bot | grep -E 'Ready!|logged in|Connected'"
+
+# Verify BOT_TOKEN
+ssh sunny-pi "cd ~/bwaincell && docker compose exec bwaincell printenv | grep BOT_TOKEN"
+
+# Restart bot
+ssh sunny-pi "cd ~/bwaincell && docker compose restart"
 ```
 
 ---
 
-## Monitoring & Maintenance
+## Performance Optimization
 
-### Fly.io Monitoring
+### Adjust Resource Limits
 
-```bash
-# View real-time logs
-fly logs
+Edit `docker-compose.yml` to increase limits if needed:
 
-# Check resource usage
-fly status
-
-# View metrics in dashboard
-fly dashboard
+```yaml
+deploy:
+  resources:
+    limits:
+      cpus: '2.0' # Increase from 1.0
+      memory: 1G # Increase from 512M
+    reservations:
+      cpus: '0.5' # Increase from 0.25
+      memory: 256M # Increase from 128M
 ```
 
-### Vercel Monitoring
+Then redeploy:
 
 ```bash
-# View deployment logs
-vercel logs
-
-# Check build status
-vercel ls
-
-# View analytics in dashboard
-# Visit https://vercel.com/dashboard
+ssh sunny-pi "cd ~/bwaincell && docker compose up -d --force-recreate"
 ```
 
----
-
-## Environment Variables Reference
-
-### Backend (Fly.io Secrets)
-
-| Variable                  | Description                        | Example                                    |
-| ------------------------- | ---------------------------------- | ------------------------------------------ |
-| `BOT_TOKEN`               | Discord bot token                  | `MTIzNDU2Nzg5...`                          |
-| `CLIENT_ID`               | Discord application client ID      | `123456789012345678`                       |
-| `GUILD_ID`                | Discord server/guild ID            | `987654321098765432`                       |
-| `STRAWHATLUKA_PASSWORD`   | Password for strawhatluka user     | `your_secure_password`                     |
-| `STRAWHATLUKA_DISCORD_ID` | Discord user ID for strawhatluka   | `123456789012345678`                       |
-| `DANDELION_PASSWORD`      | Password for dandelion user        | `your_secure_password`                     |
-| `DANDELION_DISCORD_ID`    | Discord user ID for dandelion      | `987654321098765432`                       |
-| `TIMEZONE`                | Application timezone               | `America/Los_Angeles`                      |
-| `DELETE_COMMAND_AFTER`    | Discord command cleanup delay (ms) | `5000`                                     |
-| `GOOGLE_CLIENT_ID`        | Google OAuth client ID (optional)  | `123456789...`                             |
-| `GOOGLE_CLIENT_SECRET`    | Google OAuth secret (optional)     | `GOCSPX-...`                               |
-| `GOOGLE_REDIRECT_URI`     | OAuth callback URL (optional)      | `https://bwaincell.fly.dev/oauth2callback` |
-| `GOOGLE_CALENDAR_ID`      | Google Calendar ID (optional)      | `primary`                                  |
-
-### Frontend (Vercel Environment Variables)
-
-| Variable              | Description     | Value                       |
-| --------------------- | --------------- | --------------------------- |
-| `NEXT_PUBLIC_API_URL` | Backend API URL | `https://bwaincell.fly.dev` |
-
----
-
-## Quick Deployment Commands
-
-### Full Deployment from Scratch
+### Monitor Resource Usage Over Time
 
 ```bash
-# 1. Prepare backend
-cd "C:\Users\lukaf\Desktop\Dev Work\Bwaincell"
-npm uninstall trinity-method-sdk
-git add package.json package-lock.json
-git commit -m "Prepare for deployment"
-git push origin main
-
-# 2. Set Fly.io secrets (run all fly secrets set commands from above)
-
-# 3. Deploy backend
-fly deploy
-
-# 4. Deploy frontend
-cd "C:\Users\lukaf\Desktop\Dev Work\bwaincell-pwa"
-vercel --prod
-```
-
-### Quick Redeploy (after code changes)
-
-```bash
-# Backend
-cd "C:\Users\lukaf\Desktop\Dev Work\Bwaincell"
-git add .
-git commit -m "Your changes"
-git push origin main
-fly deploy
-
-# Frontend
-cd "C:\Users\lukaf\Desktop\Dev Work\bwaincell-pwa"
-git add .
-git commit -m "Your changes"
-git push origin main
-vercel --prod
+# Watch resources in real-time (Ctrl+C to exit)
+ssh sunny-pi "watch docker stats bwaincell-bot"
 ```
 
 ---
 
-## Support
+## Architecture
 
-- **Fly.io Docs:** https://fly.io/docs/
-- **Vercel Docs:** https://vercel.com/docs
-- **Bwaincell Issues:** Check trinity/investigations/ for documented issues
+```
+┌─────────────────────────────────────────┐
+│      Raspberry Pi 4B (sunny-pi)         │
+│                                         │
+│  ┌────────────────────────────────┐    │
+│  │   Bwaincell Container          │    │
+│  │   (ARM64 Multi-Stage Build)    │    │
+│  │                                │    │
+│  │  • Discord.js 14.14.1          │    │
+│  │  • Express 4.21.2 (API)        │    │
+│  │  • SQLite 3 (in /app/data)     │    │
+│  │  • Winston Logging             │    │
+│  │  • node-cron (reminders)       │    │
+│  │                                │    │
+│  │  Resources:                    │    │
+│  │  • CPU: 1 core max             │    │
+│  │  • RAM: 512 MB max             │    │
+│  │  • User: botuser (1001:1001)   │    │
+│  └────────────────────────────────┘    │
+│                                         │
+│  Also Running:                          │
+│  • sunny-stack-bot (separate)           │
+│  • sunny-stack-db (PostgreSQL)          │
+│                                         │
+│  Total Usage: ~650 MB RAM, <15% CPU    │
+└─────────────────────────────────────────┘
+         │
+         │ Internet
+         ▼
+┌─────────────────────┐
+│   Discord Gateway   │
+└─────────────────────┘
+```
 
 ---
 
-**Last Updated:** 2025-10-07
-**Version:** 1.0.0
+## Migration Checklist
+
+Complete these steps to migrate from Fly.io to Raspberry Pi:
+
+- [ ] **1. Add GitHub Secrets** (PI_HOST, PI_SSH_KEY, etc.)
+- [ ] **2. SSH into sunny-pi and create ~/bwaincell directory**
+- [ ] **3. Clone repository to ~/bwaincell**
+- [ ] **4. Create .env file with production credentials**
+- [ ] **5. Test manual deployment first**
+  ```bash
+  cd ~/bwaincell
+  docker build -t bwaincell:latest .
+  docker compose up -d
+  ```
+- [ ] **6. Verify bot works (check Discord, test health endpoint)**
+- [ ] **7. Stop manual test deployment**
+  ```bash
+  docker compose down
+  ```
+- [ ] **8. Enable GitHub Actions workflow**
+  - Push to main branch
+  - Monitor deployment in Actions tab
+- [ ] **9. Verify auto-deployment succeeded**
+- [ ] **10. Monitor for 24-48 hours**
+- [ ] **11. Cancel Fly.io subscription**
+- [ ] **12. Celebrate $576/year savings!** 🎉
+
+---
+
+## Cost Comparison
+
+### Before (Fly.io)
+
+- **Monthly:** $50
+- **Annual:** $600
+- **Uptime:** 99.9% SLA
+- **Scaling:** Automatic
+- **Maintenance:** Fully managed
+- **Backups:** Automated
+
+### After (Raspberry Pi)
+
+- **Monthly:** $2 (electricity at ~3W)
+- **Annual:** $24
+- **Uptime:** Depends on Pi stability (sunny-stack is proven stable)
+- **Scaling:** Limited to Pi resources (sufficient for household use)
+- **Maintenance:** Manual (but automated via GitHub Actions)
+- **Backups:** Manual (setup cron job)
+
+**Savings:** $576/year (96% cost reduction)
+
+**Worth it?** Absolutely for a household Discord bot with light usage.
+
+---
+
+## Support & Documentation
+
+### Related Files
+
+- [`Dockerfile`](Dockerfile) - Multi-stage ARM64 build
+- [`docker-compose.yml`](docker-compose.yml) - Production service definition
+- [`.github/workflows/deploy-bot.yml`](.github/workflows/deploy-bot.yml) - Auto-deployment workflow
+
+### Helpful Commands
+
+```bash
+# View all running containers on Pi
+ssh sunny-pi "docker ps"
+
+# View all images on Pi
+ssh sunny-pi "docker images"
+
+# Check Pi system resources
+ssh sunny-pi "htop"  # (if installed) or "top"
+
+# Check disk usage
+ssh sunny-pi "du -sh ~/bwaincell/*"
+
+# View GitHub Actions logs
+# Visit: https://github.com/<your-repo>/actions
+```
+
+### Monitoring Recommendations
+
+1. **Set up Discord webhook** for deployment notifications
+2. **Monitor disk space weekly** (target <80% usage)
+3. **Check logs daily** for first week after migration
+4. **Test backup/restore process** before you need it
+5. **Document any Pi-specific issues** in trinity/investigations/
+
+---
+
+**Last Updated:** 2026-01-07
+**Deployment Target:** Raspberry Pi 4B (sunny-pi)
+**Architecture:** Docker + GitHub Actions + ARM64
+**Annual Savings:** $576 🚀
