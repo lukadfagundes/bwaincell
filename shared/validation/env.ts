@@ -7,9 +7,11 @@ import { logger } from '../utils/logger';
  * Environment variable validation for Bwaincell bot
  */
 
-// Load environment variables from .env file (only if not already set)
-// In production (Fly.io), env vars come from secrets, not .env file
-dotenv.config();
+// Load environment variables from .env file (only in development)
+// In production (Docker/Fly.io), env vars come from docker-compose or secrets, not .env file
+if (process.env.NODE_ENV !== 'production') {
+  dotenv.config();
+}
 
 /**
  * Environment variable schema

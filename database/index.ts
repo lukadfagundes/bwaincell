@@ -2,8 +2,10 @@ import { Sequelize } from 'sequelize';
 import * as dotenv from 'dotenv';
 import { createLogger } from '../shared/utils/logger';
 
-// Load environment variables
-dotenv.config();
+// Load environment variables (only if .env file exists - Docker passes env vars directly)
+if (process.env.NODE_ENV !== 'production') {
+  dotenv.config();
+}
 
 // Create logger for database module
 const logger = createLogger('Database');
