@@ -75,9 +75,26 @@ async function loadCommands() {
     client = createClient();
   }
 
-  const commandsPath = path.join(__dirname, '..', 'commands');
+  // Support both development (ts-node-dev) and production (compiled) environments
+  const isDevelopment = __dirname.includes('src');
+  const commandsPath = isDevelopment
+    ? path.join(__dirname, '..', 'commands') // TypeScript source
+    : path.join(__dirname, '..', 'commands'); // Compiled JavaScript
+
+  // Check if commands directory exists
+  if (!existsSync(commandsPath)) {
+    logger.error(`Commands directory not found: ${commandsPath}`);
+    return;
+  }
+
+  // Filter for appropriate file type based on environment
+  const fileExtension = isDevelopment ? '.ts' : '.js';
   const commandFiles = (await fs.readdir(commandsPath)).filter(
-    (file) => file.endsWith('.js') && !file.endsWith('.d.ts') && !file.includes('.backup')
+    (file) =>
+      file.endsWith(fileExtension) &&
+      !file.endsWith('.d.ts') &&
+      !file.includes('.backup') &&
+      !file.includes('.map')
   );
 
   for (const file of commandFiles) {
