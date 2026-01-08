@@ -123,12 +123,33 @@ jobs:
             docker compose up -d
 
             # Wait for service to start
-            echo "⏳ Waiting for service to start..."
+            echo "⏳ Waiting for services to start..."
             sleep 20
 
             # Check service status
             echo "🔍 Checking service status..."
             docker compose ps
+
+            # Verify PostgreSQL is healthy
+            echo "🔍 Checking PostgreSQL health..."
+            for i in {1..10}; do
+              if docker compose exec -T postgres pg_isready -U ${POSTGRES_USER:-bwaincell} > /dev/null 2>&1; then
+                echo "✅ PostgreSQL is healthy"
+                break
+              fi
+              echo "Attempt $i/10 - PostgreSQL not ready, waiting..."
+              sleep 3
+            done
+
+            # Verify PostgreSQL container health status
+            POSTGRES_STATUS=$(docker inspect -f '{{.State.Health.Status}}' bwaincell-db 2>/dev/null || echo "unknown")
+            if [ "$POSTGRES_STATUS" != "healthy" ]; then
+              echo "❌ PostgreSQL health check failed: $POSTGRES_STATUS"
+              echo "PostgreSQL logs:"
+              docker compose logs --tail=50 postgres
+              exit 1
+            fi
+            echo "✅ PostgreSQL container is healthy"
 
             # Verify bot health
             echo "🔍 Checking bot health..."
@@ -334,8 +355,19 @@ jobs:
             docker compose up -d
 
             # Wait for service to start
-            echo "⏳ Waiting for service to start..."
+            echo "⏳ Waiting for services to start..."
             sleep 20
+
+            # Verify PostgreSQL is healthy
+            echo "🔍 Checking PostgreSQL health..."
+            for i in {1..10}; do
+              if docker compose exec -T postgres pg_isready -U ${POSTGRES_USER:-bwaincell} > /dev/null 2>&1; then
+                echo "✅ PostgreSQL is healthy"
+                break
+              fi
+              echo "Attempt $i/10 - PostgreSQL not ready, waiting..."
+              sleep 3
+            done
 
             # Verify bot health
             echo "🔍 Verifying bot health..."

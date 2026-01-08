@@ -61,6 +61,99 @@ ssh sunny-pi
 
 ---
 
+## PostgreSQL Database Setup
+
+### PostgreSQL Container Architecture
+
+Bwaincell uses PostgreSQL 15 in a separate Docker container for production data storage:
+
+**Configuration:**
+
+- **Image:** `postgres:15-alpine` (ARM64 compatible)
+- **External Port:** 5433 (avoids sunny-stack-db conflict on 5432)
+- **Internal Port:** 5432 (standard PostgreSQL)
+- **Volumes:** `postgres-data` for persistent storage
+- **Resources:** 512 MB RAM max, 0.5 CPU max
+- **Health Check:** `pg_isready` every 10 seconds
+
+**Why PostgreSQL?**
+
+- **JSONB Support:** Native JSON indexing for list items and note tags
+- **DECIMAL Precision:** Exact decimal arithmetic for budget amounts
+- **Timezone Support:** Proper timestamp handling for reminders
+- **Scalability:** Better performance than SQLite for concurrent operations
+
+### Required Environment Variables
+
+Add these to your `.env` file on the Pi:
+
+```env
+# -----------------------------------------------------------------------------
+# Database Configuration (PostgreSQL)
+# -----------------------------------------------------------------------------
+POSTGRES_USER=bwaincell
+POSTGRES_PASSWORD=<generate with: openssl rand -hex 32>
+POSTGRES_DB=bwaincell
+
+# Database connection string
+# For Docker internal network, use service name 'postgres'
+DATABASE_URL=postgresql://bwaincell:${POSTGRES_PASSWORD}@postgres:5432/bwaincell
+```
+
+**Generate secure password:**
+
+```bash
+openssl rand -hex 32
+```
+
+### Database Initialization
+
+The PostgreSQL container automatically runs `database/init.sql` on first startup:
+
+**Features:**
+
+- Creates `uuid-ossp` extension (UUID generation)
+- Creates `pg_trgm` extension (text search optimization)
+- Sets timezone to `America/Chicago` for reminder functionality
+- Grants application privileges to `bwaincell` user
+
+**No manual setup required** - init.sql runs automatically.
+
+### Database Operations
+
+**Connect to PostgreSQL:**
+
+```bash
+cd ~/bwaincell
+docker compose exec postgres psql -U bwaincell -d bwaincell
+```
+
+**Backup database:**
+
+```bash
+docker compose exec postgres pg_dump -U bwaincell bwaincell > backup-$(date +%Y%m%d).sql
+```
+
+**Restore database:**
+
+```bash
+cat backup-20260108.sql | docker compose exec -T postgres psql -U bwaincell bwaincell
+```
+
+**View logs:**
+
+```bash
+docker compose logs -f postgres
+```
+
+**Check health:**
+
+```bash
+docker compose exec postgres pg_isready -U bwaincell
+```
+
+---
+
 ## Part 1: Setup on Raspberry Pi
 
 ### Step 1: Create Project Directory
