@@ -19,8 +19,8 @@ WORKDIR /app
 # Copy package files
 COPY package.json package-lock.json* ./
 
-# Install production dependencies only
-RUN npm ci --only=production && npm cache clean --force
+# Install production dependencies only (ignore scripts to skip husky)
+RUN npm ci --omit=dev --ignore-scripts && npm cache clean --force
 
 # -----------------------------------------------------------------------------
 # Stage 2: Builder
@@ -37,7 +37,8 @@ WORKDIR /app
 COPY package.json package-lock.json* ./
 
 # Install ALL dependencies (including devDependencies for TypeScript compilation)
-RUN npm ci
+# Skip prepare script (husky) during Docker build
+RUN npm ci --ignore-scripts
 
 # Copy source files for build
 COPY src/ ./src/
