@@ -424,8 +424,10 @@ process.on('SIGTERM', async () => {
 
 // Only auto-initialize if not in test mode
 if (!isTestEnvironment) {
-  // Start the bot in production mode
-  init();
+  // Start the bot in production mode (wrapped in async IIFE to await)
+  (async () => {
+    await init();
+  })();
 }
 
 // Export testable components for testing
