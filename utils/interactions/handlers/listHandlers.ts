@@ -60,10 +60,10 @@ export async function handleListButton(interaction: ButtonInteraction<CacheType>
     // View list
     if (customId.startsWith('list_view_')) {
       const listName = customId.replace('list_view_', '');
-      const lists = await (List as any).findAll({
+      const lists = await List.findAll({
         where: { user_id: userId, guild_id: guildId },
       });
-      const list = lists.find((l: any) => l.name.toLowerCase() === listName.toLowerCase());
+      const list = lists.find((l) => l.name.toLowerCase() === listName.toLowerCase());
 
       if (!list) {
         // Check if already acknowledged before responding
@@ -195,7 +195,7 @@ export async function handleListButton(interaction: ButtonInteraction<CacheType>
     // Clear completed items
     if (customId.startsWith('list_clear_completed_')) {
       const listName = customId.replace('list_clear_completed_', '');
-      const list = await (List as any).clearCompleted(userId, guildId, listName);
+      const list = await List.clearCompleted(guildId, listName);
 
       if (!list) {
         if (interaction.deferred) {
@@ -227,7 +227,7 @@ export async function handleListButton(interaction: ButtonInteraction<CacheType>
     // Delete list confirmation
     if (customId.startsWith('list_delete_confirm_')) {
       const listName = customId.replace('list_delete_confirm_', '');
-      const deleted = await (List as any).deleteList(guildId, listName);
+      const deleted = await List.deleteList(guildId, listName);
 
       if (deleted) {
         if (interaction.deferred) {
