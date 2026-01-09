@@ -92,7 +92,6 @@ services:
       - NODE_ENV=production
       - DEPLOYMENT_MODE=pi
       - TZ=America/Chicago  # Set your timezone (important for reminders)
-      - DATABASE_URL=${DATABASE_URL}  # PostgreSQL connection string
 
     # Health check configuration (matches Dockerfile HEALTHCHECK)
     healthcheck:
