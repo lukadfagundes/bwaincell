@@ -20,13 +20,16 @@ if (!databaseUrl) {
   throw new Error('DATABASE_URL environment variable is required for PostgreSQL connection');
 }
 
+logger.info('Initializing database connection', {
+  databaseUrl: databaseUrl.replace(/:[^:@]+@/, ':****@'), // Mask password
+  nodeEnv: process.env.NODE_ENV,
+  deploymentMode: process.env.DEPLOYMENT_MODE,
+});
+
 // Create Sequelize instance with PostgreSQL
 const sequelize = new Sequelize(databaseUrl, {
   dialect: 'postgres',
-  logging:
-    process.env.NODE_ENV === 'development'
-      ? (sql: string) => logger.debug('SQL Query', { query: sql })
-      : false,
+  logging: (sql: string) => logger.info('SQL Query', { query: sql }),
   pool: {
     max: 10, // Maximum connections in pool
     min: 2, // Minimum connections in pool

@@ -1,21 +1,17 @@
 import { DatabaseModels } from '../types/interactions';
+// Import initialized models from database/index.ts (not directly from model files)
+// This ensures we get the models that have been initialized with the Sequelize instance
+import { Task, List, Reminder } from '../../../database';
 
 let cachedModels: DatabaseModels | null = null;
 
 export async function getModels(): Promise<DatabaseModels> {
-    if (cachedModels) {
-        return cachedModels;
-    }
-
-    const TaskModule = require('../../../database/models/Task');
-    const ListModule = require('../../../database/models/List');
-    const ReminderModule = require('../../../database/models/Reminder');
-
-    // Handle both default and named exports
-    const Task = TaskModule.default || TaskModule;
-    const List = ListModule.default || ListModule;
-    const Reminder = ReminderModule.default || ReminderModule;
-
-    cachedModels = { Task, List, Reminder };
+  if (cachedModels) {
     return cachedModels;
+  }
+
+  // Return the initialized models from database/index.ts
+  // These have already been initialized with sequelize.init() and connected to PostgreSQL
+  cachedModels = { Task, List, Reminder };
+  return cachedModels;
 }

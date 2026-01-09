@@ -64,9 +64,22 @@ if (!isTestEnvironment) {
 
 async function loadModels() {
   // Models are already initialized in database/index.ts
-  // Just sync the database to create tables
+  // Test database connection first
+  try {
+    await sequelize.authenticate();
+    logger.info('Database connection authenticated successfully');
+  } catch (error) {
+    logger.error('Failed to authenticate database connection', {
+      error: error instanceof Error ? error.message : String(error),
+    });
+    throw error;
+  }
+
+  // Sync the database to create tables
   await sequelize.sync();
-  logger.info('Database synced successfully');
+  logger.info('Database synced successfully', {
+    models: Object.keys(sequelize.models),
+  });
 }
 
 async function loadCommands() {
