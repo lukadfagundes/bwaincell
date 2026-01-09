@@ -34,8 +34,10 @@ const sequelize = new Sequelize(databaseUrl, {
     idle: 10000, // Maximum time (ms) connection can be idle
   },
   dialectOptions: {
+    // Only use SSL for cloud deployments (Fly.io, Heroku, etc.)
+    // Local Pi deployment uses Docker network without SSL
     ssl:
-      process.env.NODE_ENV === 'production'
+      process.env.NODE_ENV === 'production' && process.env.DEPLOYMENT_MODE !== 'pi'
         ? {
             require: true,
             rejectUnauthorized: false,
