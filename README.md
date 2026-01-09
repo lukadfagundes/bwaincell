@@ -738,5 +738,3 @@ Session archives are stored in `trinity/sessions/` for historical reference.
 4. Agents automatically access project context and documentation
 
 ---
-
-_Deployed with Trinity Method SDK v1.0.0_
