@@ -76,7 +76,7 @@ services:
   # ---------------------------------------------------------------------------
   bwaincell:
     # Use locally built image
-    image: bwaincell:latest
+    image: bwaincell-bot:latest
 
     container_name: bwaincell-bot
 
