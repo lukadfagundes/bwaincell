@@ -426,7 +426,12 @@ process.on('SIGTERM', async () => {
 if (!isTestEnvironment) {
   // Start the bot in production mode (wrapped in async IIFE to await)
   (async () => {
-    await init();
+    try {
+      await init();
+    } catch (error) {
+      console.error('Fatal error during initialization:', error);
+      process.exit(1);
+    }
   })();
 }
 
