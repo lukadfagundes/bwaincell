@@ -4,7 +4,10 @@ import path from 'path';
 import dotenv from 'dotenv';
 import { logger } from '../shared/utils/logger';
 
-dotenv.config();
+// Load environment variables (only in development)
+if (process.env.NODE_ENV !== 'production') {
+  dotenv.config();
+}
 
 const commands: any[] = [];
 const commandsPath = path.join(__dirname, '..', 'commands');
