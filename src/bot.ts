@@ -76,10 +76,10 @@ async function loadCommands() {
   }
 
   // Support both development (ts-node-dev) and production (compiled) environments
-  const isDevelopment = __dirname.includes('src');
-  const commandsPath = isDevelopment
-    ? path.join(__dirname, '..', 'commands') // TypeScript source
-    : path.join(__dirname, '..', 'commands'); // Compiled JavaScript
+  // In development: __dirname is like /path/to/Bwaincell/src
+  // In production: __dirname is like /app/dist/src (compiled code)
+  const isDevelopment = !__dirname.includes('dist');
+  const commandsPath = path.join(__dirname, '..', 'commands');
 
   // Check if commands directory exists
   if (!existsSync(commandsPath)) {
