@@ -1,17 +1,14 @@
-import dotenv from 'dotenv';
 import Joi from 'joi';
 import { EnvironmentError } from '../utils/errors';
 import { logger } from '../utils/logger';
 
 /**
  * Environment variable validation for Bwaincell bot
+ *
+ * Environment variables are loaded by:
+ * - Development: dotenv-cli wrapper in package.json scripts
+ * - Production: docker-compose env_file directive
  */
-
-// Load environment variables from .env file (only in development)
-// In production (Docker/Fly.io), env vars come from docker-compose or secrets, not .env file
-if (process.env.NODE_ENV !== 'production') {
-  dotenv.config();
-}
 
 /**
  * Environment variable schema

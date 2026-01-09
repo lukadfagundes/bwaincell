@@ -1,13 +1,15 @@
 import { REST, Routes } from 'discord.js';
 import fs from 'fs';
 import path from 'path';
-import dotenv from 'dotenv';
 import { logger } from '../shared/utils/logger';
 
-// Load environment variables (only in development)
-if (process.env.NODE_ENV !== 'production') {
-  dotenv.config();
-}
+/**
+ * Deploy Discord slash commands to guild
+ *
+ * Environment variables are loaded by:
+ * - Development: dotenv-cli wrapper in package.json scripts
+ * - Production: docker-compose env_file directive
+ */
 
 const commands: any[] = [];
 const commandsPath = path.join(__dirname, '..', 'commands');

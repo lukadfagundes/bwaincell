@@ -1,9 +1,10 @@
-import dotenv from 'dotenv';
-
-// Load environment variables (only in development)
-if (process.env.NODE_ENV !== 'production') {
-  dotenv.config();
-}
+/**
+ * Bot configuration loaded from environment variables
+ *
+ * Environment variables are loaded by:
+ * - Development: dotenv-cli wrapper in package.json scripts
+ * - Production: docker-compose env_file directive
+ */
 
 export interface DiscordConfig {
   token: string;

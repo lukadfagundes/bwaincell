@@ -14,7 +14,7 @@ const levels = {
   http: 3,
   verbose: 4,
   debug: 5,
-  silly: 6
+  silly: 6,
 };
 
 // Define log colors
@@ -25,7 +25,7 @@ const colors = {
   http: 'magenta',
   verbose: 'cyan',
   debug: 'blue',
-  silly: 'grey'
+  silly: 'grey',
 };
 
 winston.addColors(colors);
@@ -63,24 +63,24 @@ const logger = winston.createLogger({
       filename: path.join('logs', 'error.log'),
       level: 'error',
       maxsize: 5242880, // 5MB
-      maxFiles: 5
+      maxFiles: 5,
     }),
     // Combined log file
     new winston.transports.File({
       filename: path.join('logs', 'combined.log'),
       maxsize: 5242880, // 5MB
-      maxFiles: 5
-    })
-  ]
+      maxFiles: 5,
+    }),
+  ],
 });
 
-// Add console transport for non-production
-if (process.env.NODE_ENV !== 'production') {
-  logger.add(new winston.transports.Console({
+// Always add console transport (for Docker logs visibility)
+logger.add(
+  new winston.transports.Console({
     format: consoleFormat,
-    level: process.env.LOG_LEVEL || 'debug'
-  }));
-}
+    level: process.env.LOG_LEVEL || 'info',
+  })
+);
 
 // Create child loggers for different modules
 export const createLogger = (module: string) => {
@@ -96,7 +96,7 @@ export const logCommandExecution = (commandName: string, userId: string, guildId
     command: commandName,
     userId,
     guildId,
-    timestamp: new Date().toISOString()
+    timestamp: new Date().toISOString(),
   });
 };
 
@@ -105,7 +105,7 @@ export const logError = (error: Error, context?: any) => {
     message: error.message,
     stack: error.stack,
     context,
-    timestamp: new Date().toISOString()
+    timestamp: new Date().toISOString(),
   });
 };
 
@@ -114,7 +114,7 @@ export const logDatabaseOperation = (operation: string, table: string, duration:
     operation,
     table,
     duration,
-    timestamp: new Date().toISOString()
+    timestamp: new Date().toISOString(),
   });
 };
 
@@ -122,7 +122,7 @@ export const logBotEvent = (event: string, details?: any) => {
   logger.info('Bot event', {
     event,
     details,
-    timestamp: new Date().toISOString()
+    timestamp: new Date().toISOString(),
   });
 };
 
