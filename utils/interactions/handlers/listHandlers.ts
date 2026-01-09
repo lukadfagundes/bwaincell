@@ -227,7 +227,7 @@ export async function handleListButton(interaction: ButtonInteraction<CacheType>
     // Delete list confirmation
     if (customId.startsWith('list_delete_confirm_')) {
       const listName = customId.replace('list_delete_confirm_', '');
-      const deleted = await (List as any).deleteList(userId, guildId, listName);
+      const deleted = await (List as any).deleteList(guildId, listName);
 
       if (deleted) {
         if (interaction.deferred) {
