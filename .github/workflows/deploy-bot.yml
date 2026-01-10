@@ -107,7 +107,7 @@ jobs:
             echo "🔨 Building bot image..."
             docker build --no-cache \
               -t bwaincell-bot:latest \
-              -f Dockerfile \
+              -f backend/Dockerfile \
               . 2>&1 | tee build-bot.log
 
             if [ ${PIPESTATUS[0]} -ne 0 ]; then
