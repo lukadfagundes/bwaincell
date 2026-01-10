@@ -29,8 +29,8 @@ services:
     volumes:
       # Development data storage (separate from production)
       - postgres-data-dev:/var/lib/postgresql/data
-      # Database initialization script
-      - ./database/init.sql:/docker-entrypoint-initdb.d/init.sql
+      # Database initialization script (monorepo structure)
+      - ./backend/database/init.sql:/docker-entrypoint-initdb.d/init.sql
 
     # Expose port 5433 externally (same as production for consistency)
     ports:
@@ -80,8 +80,10 @@ volumes:
 # Start PostgreSQL Only:
 #   docker compose -f docker-compose.dev.yml up -d
 #
-# Run Bot Locally:
-#   npm run dev
+# Run Bot and Frontend Locally (Monorepo):
+#   npm run dev              # Both backend + frontend
+#   npm run dev:backend      # Backend only
+#   npm run dev:frontend     # Frontend only
 #
 # View PostgreSQL Logs:
 #   docker compose -f docker-compose.dev.yml logs -f postgres

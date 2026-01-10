@@ -14,9 +14,9 @@
   },
   "scripts": {
     "build": "tsc",
-    "dev": "dotenv -e .env -- ts-node-dev -r tsconfig-paths/register --respawn --transpile-only src/bot.ts",
+    "dev": "dotenv -e ../.env -- ts-node-dev -r tsconfig-paths/register --respawn --transpile-only src/bot.ts",
     "start": "node dist/src/bot.js",
-    "deploy": "dotenv -e .env -- node dist/src/deploy-commands.js",
+    "deploy": "dotenv -e ../.env -- node dist/src/deploy-commands.js",
     "generate-assets": "ts-node generate-assets.ts",
     "clean": "rm -rf dist",
     "rebuild": "npm run clean && npm run build",

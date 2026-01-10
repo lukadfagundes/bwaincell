@@ -1,6 +1,8 @@
 # Bwaincell
 
-A dual-purpose productivity platform providing both Discord bot functionality and a secure REST API for task management, reminders, lists, notes, budgets, and scheduling.
+A unified monorepo productivity platform providing Discord bot functionality, a secure REST API, and a Next.js Progressive Web App for task management, reminders, lists, notes, budgets, and scheduling.
+
+**Architecture**: npm workspaces monorepo with backend (Discord bot + API), frontend (PWA), and shared types.
 
 ---
 
@@ -29,15 +31,29 @@ A dual-purpose productivity platform providing both Discord bot functionality an
 
 | Component          | Technology             | Version |
 | ------------------ | ---------------------- | ------- |
+| **Monorepo**       | npm workspaces         | -       |
 | **Runtime**        | Node.js                | 18+     |
 | **Language**       | TypeScript             | 5.9.2   |
 | **Discord**        | Discord.js             | 14.14.1 |
+| **Frontend**       | Next.js (PWA)          | 14.2    |
 | **API Framework**  | Express                | 4.x     |
-| **Database**       | PostgreSQL             | 8.x     |
+| **Database**       | PostgreSQL             | 15      |
 | **ORM**            | Sequelize              | 6.37.7  |
 | **Authentication** | Google OAuth 2.0 + JWT | -       |
 | **Scheduler**      | node-cron              | 4.2.1   |
 | **Logging**        | Winston                | 3.17.0  |
+
+---
+
+## Monorepo Structure
+
+This project uses npm workspaces with three packages:
+
+- **backend/** - Discord.js bot + Express API (port 3000)
+- **frontend/** - Next.js Progressive Web App (port 3010)
+- **shared/** - Shared TypeScript types and utilities
+
+See [MIGRATION.md](MIGRATION.md) for detailed migration documentation.
 
 ---
 
@@ -59,10 +75,11 @@ A dual-purpose productivity platform providing both Discord bot functionality an
    cd bwaincell
    ```
 
-2. **Install Dependencies**
+2. **Install Dependencies** (all workspaces)
 
    ```bash
    npm install
+   # Postinstall hook automatically builds shared package
    ```
 
 3. **Configure Environment Variables**
@@ -114,10 +131,12 @@ A dual-purpose productivity platform providing both Discord bot functionality an
 6. **Start Application**
 
    ```bash
-   # Development mode (hot reload)
+   # Development mode (starts both backend and frontend)
    npm run dev
+   # Backend: http://localhost:3000
+   # Frontend: http://localhost:3010
 
-   # Production mode
+   # Production mode (backend only)
    npm start
    ```
 
@@ -703,73 +722,105 @@ fly secrets set DATABASE_URL=your_database_url
 ### Project Structure
 
 ```
-bwaincell/
-├── src/                    # Source code
-│   ├── api/               # REST API implementation
-│   │   ├── routes/       # API route handlers
-│   │   ├── middleware/   # Authentication & error handling
-│   │   └── server.ts     # Express server setup
-│   ├── bot.ts             # Discord bot entry point
-│   ├── deploy-commands.ts # Command registration script
-│   └── types/             # TypeScript type definitions
-├── commands/              # Discord slash commands
-├── database/              # Database models and schema
-├── shared/                # Shared utilities and helpers
-├── tests/                 # Test suites
-├── trinity/               # Development methodology documentation
-├── docs/                  # Project documentation
-├── dist/                  # Compiled JavaScript (build output)
-├── .env.example           # Environment variable template
-├── Dockerfile             # Docker container definition
-├── docker-compose.yml     # Multi-container setup
-├── fly.toml               # Fly.io deployment config
-├── package.json           # Dependencies and scripts
-├── tsconfig.json          # TypeScript configuration
-└── README.md              # This file
+Bwaincell/                  # Monorepo root
+├── backend/                # Discord bot + Express API
+│   ├── src/               # Source code
+│   │   ├── api/          # REST API routes & middleware
+│   │   ├── bot.ts        # Discord bot entry point
+│   │   └── deploy-commands.ts
+│   ├── commands/          # Discord slash commands
+│   ├── database/          # Sequelize models
+│   ├── utils/             # Utility functions
+│   ├── dist/              # Compiled output
+│   ├── package.json       # @bwaincell/backend
+│   ├── tsconfig.json      # Backend TypeScript config
+│   └── Dockerfile         # Multi-stage Docker build
+├── frontend/               # Next.js PWA
+│   ├── app/               # Next.js App Router pages
+│   ├── components/        # React components
+│   ├── lib/               # Frontend utilities
+│   ├── public/            # Static assets
+│   ├── .next/             # Build output
+│   ├── package.json       # @bwaincell/frontend
+│   └── tsconfig.json      # Frontend TypeScript config
+├── shared/                 # Shared types package
+│   ├── src/
+│   │   ├── index.ts       # Barrel exports
+│   │   └── types/
+│   │       └── database.ts # Shared model interfaces
+│   ├── dist/              # Compiled types
+│   ├── package.json       # @bwaincell/shared
+│   └── tsconfig.json      # TypeScript config (composite)
+├── .github/                # CI/CD workflows
+│   └── workflows/
+│       ├── ci.yml         # Monorepo CI pipeline
+│       └── deploy-bot.yml # Raspberry Pi deployment
+├── trinity/                # Development methodology
+├── docs/                   # Documentation
+├── package.json            # Root workspace configuration
+├── tsconfig.json           # Root project references
+├── docker-compose.yml      # Backend + PostgreSQL
+├── .env                    # Environment variables (all workspaces)
+├── MIGRATION.md            # Monorepo migration documentation
+└── README.md               # This file
 ```
 
 ### Scripts
 
 ```bash
-# Development
-npm run dev              # Start with hot reload
-npm run build            # Compile TypeScript
-npm start                # Start production server
+# Development (Monorepo)
+npm run dev              # Start both backend (3000) and frontend (3010)
+npm run dev:backend      # Start backend only
+npm run dev:frontend     # Start frontend only
+npm run build            # Build all workspaces (shared → backend → frontend)
+npm run build:shared     # Build shared package only
 
 # Testing
-npm test                 # Run tests
+npm test                 # Run all workspace tests
+npm run test:backend     # Run backend tests only
+npm run test:frontend    # Run frontend tests only
 npm run test:watch       # Run tests in watch mode
 npm run test:coverage    # Generate coverage report
 
 # Code Quality
-npm run lint             # Check code style
+npm run lint             # Lint all workspaces
 npm run lint:fix         # Fix code style issues
-npm run typecheck        # TypeScript type checking
-npm run format           # Format code with Prettier
-npm run format:check     # Check code formatting
+npm run typecheck        # TypeScript type checking (project references)
+npm run clean            # Clean all dist directories
+
+# Docker
+npm run docker:build     # Build Docker images
+npm run docker:up        # Start containers
+npm run docker:down      # Stop containers
+npm run docker:logs      # View logs
 
 # Deployment
-npm run deploy           # Deploy Discord commands
-npm run setup            # Build + deploy commands
-npm run start:fresh      # Setup + start production
+npm run deploy           # Deploy Discord commands (backend workspace)
 ```
 
 ### Adding Features
 
 **New Discord Command:**
 
-1. Create command file in `commands/`
+1. Create command file in `backend/commands/`
 2. Implement `execute()` function with SlashCommandBuilder
 3. Deploy commands: `npm run deploy`
 4. Test in Discord server
 
 **New API Endpoint:**
 
-1. Create route handler in `src/api/routes/`
+1. Create route handler in `backend/src/api/routes/`
 2. Add authentication middleware
 3. Implement endpoint logic with input validation
 4. Return standardized response format
-5. Add tests in `tests/`
+5. Add tests in `backend/tests/`
+
+**New Shared Type:**
+
+1. Add interface to `shared/src/types/database.ts`
+2. Export from `shared/src/index.ts`
+3. Build shared package: `npm run build:shared`
+4. Import in backend/frontend: `import type { YourType } from '@bwaincell/shared'`
 
 ---
 
@@ -801,17 +852,17 @@ npm run test:coverage-report
 
 ```typescript
 // AAA Pattern: Arrange-Act-Assert
-describe('TaskService', () => {
-  it('should create task with due date', async () => {
+describe("TaskService", () => {
+  it("should create task with due date", async () => {
     // Arrange
-    const taskData = { text: 'Test task', dueDate: '2026-01-15' };
+    const taskData = { text: "Test task", dueDate: "2026-01-15" };
 
     // Act
     const task = await taskService.create(taskData);
 
     // Assert
-    expect(task.text).toBe('Test task');
-    expect(task.dueDate).toBe('2026-01-15');
+    expect(task.text).toBe("Test task");
+    expect(task.dueDate).toBe("2026-01-15");
   });
 });
 ```
@@ -859,10 +910,10 @@ describe('TaskService', () => {
 **Usage:**
 
 ```typescript
-import { logger } from '@shared/utils/logger';
+import { logger } from "@shared/utils/logger";
 
-logger.info('User logged in', { userId, email });
-logger.error('Database error', { error: error.message });
+logger.info("User logged in", { userId, email });
+logger.error("Database error", { error: error.message });
 ```
 
 **Production:**

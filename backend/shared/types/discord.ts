@@ -1,6 +1,11 @@
 // Discord-specific Type Definitions
 
-import { CommandInteraction, ButtonInteraction, ModalSubmitInteraction, StringSelectMenuInteraction } from 'discord.js';
+import {
+  CommandInteraction,
+  ButtonInteraction,
+  ModalSubmitInteraction,
+  StringSelectMenuInteraction,
+} from 'discord.js';
 
 /**
  * Command execution result
