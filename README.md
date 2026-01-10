@@ -1,555 +1,890 @@
-# Bwaincell - Personal Productivity API
+# Bwaincell
 
-A comprehensive backend API for personal productivity management, combining Discord bot functionality with a RESTful API for web/mobile applications.
-
-[![Version](https://img.shields.io/badge/version-1.0.0-blue.svg)](https://github.com/lukadfagundes/bwaincell)
-[![License](https://img.shields.io/badge/license-MIT-green.svg)](LICENSE)
-[![Node](https://img.shields.io/badge/node-%3E%3D18.0.0-brightgreen.svg)](https://nodejs.org)
-[![TypeScript](https://img.shields.io/badge/TypeScript-5.9.2-blue.svg)](https://www.typescriptlang.org/)
-
----
-
-**_A note before you begin_**
-
-Bwaincell is a Discord bot that works to also serve information to the Bwain.app companion app I built, I'll provide the link to it below. The bot and app were developed for personal use for me and my wife and my iteration of it won't be available to access publically, however, feel free to tinker and make it your own!
-
-https://github.com/lukadfagundes/bwain.app
-
-## Overview
-
-Bwaincell is a dual-purpose productivity platform that provides:
-
-1. **Discord Bot**: Slash commands for server-based productivity management
-2. **REST API**: Secure HTTP endpoints with Google OAuth 2.0 authentication for PWA/web integration
-
-**Live Deployment:**
-
-- **API:** https://bwaincell.fly.dev
-- **PWA:** https://bwain-app.vercel.app
+A dual-purpose productivity platform providing both Discord bot functionality and a secure REST API for task management, reminders, lists, notes, budgets, and scheduling.
 
 ---
 
 ## Features
 
-### 📋 Task Management
+### Discord Bot
 
-- Create tasks with optional due dates
-- Mark tasks complete/incomplete
-- Filter by status (all, pending, completed)
-- Edit and delete tasks
-- Persistent storage across sessions
+- **Task Management** - Create, complete, and manage tasks with due dates
+- **Smart Lists** - Organize items in multiple named lists with completion tracking
+- **Reminders** - Schedule one-time, daily, or weekly reminders
+- **Budget Tracking** - Track income and expenses with category-based organization
+- **Notes** - Create searchable notes with tag support
+- **Schedules** - Manage recurring schedules and events
 
-### 📝 List Management
+### REST API
 
-- Create multiple named lists
-- Add/remove items
-- Toggle item completion
-- Clear completed items
-- View all lists with item counts
-
-### ⏰ Reminders
-
-- One-time reminders
-- Daily recurring reminders
-- Weekly recurring reminders (with day selection)
-- Automatic notification system
-- Discord integration for alerts
-
-### 💰 Budget Tracking
-
-- Track expenses by category
-- Record income
-- Monthly summaries
-- Category breakdowns
-- Spending analytics
-
-### 📓 Notes
-
-- Create tagged notes
-- Search by keyword with Enter-to-search
-- Filter by tags
-- Edit existing notes
-- Tag management
-
-### 🎲 Random Generators (Discord Only)
-
-- Movie picker
-- Dinner suggestions
-- Date ideas
-- Conversation starters
-- Coin flip & dice roll
+- **Google OAuth 2.0** - Secure authentication with JWT tokens
+- **RESTful Endpoints** - Full CRUD operations for all features
+- **User Isolation** - Data segregated by Discord user ID
+- **CORS Support** - Configured for PWA integration
+- **Health Monitoring** - Health check endpoint for uptime monitoring
 
 ---
 
 ## Technology Stack
 
-```yaml
-Runtime: Node.js 18+
-Language: TypeScript 5.9.2
-Framework: Express.js 4.x
-Authentication: Google OAuth 2.0 + JWT
-Discord: Discord.js 14.14.1
-Database: SQLite 3 + Sequelize ORM
-Scheduler: node-cron 4.2.1
-Logging: Winston 3.17.0
-Testing: Jest 30.1.3
-Deployment: Fly.io + Docker
-```
+| Component          | Technology             | Version |
+| ------------------ | ---------------------- | ------- |
+| **Runtime**        | Node.js                | 18+     |
+| **Language**       | TypeScript             | 5.9.2   |
+| **Discord**        | Discord.js             | 14.14.1 |
+| **API Framework**  | Express                | 4.x     |
+| **Database**       | PostgreSQL             | 8.x     |
+| **ORM**            | Sequelize              | 6.37.7  |
+| **Authentication** | Google OAuth 2.0 + JWT | -       |
+| **Scheduler**      | node-cron              | 4.2.1   |
+| **Logging**        | Winston                | 3.17.0  |
 
 ---
 
-## Quick Start
+## Installation
 
 ### Prerequisites
 
-- Node.js 18.0.0 or higher
-- npm 8.0.0 or higher
-- Discord Bot Token ([Discord Developer Portal](https://discord.com/developers/applications))
-- Google OAuth 2.0 Credentials ([Google Cloud Console](https://console.cloud.google.com))
-- Fly.io account (for deployment)
-
-### Installation
-
-```bash
-# Clone the repository
-git clone https://github.com/lukadfagundes/bwaincell.git
-cd bwaincell
-
-# Install dependencies
-npm install
-
-# Configure environment variables
-cp .env.example .env
-# Edit .env with your credentials
-
-# Build TypeScript
-npm run build
-
-# Start the application
-npm start
-```
-
-### Development Mode
-
-```bash
-# Run with hot reload
-npm run dev
-
-# Run tests
-npm test
-
-# Run tests with coverage
-npm run test:coverage
-
-# Lint code
-npm run lint
-
-# Format code
-npm run format
-```
-
----
-
-## Environment Configuration
-
-### Required Variables
-
-```env
-# Discord Bot Configuration
-BOT_TOKEN=your_discord_bot_token
-CLIENT_ID=your_discord_client_id
-GUILD_ID=your_discord_guild_id
-
-# Discord User IDs (for multi-user support)
-STRAWHATLUKA_DISCORD_ID=your_discord_user_id
-DANDELION_DISCORD_ID=dandelion_discord_user_id
-
-# Google OAuth 2.0
-GOOGLE_CLIENT_ID=your-client-id.apps.googleusercontent.com
-GOOGLE_CLIENT_SECRET=your-client-secret
-ALLOWED_GOOGLE_EMAILS=user1@gmail.com,user2@gmail.com
-
-# JWT Configuration
-JWT_SECRET=generate_with_openssl_rand_base64_32
-
-# API Server
-API_PORT=3000
-
-# Application Settings
-NODE_ENV=production
-TIMEZONE=America/Los_Angeles
-DATABASE_PATH=./data/bwaincell.sqlite
-```
-
-### Optional Variables
-
-```env
-# Discord Bot Settings
-DELETE_COMMAND_AFTER=5000
-DEFAULT_REMINDER_CHANNEL=channel_id_here
-```
-
----
-
-## API Documentation
-
-### Authentication
-
-The API uses **Google OAuth 2.0** with JWT bearer tokens.
-
-#### OAuth Flow
-
-1. Frontend redirects user to Google OAuth
-2. User authenticates with Google
-3. Backend verifies Google ID token
-4. Backend generates JWT access token
-5. Frontend uses JWT for API requests
-
-#### Making Authenticated Requests
-
-```bash
-# Include JWT token in Authorization header
-curl -H "Authorization: Bearer YOUR_JWT_TOKEN" \
-  https://bwaincell.fly.dev/api/tasks
-```
-
-### OAuth Endpoints
-
-```
-POST   /api/auth/google/verify  - Verify Google ID token and get JWT
-POST   /api/auth/refresh        - Refresh expired JWT token
-POST   /api/auth/logout         - Invalidate refresh token
-```
-
-### API Endpoints
-
-#### Health Check
-
-```
-GET /health
-```
-
-Returns server health status (no authentication required).
-
-#### Tasks
-
-```
-GET    /api/tasks              - List all tasks
-GET    /api/tasks/:id          - Get specific task
-POST   /api/tasks              - Create new task
-PATCH  /api/tasks/:id          - Update task (supports completed toggle)
-DELETE /api/tasks/:id          - Delete task
-```
-
-#### Lists
-
-```
-GET    /api/lists              - List all lists
-GET    /api/lists/:name        - Get specific list
-POST   /api/lists              - Create new list
-POST   /api/lists/:name/items  - Add item to list
-PATCH  /api/lists/:name/items/:itemText/toggle - Toggle item
-DELETE /api/lists/:name/items/:itemText - Remove item
-DELETE /api/lists/:name         - Delete list
-```
-
-#### Notes
-
-```
-GET    /api/notes              - List all notes
-GET    /api/notes?search=query - Search notes
-GET    /api/notes/:id          - Get specific note
-POST   /api/notes              - Create new note
-PATCH  /api/notes/:id          - Update note
-DELETE /api/notes/:id          - Delete note
-```
-
-#### Reminders
-
-```
-GET    /api/reminders          - List all reminders
-GET    /api/reminders/:id      - Get specific reminder
-POST   /api/reminders          - Create new reminder
-DELETE /api/reminders/:id      - Delete reminder
-```
-
-**Reminder Creation:**
-
-```json
-{
-  "message": "Reminder message",
-  "time": "09:00",
-  "frequency": "once|daily|weekly",
-  "dayOfWeek": 0-6  // Required for weekly (0=Sunday, 6=Saturday)
-}
-```
-
-#### Budget
-
-```
-GET    /api/budget/transactions     - List all transactions
-GET    /api/budget/summary          - Get budget summary
-POST   /api/budget/transactions     - Create transaction
-DELETE /api/budget/transactions/:id - Delete transaction
-```
-
-### API Response Format
-
-**Success Response:**
-
-```json
-{
-  "success": true,
-  "data": { ... }
-}
-```
-
-**Error Response:**
-
-```json
-{
-  "success": false,
-  "error": "Error message here"
-}
-```
-
----
-
-## Discord Bot Commands
+- Node.js 18 or higher
+- PostgreSQL 8+ database
+- Discord bot token ([Discord Developer Portal](https://discord.com/developers/applications))
+- Google OAuth 2.0 credentials ([Google Cloud Console](https://console.cloud.google.com/))
 
 ### Setup
 
-1. Invite bot to your server using OAuth2 URL with `bot` and `applications.commands` scopes
-2. Run command deployment:
+1. **Clone Repository**
 
-```bash
-npm run deploy
+   ```bash
+   git clone https://github.com/yourusername/bwaincell.git
+   cd bwaincell
+   ```
+
+2. **Install Dependencies**
+
+   ```bash
+   npm install
+   ```
+
+3. **Configure Environment Variables**
+
+   ```bash
+   cp .env.example .env
+   ```
+
+   Edit `.env` with your credentials:
+
+   ```env
+   # Discord Configuration
+   DISCORD_TOKEN=your_discord_bot_token
+   CLIENT_ID=your_discord_client_id
+   GUILD_ID=your_discord_guild_id
+   REMINDER_CHANNEL_ID=channel_id_for_reminders
+
+   # Google OAuth Configuration
+   GOOGLE_CLIENT_ID=your_google_client_id
+   GOOGLE_CLIENT_SECRET=your_google_client_secret
+
+   # JWT Configuration
+   JWT_SECRET=your_secure_jwt_secret
+
+   # Database Configuration
+   DATABASE_URL=postgresql://user:password@localhost:5432/bwaincell
+
+   # API Configuration
+   API_PORT=3000
+   TIMEZONE=America/New_York
+
+   # User Mapping (Discord ID to Email)
+   USER1_EMAIL=user@gmail.com
+   USER1_DISCORD_ID=123456789
+   ```
+
+4. **Build TypeScript**
+
+   ```bash
+   npm run build
+   ```
+
+5. **Deploy Discord Commands**
+
+   ```bash
+   npm run deploy
+   ```
+
+6. **Start Application**
+
+   ```bash
+   # Development mode (hot reload)
+   npm run dev
+
+   # Production mode
+   npm start
+   ```
+
+---
+
+## Discord Commands
+
+### Task Management
+
+- `/task add <text> [due_date]` - Create a new task
+- `/task list` - View all active tasks
+- `/task complete <task_id>` - Mark task as complete
+- `/task delete <task_id>` - Delete a task
+
+### List Management
+
+- `/list create <name>` - Create a new list
+- `/list add <list_name> <item>` - Add item to list
+- `/list view <list_name>` - View list items
+- `/list toggle <list_name> <item>` - Toggle item completion
+- `/list remove <list_name> <item>` - Remove item from list
+- `/list delete <list_name>` - Delete entire list
+- `/list all` - View all lists
+
+### Reminders
+
+- `/reminder add <message> <time> <frequency> [day_of_week]` - Create reminder
+  - **Frequency:** `once`, `daily`, `weekly`
+  - **Day of Week:** 0-6 (0=Sunday) for weekly reminders
+- `/reminder list` - View all active reminders
+- `/reminder delete <reminder_id>` - Delete a reminder
+
+### Budget Tracking
+
+- `/budget add <amount> <category> <type> [description]` - Add transaction
+  - **Type:** `expense` or `income`
+- `/budget summary [month]` - View budget summary (format: YYYY-MM)
+- `/budget list` - View all transactions
+- `/budget delete <transaction_id>` - Delete transaction
+
+### Notes
+
+- `/note add <content> [tags]` - Create a note
+- `/note list` - View all notes
+- `/note search <keyword>` - Search notes by keyword
+- `/note delete <note_id>` - Delete a note
+
+---
+
+## REST API Documentation
+
+### Base URL
+
+```
+Production: https://bwaincell.fly.dev
+Development: http://localhost:3000
 ```
 
-### Available Commands
+### Authentication
+
+All API endpoints (except `/health` and `/api/auth/*`) require JWT authentication.
+
+**Authentication Flow:**
+
+1. User authenticates with Google OAuth (frontend)
+2. Frontend sends Google ID token to `/api/auth/google/verify`
+3. Backend verifies token and returns JWT access token (1 hour expiry)
+4. Frontend includes JWT in Authorization header for subsequent requests
+
+**Request Header:**
 
 ```
-/task add <description> [due_date]
-/task list [filter]
-/task done <task_id>
-/task delete <task_id>
-/task edit <task_id> <new_text>
+Authorization: Bearer <JWT_TOKEN>
+```
 
-/list create <name>
-/list add <list_name> <item>
-/list show <list_name>
-/list toggle <list_name> <item>
-/list delete <list_name>
+---
 
-/remind me <message> <time>
-/remind daily <message> <time>
-/remind weekly <message> <day> <time>
-/remind list
-/remind delete <reminder_id>
+### Endpoints
 
-/budget add <amount> <category> [description]
-/budget summary [month]
-/budget list [category]
+#### Authentication
 
-/note create <content> [tags]
-/note search <keyword>
-/note list [tag]
-/note delete <note_id>
+**Verify Google Token**
 
-/random movie
-/random dinner
-/random date
-/random choose <options>
+```http
+POST /api/auth/google/verify
+Content-Type: application/json
+
+{
+  "token": "google_id_token"
+}
+
+Response:
+{
+  "success": true,
+  "data": {
+    "accessToken": "jwt_token",
+    "refreshToken": "refresh_token",
+    "expiresIn": 3600
+  }
+}
+```
+
+**Refresh Token**
+
+```http
+POST /api/auth/refresh
+Content-Type: application/json
+
+{
+  "refreshToken": "refresh_token"
+}
+
+Response:
+{
+  "success": true,
+  "data": {
+    "accessToken": "new_jwt_token",
+    "expiresIn": 3600
+  }
+}
+```
+
+**Logout**
+
+```http
+POST /api/auth/logout
+Authorization: Bearer <JWT_TOKEN>
+
+Response:
+{
+  "success": true,
+  "message": "Logged out successfully"
+}
+```
+
+---
+
+#### Tasks
+
+**List All Tasks**
+
+```http
+GET /api/tasks
+Authorization: Bearer <JWT_TOKEN>
+
+Response:
+{
+  "success": true,
+  "data": [
+    {
+      "id": 1,
+      "text": "Buy groceries",
+      "completed": false,
+      "dueDate": "2026-01-15",
+      "createdAt": "2026-01-09T12:00:00Z"
+    }
+  ]
+}
+```
+
+**Get Task**
+
+```http
+GET /api/tasks/:id
+Authorization: Bearer <JWT_TOKEN>
+```
+
+**Create Task**
+
+```http
+POST /api/tasks
+Authorization: Bearer <JWT_TOKEN>
+Content-Type: application/json
+
+{
+  "text": "Buy groceries",
+  "dueDate": "2026-01-15"
+}
+```
+
+**Update Task**
+
+```http
+PATCH /api/tasks/:id
+Authorization: Bearer <JWT_TOKEN>
+Content-Type: application/json
+
+{
+  "text": "Buy groceries and cook dinner",
+  "completed": true,
+  "dueDate": "2026-01-16"
+}
+```
+
+**Delete Task**
+
+```http
+DELETE /api/tasks/:id
+Authorization: Bearer <JWT_TOKEN>
+```
+
+---
+
+#### Lists
+
+**List All Lists**
+
+```http
+GET /api/lists
+Authorization: Bearer <JWT_TOKEN>
+
+Response:
+{
+  "success": true,
+  "data": [
+    {
+      "name": "Groceries",
+      "itemCount": 5,
+      "createdAt": "2026-01-09T12:00:00Z"
+    }
+  ]
+}
+```
+
+**Get List with Items**
+
+```http
+GET /api/lists/:name
+Authorization: Bearer <JWT_TOKEN>
+
+Response:
+{
+  "success": true,
+  "data": {
+    "name": "Groceries",
+    "items": [
+      {
+        "text": "Milk",
+        "completed": false
+      },
+      {
+        "text": "Eggs",
+        "completed": true
+      }
+    ]
+  }
+}
+```
+
+**Create List**
+
+```http
+POST /api/lists
+Authorization: Bearer <JWT_TOKEN>
+Content-Type: application/json
+
+{
+  "name": "Groceries"
+}
+```
+
+**Add Item to List**
+
+```http
+POST /api/lists/:name/items
+Authorization: Bearer <JWT_TOKEN>
+Content-Type: application/json
+
+{
+  "itemText": "Milk"
+}
+```
+
+**Toggle Item Completion**
+
+```http
+PATCH /api/lists/:name/items/:itemText/toggle
+Authorization: Bearer <JWT_TOKEN>
+```
+
+**Remove Item from List**
+
+```http
+DELETE /api/lists/:name/items/:itemText
+Authorization: Bearer <JWT_TOKEN>
+```
+
+**Delete List**
+
+```http
+DELETE /api/lists/:name
+Authorization: Bearer <JWT_TOKEN>
+```
+
+---
+
+#### Notes
+
+**List All Notes**
+
+```http
+GET /api/notes
+Authorization: Bearer <JWT_TOKEN>
+
+Response:
+{
+  "success": true,
+  "data": [
+    {
+      "id": 1,
+      "content": "Meeting notes from Jan 9",
+      "tags": "work,meeting",
+      "createdAt": "2026-01-09T12:00:00Z"
+    }
+  ]
+}
+```
+
+**Search Notes**
+
+```http
+GET /api/notes?search=meeting
+Authorization: Bearer <JWT_TOKEN>
+```
+
+**Get Note**
+
+```http
+GET /api/notes/:id
+Authorization: Bearer <JWT_TOKEN>
+```
+
+**Create Note**
+
+```http
+POST /api/notes
+Authorization: Bearer <JWT_TOKEN>
+Content-Type: application/json
+
+{
+  "content": "Meeting notes from Jan 9",
+  "tags": "work,meeting"
+}
+```
+
+**Update Note**
+
+```http
+PATCH /api/notes/:id
+Authorization: Bearer <JWT_TOKEN>
+Content-Type: application/json
+
+{
+  "content": "Updated meeting notes",
+  "tags": "work,meeting,important"
+}
+```
+
+**Delete Note**
+
+```http
+DELETE /api/notes/:id
+Authorization: Bearer <JWT_TOKEN>
+```
+
+---
+
+#### Reminders
+
+**List All Reminders**
+
+```http
+GET /api/reminders
+Authorization: Bearer <JWT_TOKEN>
+
+Response:
+{
+  "success": true,
+  "data": [
+    {
+      "id": 1,
+      "message": "Take medication",
+      "time": "09:00",
+      "frequency": "daily",
+      "dayOfWeek": null,
+      "createdAt": "2026-01-09T12:00:00Z"
+    }
+  ]
+}
+```
+
+**Get Reminder**
+
+```http
+GET /api/reminders/:id
+Authorization: Bearer <JWT_TOKEN>
+```
+
+**Create Reminder**
+
+```http
+POST /api/reminders
+Authorization: Bearer <JWT_TOKEN>
+Content-Type: application/json
+
+{
+  "message": "Take medication",
+  "time": "09:00",
+  "frequency": "daily"
+}
+
+# Weekly reminder
+{
+  "message": "Team meeting",
+  "time": "14:00",
+  "frequency": "weekly",
+  "dayOfWeek": 1
+}
+```
+
+**Delete Reminder**
+
+```http
+DELETE /api/reminders/:id
+Authorization: Bearer <JWT_TOKEN>
+```
+
+---
+
+#### Budget
+
+**List All Transactions**
+
+```http
+GET /api/budget/transactions
+Authorization: Bearer <JWT_TOKEN>
+
+Response:
+{
+  "success": true,
+  "data": [
+    {
+      "id": 1,
+      "amount": 50.00,
+      "category": "groceries",
+      "description": "Weekly shopping",
+      "type": "expense",
+      "createdAt": "2026-01-09T12:00:00Z"
+    }
+  ]
+}
+```
+
+**Get Budget Summary**
+
+```http
+GET /api/budget/summary?month=2026-01
+Authorization: Bearer <JWT_TOKEN>
+
+Response:
+{
+  "success": true,
+  "data": {
+    "month": "2026-01",
+    "totalIncome": 3000.00,
+    "totalExpenses": 1500.00,
+    "balance": 1500.00,
+    "categories": {
+      "groceries": 300.00,
+      "utilities": 200.00
+    }
+  }
+}
+```
+
+**Create Transaction**
+
+```http
+POST /api/budget/transactions
+Authorization: Bearer <JWT_TOKEN>
+Content-Type: application/json
+
+{
+  "amount": 50.00,
+  "category": "groceries",
+  "description": "Weekly shopping",
+  "type": "expense"
+}
+```
+
+**Delete Transaction**
+
+```http
+DELETE /api/budget/transactions/:id
+Authorization: Bearer <JWT_TOKEN>
+```
+
+---
+
+### Health Check
+
+**Server Health**
+
+```http
+GET /health
+
+Response:
+{
+  "status": "ok",
+  "timestamp": "2026-01-09T12:00:00Z"
+}
 ```
 
 ---
 
 ## Deployment
 
-### Fly.io Deployment
+### Docker
+
+**Build Image**
+
+```bash
+docker build -t bwaincell .
+```
+
+**Run Container**
+
+```bash
+docker run -d \
+  -p 3000:3000 \
+  --env-file .env \
+  --name bwaincell \
+  bwaincell
+```
+
+### Docker Compose
+
+```bash
+# Start services
+docker-compose up -d
+
+# View logs
+docker-compose logs -f
+
+# Stop services
+docker-compose down
+```
+
+### Fly.io
+
+**Deploy to Fly.io**
 
 ```bash
 # Install Fly CLI
 curl -L https://fly.io/install.sh | sh
 
-# Login to Fly.io
+# Login
 fly auth login
 
-# Deploy application
+# Deploy
 fly deploy
-
-# Set secrets
-fly secrets set BOT_TOKEN=your_token
-fly secrets set CLIENT_ID=your_client_id
-fly secrets set GUILD_ID=your_guild_id
-fly secrets set STRAWHATLUKA_DISCORD_ID=your_discord_id
-fly secrets set DANDELION_DISCORD_ID=dandelion_discord_id
-fly secrets set GOOGLE_CLIENT_ID=your_google_client_id
-fly secrets set GOOGLE_CLIENT_SECRET=your_google_client_secret
-fly secrets set ALLOWED_GOOGLE_EMAILS=user1@gmail.com,user2@gmail.com
-fly secrets set JWT_SECRET=your_jwt_secret
 
 # View logs
 fly logs
 
-# Check status
-fly status
+# Open app
+fly open
 ```
 
-### Docker Deployment
+**Environment Variables (Fly.io)**
 
 ```bash
-# Build image
-docker build -t bwaincell .
-
-# Run container
-docker run -d \
-  --name bwaincell \
-  -p 3000:3000 \
-  -v $(pwd)/data:/app/data \
-  -e BOT_TOKEN=your_token \
-  -e CLIENT_ID=your_client_id \
-  -e GUILD_ID=your_guild_id \
-  -e GOOGLE_CLIENT_ID=your_google_client_id \
-  -e GOOGLE_CLIENT_SECRET=your_google_client_secret \
-  -e JWT_SECRET=your_jwt_secret \
-  bwaincell
+fly secrets set DISCORD_TOKEN=your_token
+fly secrets set GOOGLE_CLIENT_ID=your_client_id
+fly secrets set JWT_SECRET=your_secret
+fly secrets set DATABASE_URL=your_database_url
 ```
 
 ---
 
-## Project Structure
+## Development
+
+### Project Structure
 
 ```
 bwaincell/
-├── src/
-│   ├── api/                  # REST API implementation
-│   │   ├── server.ts        # Express server setup
-│   │   ├── routes/          # API route handlers
-│   │   │   ├── oauth.ts    # OAuth authentication
-│   │   │   ├── tasks.ts    # Task endpoints
-│   │   │   ├── lists.ts    # List endpoints
-│   │   │   ├── notes.ts    # Note endpoints
-│   │   │   ├── reminders.ts # Reminder endpoints
-│   │   │   └── budget.ts   # Budget endpoints
-│   │   ├── middleware/      # Authentication & error handling
-│   │   │   └── oauth.ts    # JWT verification
-│   │   └── utils/           # API utilities
-│   ├── bot.ts               # Discord bot entry point
-│   ├── deploy-commands.ts   # Command registration
-│   └── types/               # TypeScript type definitions
-├── commands/                # Discord slash commands
-├── database/                # Sequelize models & schemas
-│   ├── models/             # Data models (User, Task, List, etc.)
-│   ├── schema.ts           # Database schema
-│   └── index.ts            # Database initialization
-├── utils/                   # Utility functions
-│   ├── scheduler.ts        # Cron scheduler for reminders
-│   ├── validators.ts       # Input validation
-│   └── interactions/       # Discord interaction handlers
-├── shared/                  # Shared utilities
-│   ├── utils/logger.ts     # Winston logger
-│   └── validation/env.ts   # Environment validation
-├── tests/                   # Test suites
-│   ├── unit/               # Unit tests
-│   ├── integration/        # Integration tests
-│   └── mocks/              # Mock implementations
-├── trinity/                 # Trinity Method documentation
-│   └── knowledge-base/     # Project documentation
-├── Dockerfile              # Docker configuration
-├── fly.toml                # Fly.io configuration
-└── package.json            # Dependencies & scripts
+├── src/                    # Source code
+│   ├── api/               # REST API implementation
+│   │   ├── routes/       # API route handlers
+│   │   ├── middleware/   # Authentication & error handling
+│   │   └── server.ts     # Express server setup
+│   ├── bot.ts             # Discord bot entry point
+│   ├── deploy-commands.ts # Command registration script
+│   └── types/             # TypeScript type definitions
+├── commands/              # Discord slash commands
+├── database/              # Database models and schema
+├── shared/                # Shared utilities and helpers
+├── tests/                 # Test suites
+├── trinity/               # Development methodology documentation
+├── docs/                  # Project documentation
+├── dist/                  # Compiled JavaScript (build output)
+├── .env.example           # Environment variable template
+├── Dockerfile             # Docker container definition
+├── docker-compose.yml     # Multi-container setup
+├── fly.toml               # Fly.io deployment config
+├── package.json           # Dependencies and scripts
+├── tsconfig.json          # TypeScript configuration
+└── README.md              # This file
 ```
+
+### Scripts
+
+```bash
+# Development
+npm run dev              # Start with hot reload
+npm run build            # Compile TypeScript
+npm start                # Start production server
+
+# Testing
+npm test                 # Run tests
+npm run test:watch       # Run tests in watch mode
+npm run test:coverage    # Generate coverage report
+
+# Code Quality
+npm run lint             # Check code style
+npm run lint:fix         # Fix code style issues
+npm run typecheck        # TypeScript type checking
+npm run format           # Format code with Prettier
+npm run format:check     # Check code formatting
+
+# Deployment
+npm run deploy           # Deploy Discord commands
+npm run setup            # Build + deploy commands
+npm run start:fresh      # Setup + start production
+```
+
+### Adding Features
+
+**New Discord Command:**
+
+1. Create command file in `commands/`
+2. Implement `execute()` function with SlashCommandBuilder
+3. Deploy commands: `npm run deploy`
+4. Test in Discord server
+
+**New API Endpoint:**
+
+1. Create route handler in `src/api/routes/`
+2. Add authentication middleware
+3. Implement endpoint logic with input validation
+4. Return standardized response format
+5. Add tests in `tests/`
 
 ---
 
 ## Testing
 
+### Running Tests
+
 ```bash
 # Run all tests
 npm test
 
-# Run tests in watch mode
+# Watch mode (development)
 npm run test:watch
 
-# Generate coverage report
+# Coverage report
 npm run test:coverage
 
-# Run specific test suite
-npm test -- tests/unit/commands/task.test.ts
+# HTML coverage report
+npm run test:coverage-report
 ```
 
-**Test Coverage:** Unit and integration tests covering critical paths
+### Test Coverage
 
-**Browser Compatibility:**
+- **Minimum Required:** 80% (functions, lines, branches, statements)
+- **Enforced by:** Jest coverage thresholds
+- **Reports:** `coverage/` directory (HTML and text)
 
-- ✅ Chrome/Edge (Windows, macOS)
-- ✅ Safari (macOS, iOS PWA)
-- ✅ Firefox (Windows, macOS)
+### Test Structure
+
+```typescript
+// AAA Pattern: Arrange-Act-Assert
+describe('TaskService', () => {
+  it('should create task with due date', async () => {
+    // Arrange
+    const taskData = { text: 'Test task', dueDate: '2026-01-15' };
+
+    // Act
+    const task = await taskService.create(taskData);
+
+    // Assert
+    expect(task.text).toBe('Test task');
+    expect(task.dueDate).toBe('2026-01-15');
+  });
+});
+```
 
 ---
 
-## Security Considerations
+## Security
 
-### Authentication
+### Authentication & Authorization
 
-- Google OAuth 2.0 for user authentication
-- JWT tokens for API session management
-- Environment-based credential management
-- Email whitelist for access control
+- **Google OAuth 2.0** for user authentication
+- **JWT tokens** for API session management (1 hour expiry)
+- **Refresh tokens** for extended sessions (7 days expiry)
+- **Email whitelist** for access control
 
 ### Data Protection
 
-- User data isolated by Discord user ID and guild ID
-- SQLite database with file-based persistence
+- User data isolated by Discord ID and guild ID
+- Input validation on all endpoints (Joi schemas)
 - Sequelize ORM prevents SQL injection
 - No sensitive data in logs (production mode)
+- HTTPS enforcement on Fly.io deployment
 
 ### Best Practices
 
-- All secrets in environment variables
-- CORS configured for specific origins (localhost, Vercel)
-- HTTPS enforcement on Fly.io
-- Input validation on all endpoints
-- Error messages sanitized in production
-- JWT tokens expire after 1 hour
-- Refresh tokens expire after 7 days
+- All secrets stored in environment variables
+- CORS configured for specific origins
+- JWT tokens signed with secure secret
+- Database connection pooling for efficiency
+- Regular dependency updates for security patches
 
 ---
 
-## Monitoring & Maintenance
+## Monitoring & Logging
 
-### Health Checks
+### Winston Logger
+
+**Log Levels:**
+
+- `error` - Errors and exceptions
+- `warn` - Warnings and deprecations
+- `info` - General information
+- `debug` - Detailed debugging (development only)
+
+**Usage:**
+
+```typescript
+import { logger } from '@shared/utils/logger';
+
+logger.info('User logged in', { userId, email });
+logger.error('Database error', { error: error.message });
+```
+
+**Production:**
+
+- Logs to stdout (captured by Fly.io)
+- Stack traces for errors
+- Sensitive data excluded
+
+### Health Monitoring
+
+**Health Check Endpoint:**
 
 ```bash
-# Check API health
 curl https://bwaincell.fly.dev/health
-
-# Check bot status
-fly status
 ```
 
-### Logs
+**Fly.io Metrics:**
 
-```bash
-# View real-time logs
-fly logs
-
-# View specific time range
-fly logs --since 1h
-
-# Save logs to file
-fly logs > bwaincell.log
-```
-
-### Database Backup
-
-```bash
-# Backup SQLite database (manual)
-fly ssh console
-tar -czf backup.tar.gz /app/data/bwaincell.sqlite
-fly sftp get /app/data/bwaincell.sqlite ./backup/
-```
+- CPU and memory usage
+- Request latency
+- Error rates
+- Uptime monitoring
 
 ---
 
@@ -557,184 +892,96 @@ fly sftp get /app/data/bwaincell.sqlite ./backup/
 
 ### Common Issues
 
-**Bot not responding to commands:**
+**Discord Bot Not Responding**
 
-1. Verify bot is online: `fly status`
-2. Check logs: `fly logs`
-3. Redeploy commands: `npm run deploy`
-4. Verify bot permissions in Discord server
+- Verify `DISCORD_TOKEN` is correct
+- Check bot has necessary permissions in Discord server
+- Ensure commands are deployed: `npm run deploy`
+- Check logs for errors: `docker-compose logs -f`
 
-**API authentication failing:**
+**Authentication Errors**
 
-1. Verify Google OAuth credentials are correct
-2. Check JWT_SECRET is set: `fly secrets list`
-3. Ensure user email is in ALLOWED_GOOGLE_EMAILS
-4. Verify CORS allows your frontend origin
+- Verify `GOOGLE_CLIENT_ID` and `GOOGLE_CLIENT_SECRET`
+- Check user email is in whitelist (`USER1_EMAIL` environment variable)
+- Ensure JWT_SECRET is set and consistent across restarts
 
-**Database errors with "undefined user_id":**
+**Database Connection Failed**
 
-1. Delete local database: `rm data/bwaincell.sqlite`
-2. Ensure environment variables are set (STRAWHATLUKA_DISCORD_ID, etc.)
-3. Restart server and sign in again via OAuth
+- Verify `DATABASE_URL` is correct
+- Check PostgreSQL server is running
+- Ensure database exists: `createdb bwaincell`
+- Check network connectivity to database
 
-**Mac development issues:**
+**Reminder Scheduler Not Working**
 
-1. Run `npm run build` before `npm run dev`
-2. Ensure all environment variables are in `.env`
-3. Check Node.js version: `node --version` (must be 18+)
+- Verify `REMINDER_CHANNEL_ID` is set
+- Check `TIMEZONE` environment variable is valid
+- Ensure bot has permission to send messages in reminder channel
+- Check logs for scheduler errors
 
-**Reminders not firing:**
+### Debug Mode
 
-1. Verify bot is online continuously (auto_stop_machines = 'off')
-2. Check scheduler initialization in logs
-3. Verify cron syntax in reminder configuration
+Enable debug logging:
+
+```env
+LOG_LEVEL=debug
+```
 
 ---
 
 ## Contributing
 
-See [CONTRIBUTING.md](CONTRIBUTING.md) for detailed contribution guidelines.
-
-### Quick Start
+### Workflow
 
 1. Fork the repository
-2. Create a feature branch: `git checkout -b feature/my-feature`
-3. Make changes and add tests
-4. Run linting: `npm run lint`
-5. Run tests: `npm test`
-6. Commit changes: `git commit -m "Add my feature"`
-7. Push to branch: `git push origin feature/my-feature`
-8. Create Pull Request
+2. Create feature branch: `git checkout -b feature/amazing-feature`
+3. Commit changes: `git commit -m 'Add amazing feature'`
+4. Push to branch: `git push origin feature/amazing-feature`
+5. Open Pull Request
 
-### Code Style
+### Code Standards
 
-- TypeScript strict mode
-- Prettier for formatting
-- ESLint for linting
-- Conventional commit messages
+- **TypeScript strict mode** enabled
+- **ESLint** for code quality
+- **Prettier** for formatting
+- **Jest** for testing (≥80% coverage)
+- **Conventional commits** for commit messages
+
+### Pre-commit Hooks
+
+Husky + lint-staged automatically:
+
+- Runs ESLint with `--fix`
+- Formats code with Prettier
+- Validates commit messages
 
 ---
 
 ## License
 
-MIT License - see [LICENSE](LICENSE) file for details.
-
----
-
-## Acknowledgments
-
-- Built with [Discord.js](https://discord.js.org)
-- Authentication by [Google OAuth 2.0](https://developers.google.com/identity/protocols/oauth2)
-- Powered by [Node.js](https://nodejs.org)
-- Deployed on [Fly.io](https://fly.io)
-- Developed using [Trinity Method](https://github.com/trinity-method)
+ISC
 
 ---
 
 ## Support
 
-- **Issues:** [GitHub Issues](https://github.com/lukadfagundes/bwaincell/issues)
-- **Documentation:** `trinity/knowledge-base/`
-- **Deployment Guide:** See deployment section above
+### Documentation
+
+- **API Documentation:** See "REST API Documentation" section above
+- **Discord Commands:** See "Discord Commands" section above
+- **Source Code:** See [src/README.md](src/README.md) for implementation details
+- **Development:** See [trinity/README.md](trinity/README.md) for methodology
+
+### Resources
+
+- [Discord.js Guide](https://discordjs.guide/)
+- [Express Documentation](https://expressjs.com/)
+- [Sequelize Docs](https://sequelize.org/)
+- [Google OAuth 2.0](https://developers.google.com/identity/protocols/oauth2)
 
 ---
 
 **Version:** 1.0.0
-**Status:** Production Ready
-**Last Updated:** 2025-10-09
-**Maintained by:** @lukadfagundes
-
----
-
-Created by a man who loves his wife.
-
-Luka Fagundes
-
-## 🔱 Trinity Method
-
-This project uses the **Trinity Method** - an investigation-first development methodology powered by AI agents.
-
-### Quick Commands
-
-#### Leadership Team
-
-- **Aly (CTO)** - Strategic planning and work order creation
-
-  ```bash
-  /trinity-aly
-  ```
-
-- **AJ (Implementation Lead)** - Code execution and implementation
-  ```bash
-  /trinity-aj
-  ```
-
-#### Deployment Team
-
-- **TAN (Structure Specialist)** - Directory architecture and organization
-
-  ```bash
-  /trinity-tan
-  ```
-
-- **ZEN (Knowledge Specialist)** - Documentation and knowledge base
-
-  ```bash
-  /trinity-zen
-  ```
-
-- **INO (Context Specialist)** - Codebase analysis and context building
-
-  ```bash
-  /trinity-ino
-  ```
-
-- **Ein (CI/CD Specialist)** - Continuous integration and deployment automation
-  ```bash
-  /trinity-ein
-  ```
-
-#### Audit Team
-
-- **JUNO (Auditor)** - Quality assurance and comprehensive auditing
-  ```bash
-  /trinity-juno
-  ```
-
-### Documentation
-
-All project knowledge is maintained in `trinity/knowledge-base/`:
-
-- **ARCHITECTURE.md** - System design and technical decisions
-- **ISSUES.md** - Known problems and their status
-- **To-do.md** - Task tracking and priorities
-- **Technical-Debt.md** - Debt management and refactoring plans
-- **Trinity.md** - Trinity Method guidelines and protocols
-
-### Session Management
-
-Trinity Method uses investigation-first approach:
-
-1. **Assess** - Understand current state
-2. **Investigate** - Deep dive into root causes
-3. **Plan** - Create comprehensive strategy
-4. **Execute** - Implement with precision
-5. **Verify** - Confirm success criteria met
-
-Session archives are stored in `trinity/sessions/` for historical reference.
-
-### Project Info
-
-- **Framework:** Express
-- **Trinity Version:** 1.0.0
-- **Agent Configuration:** `.claude/`
-- **Knowledge Base:** `trinity/knowledge-base/`
-
-### Getting Started
-
-1. Review the [Employee Directory](.claude/EMPLOYEE-DIRECTORY.md) for agent details
-2. Check [Trinity.md](trinity/knowledge-base/Trinity.md) for methodology guidelines
-3. Open Claude Code and invoke agents as needed
-4. Agents automatically access project context and documentation
-
----
+**Node.js:** 18+
+**TypeScript:** 5.9.2
+**Last Updated:** 2026-01-09
