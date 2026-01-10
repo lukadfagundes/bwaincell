@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 import { Model, Optional, Sequelize, Op, fn, col } from 'sequelize';
 import schemas from '../schema';
 

@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 import { Model, Optional, Sequelize, Op } from 'sequelize';
 import { DateTime } from 'luxon';
 import schemas from '../schema';
