@@ -98,10 +98,8 @@ WORKDIR /app
 RUN addgroup --system --gid 1001 botuser && \
     adduser --system --uid 1001 botuser
 
-# Copy production dependencies from deps stage (includes workspace node_modules)
+# Copy production dependencies from deps stage (npm workspaces installs all deps at root)
 COPY --from=deps /app/node_modules ./node_modules
-COPY --from=deps /app/backend/node_modules ./backend/node_modules
-COPY --from=deps /app/shared/node_modules ./shared/node_modules
 
 # Copy compiled backend from builder
 COPY --from=builder --chown=botuser:botuser /app/backend/dist ./backend/dist
