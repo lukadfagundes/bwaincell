@@ -23,9 +23,9 @@ COPY package.json package-lock.json* ./
 COPY backend/package.json ./backend/
 COPY shared/package.json ./shared/
 
-# Install production dependencies only (ignore scripts to skip husky)
+# Install production dependencies only (disable husky during install)
 # This installs for all workspaces
-RUN npm ci --omit=dev --ignore-scripts && npm cache clean --force
+RUN HUSKY=0 npm ci --omit=dev --ignore-scripts && npm cache clean --force
 
 # -----------------------------------------------------------------------------
 # Stage 2: Builder
@@ -45,7 +45,7 @@ COPY shared/package.json ./shared/
 
 # Install ALL dependencies (including devDependencies for TypeScript compilation)
 # Skip prepare script (husky) during Docker build
-RUN npm ci --ignore-scripts
+RUN HUSKY=0 npm ci --ignore-scripts
 
 # Copy workspace TypeScript configuration
 COPY tsconfig.json ./
