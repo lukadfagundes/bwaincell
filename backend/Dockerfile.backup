@@ -1,10 +1,8 @@
 # =============================================================================
-# Bwaincell Backend - Multi-Stage Docker Build (Monorepo)
-# Build Context: Repository root (.)
+# Bwaincell Discord Bot - Multi-Stage Docker Build
 # =============================================================================
 # This Dockerfile builds the Discord bot + Express API for deployment on Raspberry Pi 4B
 # PostgreSQL database in separate container (see docker-compose.yml)
-# Frontend (PWA) deployed separately on Vercel
 # =============================================================================
 
 # -----------------------------------------------------------------------------
@@ -18,13 +16,10 @@ RUN apk add --no-cache libc6-compat postgresql-client && \
 
 WORKDIR /app
 
-# Copy workspace package files (root + backend + shared)
+# Copy package files
 COPY package.json package-lock.json* ./
-COPY backend/package.json ./backend/
-COPY shared/package.json ./shared/
 
 # Install production dependencies only (ignore scripts to skip husky)
-# This installs for all workspaces
 RUN npm ci --omit=dev --ignore-scripts && npm cache clean --force
 
 # -----------------------------------------------------------------------------
@@ -38,50 +33,36 @@ RUN apk add --no-cache python3 make g++ postgresql-dev && \
 
 WORKDIR /app
 
-# Copy workspace package files
+# Copy package files
 COPY package.json package-lock.json* ./
-COPY backend/package.json ./backend/
-COPY shared/package.json ./shared/
 
 # Install ALL dependencies (including devDependencies for TypeScript compilation)
 # Skip prepare script (husky) during Docker build
 RUN npm ci --ignore-scripts
 
-# Copy workspace TypeScript configuration
-COPY tsconfig.json ./
-
-# Copy shared source code (backend depends on this)
+# Copy source files for build
+COPY src/ ./src/
+COPY commands/ ./commands/
+COPY database/ ./database/
 COPY shared/ ./shared/
-
-# Copy backend source files for build
-COPY backend/src/ ./backend/src/
-COPY backend/commands/ ./backend/commands/
-COPY backend/database/ ./backend/database/
-COPY backend/utils/ ./backend/utils/
-COPY backend/config/ ./backend/config/
-COPY backend/types/ ./backend/types/
-COPY backend/tsconfig.json ./backend/
-
-# Note: backend also has local shared/, utils/, types/ directories
-# These are separate from the monorepo shared/ package
-COPY backend/shared/ ./backend/shared/
+COPY utils/ ./utils/
+COPY config/ ./config/
+COPY types/ ./types/
+COPY tsconfig.json ./
 
 # Set build environment
 ARG NODE_ENV=production
 ENV NODE_ENV=${NODE_ENV}
 
 # Clean any pre-existing compiled code to force fresh compilation
-RUN rm -rf backend/dist/ shared/dist/ *.tsbuildinfo
+RUN rm -rf dist/ *.tsbuildinfo
 
-# Build shared package first (backend depends on this for types)
-RUN npm run build --workspace=shared
-
-# Compile backend TypeScript
-RUN npm run build --workspace=backend
+# Compile TypeScript
+RUN npm run build
 
 # Validate compiled code exists
-RUN test -f backend/dist/src/bot.js || \
-    (echo "ERROR: Compiled bot.js not found in backend/dist/src/" && exit 1)
+RUN test -f dist/src/bot.js || \
+    (echo "ERROR: Compiled bot.js not found in dist/src/" && exit 1)
 
 # -----------------------------------------------------------------------------
 # Stage 3: Runner
@@ -98,27 +79,18 @@ WORKDIR /app
 RUN addgroup --system --gid 1001 botuser && \
     adduser --system --uid 1001 botuser
 
-# Copy production dependencies from deps stage (includes workspace node_modules)
+# Copy production dependencies from deps stage
 COPY --from=deps /app/node_modules ./node_modules
-COPY --from=deps /app/backend/node_modules ./backend/node_modules
-COPY --from=deps /app/shared/node_modules ./shared/node_modules
 
-# Copy compiled backend from builder
-COPY --from=builder --chown=botuser:botuser /app/backend/dist ./backend/dist
+# Copy compiled bot from builder
+COPY --from=builder --chown=botuser:botuser /app/dist ./dist
 
-# Copy backend package.json for runtime
-COPY --chown=botuser:botuser backend/package.json ./backend/
-
-# Copy compiled shared types (if backend imports them at runtime)
-COPY --from=builder --chown=botuser:botuser /app/shared/dist ./shared/dist
-COPY --chown=botuser:botuser shared/package.json ./shared/
+# Copy package.json for runtime (module-alias needs it)
+COPY --chown=botuser:botuser package.json ./
 
 # Create data and logs directories with proper permissions
 RUN mkdir -p /app/data /app/logs && \
     chown -R botuser:botuser /app
-
-# Set working directory to backend for execution
-WORKDIR /app/backend
 
 # Switch to non-root user
 USER botuser

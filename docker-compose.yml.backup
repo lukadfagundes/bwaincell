@@ -1,9 +1,7 @@
 # =============================================================================
-# Bwaincell - Production Docker Compose (Monorepo)
+# Bwaincell - Production Docker Compose
 # =============================================================================
-# Architecture:
-#   - Backend (Discord Bot + Express API) + PostgreSQL → Raspberry Pi (sunny-pi)
-#   - Frontend (Next.js PWA) → Vercel (separate deployment)
+# Architecture: PostgreSQL + Discord Bot + Express API on Raspberry Pi
 # =============================================================================
 
 services:
@@ -73,18 +71,14 @@ services:
       com.bwaincell.service: "postgres"
       com.bwaincell.environment: "production"
       com.bwaincell.platform: "raspberry-pi"
-
   # ---------------------------------------------------------------------------
-  # Backend Service - Discord.js 14 + Express API + PostgreSQL (Monorepo)
+  # Bwaincell Bot Service - Discord.js 14 + Express API + PostgreSQL
   # ---------------------------------------------------------------------------
-  backend:
-    # Build from monorepo root context
-    build:
-      context: .
-      dockerfile: backend/Dockerfile
+  bwaincell:
+    # Use locally built image
+    image: bwaincell-bot:latest
 
-    image: bwaincell-backend:latest
-    container_name: bwaincell-backend
+    container_name: bwaincell-bot
 
     # Restart policy for high availability
     restart: unless-stopped
@@ -111,9 +105,9 @@ services:
     ports:
       - "3000:3000"  # Express API + health endpoint
 
-    # Persistent storage for logs
+    # Persistent storage for SQLite database and logs
     volumes:
-      - ./data:/app/data  # Data persistence (if needed)
+      - ./data:/app/data  # SQLite database persistence
       - ./logs:/app/logs  # Log files persistence
 
     # Resource limits optimized for Raspberry Pi 4B (4GB RAM model)
@@ -175,32 +169,26 @@ networks:
       com.bwaincell.description: "Production network for Pi services"
 
 # =============================================================================
-# Usage Instructions (Monorepo)
+# Usage Instructions
 # =============================================================================
 #
 # Architecture:
-#   - Backend (Discord Bot + Express API) + PostgreSQL → Raspberry Pi (sunny-pi)
-#   - Frontend (Next.js PWA) → Vercel (separate deployment, not in Docker)
+#   - PostgreSQL + Discord Bot + Express API on Raspberry Pi
 #   - PostgreSQL runs in separate container (port 5433 externally)
-#   - Backend connects to PostgreSQL via Docker network
+#   - Bot connects to PostgreSQL via Docker network
 #   - Logs stored in ./logs volume
 #
 # Prerequisites:
 #   1. Create .env with production credentials (see .env.example)
 #   2. Ensure BOT_TOKEN, CLIENT_ID, GUILD_ID, DATABASE_URL, POSTGRES_PASSWORD are set
-#   3. Monorepo structure: backend/, frontend/, shared/, package.json at root
-#
-# Build Backend Image:
-#   docker compose build backend
-#   # OR for fresh build:
-#   docker compose build --no-cache backend
+#   3. Build bot image: docker build -t bwaincell:latest -f Dockerfile .
 #
 # Start Services:
 #   docker compose up -d
 #
 # View Logs:
 #   docker compose logs -f
-#   docker compose logs -f backend
+#   docker compose logs -f bwaincell
 #   docker compose logs -f postgres
 #
 # Check Health:
@@ -210,24 +198,19 @@ networks:
 # Stop Services:
 #   docker compose down
 #
-# Update Backend:
+# Update Bot:
 #   docker compose down
-#   docker compose build --no-cache backend
+#   docker rmi -f bwaincell:latest
+#   docker build --no-cache -t bwaincell:latest -f Dockerfile .
 #   docker compose up -d
 #
 # View Resource Usage:
-#   docker stats bwaincell-backend bwaincell-db
+#   docker stats bwaincell-bot bwaincell-db
 #
 # Database Backup:
 #   docker compose exec postgres pg_dump -U bwaincell bwaincell > backup.sql
 #
 # Database Restore:
 #   cat backup.sql | docker compose exec -T postgres psql -U bwaincell bwaincell
-#
-# Frontend Deployment (Vercel):
-#   The frontend/ directory is deployed separately to Vercel
-#   See frontend/README.md for Vercel deployment instructions
-#   Frontend will connect to backend API at http://localhost:3000 (dev)
-#   or your production backend URL (prod)
 #
 # =============================================================================
