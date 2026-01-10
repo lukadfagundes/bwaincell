@@ -1,0 +1,73 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  --background: 0 0% 100%;
+  --foreground: 222.2 84% 4.9%;
+  --card: 0 0% 100%;
+  --card-foreground: 222.2 84% 4.9%;
+  --popover: 0 0% 100%;
+  --popover-foreground: 222.2 84% 4.9%;
+  --primary: 222.2 47.4% 11.2%;
+  --primary-foreground: 210 40% 98%;
+  --secondary: 210 40% 96.1%;
+  --secondary-foreground: 222.2 47.4% 11.2%;
+  --muted: 210 40% 96.1%;
+  --muted-foreground: 215.4 16.3% 46.9%;
+  --accent: 210 40% 96.1%;
+  --accent-foreground: 222.2 47.4% 11.2%;
+  --destructive: 0 84.2% 60.2%;
+  --destructive-foreground: 210 40% 98%;
+  --border: 214.3 31.8% 91.4%;
+  --input: 214.3 31.8% 91.4%;
+  --ring: 222.2 84% 4.9%;
+  --radius: 0.5rem;
+}
+
+/* Your Name Meteor Scene - Deep twilight blues, purples, warm accents */
+.dark {
+  --background: 237 35% 8%;        /* Deep midnight blue */
+  --foreground: 210 40% 95%;       /* Soft white for text */
+  --card: 237 30% 12%;             /* Slightly lighter midnight */
+  --card-foreground: 210 40% 95%;
+  --popover: 237 30% 12%;
+  --popover-foreground: 210 40% 95%;
+  --primary: 262 70% 65%;          /* Meteor purple/violet */
+  --primary-foreground: 210 40% 98%;
+  --secondary: 237 25% 18%;        /* Dark blue-grey */
+  --secondary-foreground: 210 40% 95%;
+  --muted: 237 25% 18%;
+  --muted-foreground: 215 20.2% 65.1%;
+  --accent: 262 70% 65%;           /* Accent purple like meteor trail */
+  --accent-foreground: 210 40% 98%;
+  --destructive: 0 72% 55%;        /* Warm red-orange like twilight */
+  --destructive-foreground: 210 40% 98%;
+  --border: 237 25% 20%;           /* Subtle borders */
+  --input: 237 25% 18%;
+  --ring: 262 70% 65%;             /* Purple focus ring */
+}
+
+/* Smooth transitions for dark mode */
+* {
+  transition: background-color 0.3s ease, border-color 0.3s ease, color 0.3s ease;
+}
+
+/* Safe area insets for notched devices (iPhone X+, Android notches) */
+@supports (padding-top: env(safe-area-inset-top)) {
+  .safe-top {
+    padding-top: max(1rem, env(safe-area-inset-top));
+  }
+
+  .safe-bottom {
+    padding-bottom: max(1rem, env(safe-area-inset-bottom));
+  }
+
+  .safe-left {
+    padding-left: max(1rem, env(safe-area-inset-left));
+  }
+
+  .safe-right {
+    padding-right: max(1rem, env(safe-area-inset-right));
+  }
+}
