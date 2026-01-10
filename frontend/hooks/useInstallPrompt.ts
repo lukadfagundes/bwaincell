@@ -14,16 +14,22 @@ export function useInstallPrompt() {
   const [isInstallable, setIsInstallable] = useState(false);
 
   useEffect(() => {
-    const handler = (e: BeforeInstallPromptEvent) => {
+    const handler = (e: Event) => {
       e.preventDefault();
-      setInstallPrompt(e as BeforeInstallPromptEvent);
+      setInstallPrompt(e as unknown as BeforeInstallPromptEvent);
       setIsInstallable(true);
     };
 
-    globalThis.window?.addEventListener("beforeinstallprompt", handler);
+    globalThis.window?.addEventListener(
+      "beforeinstallprompt",
+      handler as EventListener,
+    );
 
     return () =>
-      globalThis.window?.removeEventListener("beforeinstallprompt", handler);
+      globalThis.window?.removeEventListener(
+        "beforeinstallprompt",
+        handler as EventListener,
+      );
   }, []);
 
   const promptInstall = async () => {
