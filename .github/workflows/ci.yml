@@ -219,6 +219,7 @@ jobs:
           file: backend/Dockerfile
           platforms: linux/arm64
           push: false
+          load: true
           tags: bwaincell-backend:test
           cache-from: type=gha
           cache-to: type=gha,mode=max
