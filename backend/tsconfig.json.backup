@@ -5,7 +5,6 @@
     "lib": ["ES2022"],
     "outDir": "./dist",
     "rootDir": "./",
-    "composite": true,
     "strict": false,
     "esModuleInterop": true,
     "skipLibCheck": false,
@@ -25,7 +24,6 @@
     "types": ["node", "jest"],
     "baseUrl": ".",
     "paths": {
-      "@bwaincell/shared": ["../shared/src"],
       "@shared/*": ["shared/*"],
       "@commands/*": ["src/commands/*"],
       "@handlers/*": ["src/handlers/*"],
@@ -51,6 +49,5 @@
     "**/*.test.ts",
     "tests/**/*",
     "*.js"
-  ],
-  "references": [{ "path": "../shared" }]
+  ]
 }
