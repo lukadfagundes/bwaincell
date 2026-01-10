@@ -74,7 +74,7 @@ class Schedule
     guildId: string,
     filter: ScheduleFilter = 'upcoming'
   ): Promise<Schedule[]> {
-    const where: any = { guild_id: guildId };
+    const where: Record<string, unknown> = { guild_id: guildId };
     const now = new Date();
     const today = now.toISOString().split('T')[0];
 

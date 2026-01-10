@@ -123,7 +123,7 @@ class Note extends NoteBase<NoteAttributes, NoteCreationAttributes> implements N
       where: { guild_id: guildId },
     });
 
-    return notes.filter((note: any) => {
+    return notes.filter((note: InstanceType<typeof Note>) => {
       const tags = note.tags || [];
       return tags.some((t: string) => t.toLowerCase() === tag.toLowerCase());
     });
@@ -136,7 +136,7 @@ class Note extends NoteBase<NoteAttributes, NoteCreationAttributes> implements N
     });
 
     const allTags = new Set<string>();
-    notes.forEach((note: any) => {
+    notes.forEach((note: InstanceType<typeof Note>) => {
       if (note.tags && Array.isArray(note.tags)) {
         note.tags.forEach((tag: string) => allTags.add(tag));
       }

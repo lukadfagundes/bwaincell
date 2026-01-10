@@ -12,7 +12,7 @@ import {
   FetchMessagesOptions,
 } from 'discord.js';
 import { logger } from '../shared/utils/logger';
-import List from '../database/models/List';
+import List, { ListItem } from '../database/models/List';
 
 export default {
   data: new SlashCommandBuilder()
@@ -135,7 +135,7 @@ export default {
     try {
       if (focused.name === 'list_name') {
         const lists = await List.getUserLists(guildId);
-        const choices = lists.map((list: any) => list.name).slice(0, 25);
+        const choices = lists.map((list: InstanceType<typeof List>) => list.name).slice(0, 25);
 
         const filtered = choices.filter((choice: string) =>
           choice.toLowerCase().includes(focused.value.toLowerCase())
@@ -149,7 +149,7 @@ export default {
         if (listName) {
           const list = await List.getList(guildId, listName);
           if (list && list.items) {
-            const items = list.items.map((item: any) => item.text).slice(0, 25);
+            const items = list.items.map((item: ListItem) => item.text).slice(0, 25);
             const filtered = items.filter((item: string) =>
               item.toLowerCase().includes(focused.value.toLowerCase())
             );
@@ -267,7 +267,7 @@ export default {
             embed.setDescription('This list is empty.');
           } else {
             const itemsList = list.items
-              .map((item: any, index: number) => {
+              .map((item: ListItem, index: number) => {
                 const status = item.completed ? '✅' : '⬜';
                 return `${status} ${index + 1}. ${item.text}`;
               })
@@ -275,7 +275,7 @@ export default {
 
             embed.setDescription(itemsList);
 
-            const completed = list.items.filter((item: any) => item.completed).length;
+            const completed = list.items.filter((item: ListItem) => item.completed).length;
             embed.setFooter({ text: `${completed}/${list.items.length} completed` });
           }
 
@@ -291,14 +291,14 @@ export default {
               .setStyle(ButtonStyle.Success)
               .setEmoji('✅')
               .setDisabled(
-                list.items.length === 0 || list.items.every((item: any) => item.completed)
+                list.items.length === 0 || list.items.every((item: ListItem) => item.completed)
               ),
             new ButtonBuilder()
               .setCustomId(`list_clear_completed_${listName}`)
               .setLabel('Clear Completed')
               .setStyle(ButtonStyle.Secondary)
               .setEmoji('🧹')
-              .setDisabled(!list.items || !list.items.some((item: any) => item.completed))
+              .setDisabled(!list.items || !list.items.some((item: ListItem) => item.completed))
           );
 
           await interaction.editReply({ embeds: [embed], components: [row] });
@@ -376,10 +376,10 @@ export default {
           const embed = new EmbedBuilder().setTitle('Your Lists').setColor(0x0099ff).setTimestamp();
 
           const listInfo = lists
-            .map((list: any) => {
+            .map((list: InstanceType<typeof List>) => {
               const itemCount = list.items ? list.items.length : 0;
               const completedCount = list.items
-                ? list.items.filter((item: any) => item.completed).length
+                ? list.items.filter((item: ListItem) => item.completed).length
                 : 0;
               return `📋 **${list.name}** - ${itemCount} items (${completedCount} completed)`;
             })
@@ -422,7 +422,7 @@ export default {
           }
 
           const toggledItem = list.items.find(
-            (i: any) => i.text.toLowerCase() === item.toLowerCase()
+            (i: ListItem) => i.text.toLowerCase() === item.toLowerCase()
           );
           if (!toggledItem) {
             await interaction.editReply({
@@ -556,7 +556,7 @@ export default {
           if (updatedList && updatedList.items && updatedList.items.length > 0) {
             const previewItems = updatedList.items.slice(0, 10);
             const itemList = previewItems
-              .map((item: any, idx: number) => {
+              .map((item: ListItem, idx: number) => {
                 const preview = item.text.substring(0, 50);
                 return `${idx + 1}. ${preview}${item.text.length > 50 ? '...' : ''}`;
               })

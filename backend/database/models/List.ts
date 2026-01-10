@@ -2,7 +2,7 @@ import { Model, Optional, Sequelize } from 'sequelize';
 import schemas from '../schema';
 
 // Define interface for list items
-interface ListItem {
+export interface ListItem {
   text: string;
   completed: boolean;
   added_at: Date;
@@ -49,7 +49,11 @@ class List extends ListBase<ListAttributes, ListCreationAttributes> implements L
       where: { guild_id: guildId },
     });
 
-    return lists.find((l: any) => l.name.toLowerCase() === listName.toLowerCase()) || null;
+    return (
+      lists.find(
+        (l: InstanceType<typeof List>) => l.name.toLowerCase() === listName.toLowerCase()
+      ) || null
+    );
   }
 
   static async createList(guildId: string, name: string, userId?: string): Promise<List | null> {
@@ -95,7 +99,7 @@ class List extends ListBase<ListAttributes, ListCreationAttributes> implements L
 
     const items = list.items || [];
     const index = items.findIndex(
-      (item: any) => item.text.toLowerCase() === itemText.toLowerCase()
+      (item: ListItem) => item.text.toLowerCase() === itemText.toLowerCase()
     );
 
     if (index === -1) return null;
@@ -123,7 +127,7 @@ class List extends ListBase<ListAttributes, ListCreationAttributes> implements L
     if (!list) return null;
 
     const items = list.items || [];
-    list.items = items.filter((item: any) => !item.completed);
+    list.items = items.filter((item: ListItem) => !item.completed);
     list.changed('items', true); // Mark items as changed for Sequelize
     await list.save();
 
@@ -152,7 +156,7 @@ class List extends ListBase<ListAttributes, ListCreationAttributes> implements L
     if (!list) return null;
 
     const items = list.items || [];
-    const item = items.find((item: any) => item.text.toLowerCase() === itemText.toLowerCase());
+    const item = items.find((item: ListItem) => item.text.toLowerCase() === itemText.toLowerCase());
 
     if (!item) return null;
 

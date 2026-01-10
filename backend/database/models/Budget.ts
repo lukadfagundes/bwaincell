@@ -107,7 +107,7 @@ class Budget extends BudgetBase<BudgetAttributes, BudgetCreationAttributes> {
 
   // NOTE: Filters by guild_id only for shared household access (WO-015)
   static async getSummary(guildId: string, month: number | null = null): Promise<BudgetSummary> {
-    const where: any = { guild_id: guildId };
+    const where: Record<string, unknown> = { guild_id: guildId };
 
     if (month) {
       const year = new Date().getFullYear();
@@ -170,10 +170,10 @@ class Budget extends BudgetBase<BudgetAttributes, BudgetCreationAttributes> {
       ],
       group: ['category'],
       raw: true,
-    })) as any[];
+    })) as Array<{ category: string; total: string; count: number }>;
 
     return result
-      .map((r: any) => ({
+      .map((r) => ({
         category: r.category,
         total: parseFloat(r.total).toFixed(2),
         count: r.count,

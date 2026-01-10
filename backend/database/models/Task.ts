@@ -58,7 +58,7 @@ class Task extends TaskBase<TaskAttributes, TaskCreationAttributes> implements T
     guildId: string,
     filter: 'all' | 'pending' | 'completed' = 'all'
   ): Promise<Task[]> {
-    const where: any = { guild_id: guildId };
+    const where: Record<string, unknown> = { guild_id: guildId };
 
     if (filter === 'pending') {
       where.completed = false;
