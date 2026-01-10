@@ -1,0 +1,16 @@
+./assets
+./commands
+./config
+./coverage
+./data
+./database
+./dist
+./docs
+./logs
+./scripts
+./shared
+./src
+./temp
+./tests
+./types
+./utils
