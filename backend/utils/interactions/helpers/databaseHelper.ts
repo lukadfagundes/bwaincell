@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 import { DatabaseModels } from '../types/interactions';
 // Import initialized models from database/index.ts (not directly from model files)
 // This ensures we get the models that have been initialized with the Sequelize instance

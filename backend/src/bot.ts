@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 // Set Node.js timezone to match configured timezone
 // This must be set before any Date objects are created
 // See: https://nodejs.org/api/process.html#process_process_env

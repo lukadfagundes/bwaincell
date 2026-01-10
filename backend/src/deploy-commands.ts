@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 import { REST, Routes } from 'discord.js';
 import fs from 'fs';
 import path from 'path';

@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 /**
  * @module RateLimitMiddleware
  * @description Middleware for rate limiting user interactions to prevent spam

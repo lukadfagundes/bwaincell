@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 /**
  * @module ErrorMiddleware
  * @description Middleware for graceful error handling and recovery

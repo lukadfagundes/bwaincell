@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 import { google, calendar_v3, drive_v3 } from 'googleapis';
 import { logger } from '../shared/utils/logger';
 

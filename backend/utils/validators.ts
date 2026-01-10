@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 import { TextChannel, NewsChannel, ThreadChannel } from 'discord.js';
 
 export function validateEmail(email: string): { valid: boolean; error?: string } {

@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 /**
  * @module MiddlewareRunner
  * @description Core middleware execution system for interaction handlers

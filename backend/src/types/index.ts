@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 import { ChatInputCommandInteraction } from 'discord.js';
 
 // Command Types

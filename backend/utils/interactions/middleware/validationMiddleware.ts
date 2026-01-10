@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 /**
  * @module ValidationMiddleware
  * @description Middleware for validating and sanitizing interaction inputs

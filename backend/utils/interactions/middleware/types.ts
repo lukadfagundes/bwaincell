@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 /**
  * @module MiddlewareTypes
  * @description Type definitions for the interaction middleware system

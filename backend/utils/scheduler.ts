@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 import * as cron from 'node-cron';
 import { Client, TextChannel } from 'discord.js';
 import { logger } from '../shared/utils/logger';

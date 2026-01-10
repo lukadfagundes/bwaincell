@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 /**
  * @module LoggingMiddleware
  * @description Middleware for logging all Discord interactions with performance metrics

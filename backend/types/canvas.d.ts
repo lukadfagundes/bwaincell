@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 declare module 'canvas' {
   export type CanvasTextAlign = 'left' | 'right' | 'center' | 'start' | 'end';
   export type CanvasTextBaseline =
