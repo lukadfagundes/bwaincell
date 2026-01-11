@@ -26,14 +26,19 @@ async function proxyToBackend(
   console.log(`[API-PROXY] ${method} ${url}`);
 
   try {
-    const response = await fetch(url, {
+    const fetchOptions: RequestInit = {
       method,
       headers: {
         "Content-Type": "application/json",
         Authorization: `Bearer ${session.googleAccessToken}`,
       },
-      ...(body && { body: JSON.stringify(body) }),
-    });
+    };
+
+    if (body) {
+      fetchOptions.body = JSON.stringify(body);
+    }
+
+    const response = await fetch(url, fetchOptions);
 
     const data = await response.json();
 
