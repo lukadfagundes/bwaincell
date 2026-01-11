@@ -83,7 +83,9 @@ jobs:
             echo "📥 Pulling latest code from GitHub..."
             git fetch origin main
             git reset --hard origin/main
-            git clean -fd
+
+            # Clean untracked files (skip permission errors)
+            git clean -fd || echo "⚠️  Some files could not be cleaned (non-critical)"
 
             # Verify .env exists
             if [ ! -f .env ]; then
