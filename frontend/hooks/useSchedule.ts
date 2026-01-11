@@ -20,7 +20,7 @@ export function useSchedule() {
   const eventsQuery = useQuery({
     queryKey: ["events"],
     queryFn: async () => {
-      const response = await api.get<Event[]>("/api/schedule");
+      const response = await api.get<Event[]>("/schedule");
       return response.data || [];
     },
     refetchInterval: 15000, // Poll every 15 seconds
@@ -31,7 +31,7 @@ export function useSchedule() {
       title: string;
       description: string;
       datetime: string;
-    }) => api.post("/api/schedule", newEvent),
+    }) => api.post("/schedule", newEvent),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["events"] });
       toast({
@@ -50,7 +50,7 @@ export function useSchedule() {
 
   const updateEventMutation = useMutation({
     mutationFn: ({ id, data }: { id: number; data: Partial<Event> }) =>
-      api.patch(`/api/schedule/${id}`, data),
+      api.patch(`/schedule/${id}`, data),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["events"] });
       toast({
@@ -68,7 +68,7 @@ export function useSchedule() {
   });
 
   const deleteEventMutation = useMutation({
-    mutationFn: (id: number) => api.delete(`/api/schedule/${id}`),
+    mutationFn: (id: number) => api.delete(`/schedule/${id}`),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["events"] });
       toast({

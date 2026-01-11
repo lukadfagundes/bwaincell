@@ -24,14 +24,14 @@ export function useLists() {
   const listsQuery = useQuery({
     queryKey: ["lists"],
     queryFn: async () => {
-      const response = await api.get<List[]>("/api/lists");
+      const response = await api.get<List[]>("/lists");
       return response.data || [];
     },
     refetchInterval: 15000, // Poll every 15 seconds
   });
 
   const createListMutation = useMutation({
-    mutationFn: (newList: { name: string }) => api.post("/api/lists", newList),
+    mutationFn: (newList: { name: string }) => api.post("/lists", newList),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["lists"] });
       toast({
@@ -50,7 +50,7 @@ export function useLists() {
 
   const addItemMutation = useMutation({
     mutationFn: ({ listName, item }: { listName: string; item: string }) =>
-      api.post(`/api/lists/${encodeURIComponent(listName)}/items`, { item }),
+      api.post(`/lists/${encodeURIComponent(listName)}/items`, { item }),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["lists"] });
       toast({
@@ -76,7 +76,7 @@ export function useLists() {
       itemText: string;
     }) =>
       api.delete(
-        `/api/lists/${encodeURIComponent(listName)}/items/${encodeURIComponent(itemText)}`,
+        `/lists/${encodeURIComponent(listName)}/items/${encodeURIComponent(itemText)}`,
       ),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["lists"] });
@@ -103,7 +103,7 @@ export function useLists() {
       itemText: string;
     }) =>
       api.patch(
-        `/api/lists/${encodeURIComponent(listName)}/items/${encodeURIComponent(itemText)}/toggle`,
+        `/lists/${encodeURIComponent(listName)}/items/${encodeURIComponent(itemText)}/toggle`,
         {},
       ),
     onSuccess: () => {
@@ -120,10 +120,7 @@ export function useLists() {
 
   const clearCompletedMutation = useMutation({
     mutationFn: (listName: string) =>
-      api.post(
-        `/api/lists/${encodeURIComponent(listName)}/clear-completed`,
-        {},
-      ),
+      api.post(`/lists/${encodeURIComponent(listName)}/clear-completed`, {}),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["lists"] });
       toast({
@@ -142,7 +139,7 @@ export function useLists() {
 
   const deleteListMutation = useMutation({
     mutationFn: (listName: string) =>
-      api.delete(`/api/lists/${encodeURIComponent(listName)}`),
+      api.delete(`/lists/${encodeURIComponent(listName)}`),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["lists"] });
       toast({

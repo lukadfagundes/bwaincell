@@ -20,7 +20,7 @@ export function useTasks() {
   const tasksQuery = useQuery({
     queryKey: ["tasks"],
     queryFn: async () => {
-      const response = await api.get<Task[]>("/api/tasks");
+      const response = await api.get<Task[]>("/tasks");
       return response.data || [];
     },
     refetchInterval: 15000, // Poll every 15 seconds
@@ -28,7 +28,7 @@ export function useTasks() {
 
   const createTaskMutation = useMutation({
     mutationFn: (newTask: { description: string; dueDate?: string }) =>
-      api.post("/api/tasks", newTask),
+      api.post("/tasks", newTask),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["tasks"] });
       toast({
@@ -47,7 +47,7 @@ export function useTasks() {
 
   const updateTaskMutation = useMutation({
     mutationFn: ({ id, data }: { id: number; data: Partial<Task> }) =>
-      api.patch(`/api/tasks/${id}`, data),
+      api.patch(`/tasks/${id}`, data),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["tasks"] });
       toast({
@@ -65,7 +65,7 @@ export function useTasks() {
   });
 
   const deleteTaskMutation = useMutation({
-    mutationFn: (id: number) => api.delete(`/api/tasks/${id}`),
+    mutationFn: (id: number) => api.delete(`/tasks/${id}`),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["tasks"] });
       toast({

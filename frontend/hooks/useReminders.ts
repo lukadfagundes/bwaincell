@@ -22,7 +22,7 @@ export function useReminders() {
   const remindersQuery = useQuery({
     queryKey: ["reminders"],
     queryFn: async () => {
-      const response = await api.get<Reminder[]>("/api/reminders");
+      const response = await api.get<Reminder[]>("/reminders");
       return response.data || [];
     },
     refetchInterval: 15000, // Poll every 15 seconds
@@ -34,7 +34,7 @@ export function useReminders() {
       frequency: "once" | "daily" | "weekly";
       time: string;
       day_of_week?: number;
-    }) => api.post("/api/reminders", newReminder),
+    }) => api.post("/reminders", newReminder),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["reminders"] });
       toast({
@@ -52,7 +52,7 @@ export function useReminders() {
   });
 
   const deleteReminderMutation = useMutation({
-    mutationFn: (id: number) => api.delete(`/api/reminders/${id}`),
+    mutationFn: (id: number) => api.delete(`/reminders/${id}`),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["reminders"] });
       toast({

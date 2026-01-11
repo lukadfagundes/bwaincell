@@ -21,8 +21,8 @@ export function useNotes(searchQuery?: string) {
     queryKey: ["notes", searchQuery],
     queryFn: async () => {
       const endpoint = searchQuery
-        ? `/api/notes?search=${encodeURIComponent(searchQuery)}`
-        : "/api/notes";
+        ? `/notes?search=${encodeURIComponent(searchQuery)}`
+        : "/notes";
       const response = await api.get<Note[]>(endpoint);
       return response.data || [];
     },
@@ -35,7 +35,7 @@ export function useNotes(searchQuery?: string) {
       title: string;
       content: string;
       tags?: string[];
-    }) => api.post("/api/notes", newNote),
+    }) => api.post("/notes", newNote),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["notes"] });
       toast({
@@ -54,7 +54,7 @@ export function useNotes(searchQuery?: string) {
 
   const updateNoteMutation = useMutation({
     mutationFn: ({ id, data }: { id: number; data: Partial<Note> }) =>
-      api.patch(`/api/notes/${id}`, data),
+      api.patch(`/notes/${id}`, data),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["notes"] });
       toast({
@@ -72,7 +72,7 @@ export function useNotes(searchQuery?: string) {
   });
 
   const deleteNoteMutation = useMutation({
-    mutationFn: (id: number) => api.delete(`/api/notes/${id}`),
+    mutationFn: (id: number) => api.delete(`/notes/${id}`),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["notes"] });
       toast({

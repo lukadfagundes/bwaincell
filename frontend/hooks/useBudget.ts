@@ -22,7 +22,7 @@ export function useBudget() {
   const transactionsQuery = useQuery({
     queryKey: ["transactions"],
     queryFn: async () => {
-      const response = await api.get<Transaction[]>("/api/budget/transactions");
+      const response = await api.get<Transaction[]>("/budget/transactions");
       return response.data || [];
     },
     refetchInterval: 15000, // Poll every 15 seconds
@@ -35,7 +35,7 @@ export function useBudget() {
       category: string;
       description: string;
       date: string;
-    }) => api.post("/api/budget/transactions", newTransaction),
+    }) => api.post("/budget/transactions", newTransaction),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["transactions"] });
       toast({
@@ -54,7 +54,7 @@ export function useBudget() {
 
   const updateTransactionMutation = useMutation({
     mutationFn: ({ id, data }: { id: number; data: Partial<Transaction> }) =>
-      api.patch(`/api/budget/transactions/${id}`, data),
+      api.patch(`/budget/transactions/${id}`, data),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["transactions"] });
       toast({
@@ -72,7 +72,7 @@ export function useBudget() {
   });
 
   const deleteTransactionMutation = useMutation({
-    mutationFn: (id: number) => api.delete(`/api/budget/transactions/${id}`),
+    mutationFn: (id: number) => api.delete(`/budget/transactions/${id}`),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["transactions"] });
       toast({
