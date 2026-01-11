@@ -96,9 +96,12 @@ jobs:
             echo "✅ Repository updated to latest commit"
             echo "Commit: $(git log -1 --oneline)"
 
-            # Stop existing container
-            echo "🛑 Stopping existing container..."
-            docker compose down || true
+            # Stop existing containers
+            echo "🛑 Stopping existing containers..."
+            docker compose down --remove-orphans || true
+
+            # Force remove any lingering containers
+            docker rm -f bwaincell-bot bwaincell-backend bwaincell-db 2>/dev/null || true
 
             # Clean up old images
             echo "🧹 Cleaning up old images..."
