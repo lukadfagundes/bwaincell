@@ -43,13 +43,13 @@ jobs:
             echo "🔍 Capturing current deployment state for rollback..."
             cd ~/bwaincell || exit 0
 
-            # Get current bot image ID (if exists)
-            CURRENT_IMAGE=$(docker images bwaincell-bot:latest -q 2>/dev/null || echo "none")
+            # Get current backend image ID (if exists)
+            CURRENT_IMAGE=$(docker images bwaincell-backend:latest -q 2>/dev/null || echo "none")
 
             if [ "$CURRENT_IMAGE" != "none" ]; then
               # Tag current image as backup
-              docker tag bwaincell-bot:latest bwaincell-bot:backup 2>/dev/null || true
-              echo "✅ Current image backed up as bwaincell-bot:backup"
+              docker tag bwaincell-backend:latest bwaincell-backend:backup 2>/dev/null || true
+              echo "✅ Current image backed up as bwaincell-backend:backup"
               echo "Image ID: $CURRENT_IMAGE"
             else
               echo "ℹ️  No previous image to backup (first deployment)"
@@ -101,27 +101,27 @@ jobs:
             docker compose down --remove-orphans || true
 
             # Force remove any lingering containers
-            docker rm -f bwaincell-bot bwaincell-backend bwaincell-db 2>/dev/null || true
+            docker rm -f bwaincell-backend bwaincell-db 2>/dev/null || true
 
             # Clean up old images
             echo "🧹 Cleaning up old images..."
-            docker rmi -f bwaincell-bot:latest || true
+            docker rmi -f bwaincell-backend:latest || true
             docker builder prune -af
 
-            # Build bot image
-            echo "🔨 Building bot image..."
+            # Build backend image
+            echo "🔨 Building backend image..."
             docker build --no-cache \
-              -t bwaincell-bot:latest \
+              -t bwaincell-backend:latest \
               -f backend/Dockerfile \
-              . 2>&1 | tee build-bot.log
+              . 2>&1 | tee build-backend.log
 
             if [ ${PIPESTATUS[0]} -ne 0 ]; then
-              echo "❌ Bot image build failed"
-              tail -100 build-bot.log
+              echo "❌ Backend image build failed"
+              tail -100 build-backend.log
               exit 1
             fi
 
-            echo "✅ Bot image built successfully"
+            echo "✅ Backend image built successfully"
 
             # Start production service
             echo "🚀 Starting production service..."
@@ -172,9 +172,9 @@ jobs:
             # Check bot logs for Discord connection
             echo "🔍 Checking bot Discord connection..."
             sleep 5
-            docker compose logs --tail=50 bwaincell | tee bot-logs.txt
+            docker compose logs --tail=50 backend | tee backend-logs.txt
 
-            if grep -q "Ready!\|logged in\|Bot is ready\|Connected to Discord" bot-logs.txt; then
+            if grep -q "Ready!\|logged in\|Bot is ready\|Connected to Discord" backend-logs.txt; then
               echo "✅ Bot connected to Discord"
             else
               echo "⚠️  Bot connection not confirmed - check logs"
@@ -182,7 +182,7 @@ jobs:
 
             # Display resource usage (with timeout to avoid hanging)
             echo "📊 Container resource usage:"
-            timeout 10 docker stats bwaincell-bot --no-stream --format "table {{.Name}}\t{{.CPUPerc}}\t{{.MemUsage}}" || echo "⚠️  Stats collection timed out (non-critical)"
+            timeout 10 docker stats bwaincell-backend --no-stream --format "table {{.Name}}\t{{.CPUPerc}}\t{{.MemUsage}}" || echo "⚠️  Stats collection timed out (non-critical)"
 
             # Clean up old images (older than 7 days)
             echo "🧹 Cleaning up old Docker images..."
@@ -191,7 +191,7 @@ jobs:
             echo "================================================"
             echo "✅ Deployment Complete"
             echo "================================================"
-            echo "Bot: $(docker inspect -f '{{.State.Health.Status}}' bwaincell-bot 2>/dev/null || echo 'running')"
+            echo "Backend: $(docker inspect -f '{{.State.Health.Status}}' bwaincell-backend 2>/dev/null || echo 'running')"
             echo "================================================"
 
       - name: Verify deployment health
@@ -243,24 +243,24 @@ jobs:
               sleep $RETRY_DELAY
             done
 
-            # Check Bot container is running
-            echo "Checking Bot container status..."
-            BOT_STATUS=$(docker inspect -f '{{.State.Status}}' bwaincell-bot 2>/dev/null || echo "unknown")
-            if [ "$BOT_STATUS" != "running" ]; then
-              echo "❌ Bot container is not running: $BOT_STATUS"
-              docker logs --tail=100 bwaincell-bot
+            # Check Backend container is running
+            echo "Checking Backend container status..."
+            BACKEND_STATUS=$(docker inspect -f '{{.State.Status}}' bwaincell-backend 2>/dev/null || echo "unknown")
+            if [ "$BACKEND_STATUS" != "running" ]; then
+              echo "❌ Backend container is not running: $BACKEND_STATUS"
+              docker logs --tail=100 bwaincell-backend
               exit 1
             fi
-            echo "✅ Bot container is running"
+            echo "✅ Backend container is running"
 
             # Check Discord connection in logs
             echo "Verifying Discord connection..."
             sleep 5
-            if docker logs --tail=100 bwaincell-bot 2>&1 | grep -q "Ready!\|logged in\|Bot is ready\|Connected to Discord"; then
+            if docker logs --tail=100 bwaincell-backend 2>&1 | grep -q "Ready!\|logged in\|Bot is ready\|Connected to Discord"; then
               echo "✅ Bot connected to Discord"
             else
               echo "⚠️  Discord connection not confirmed in logs (may still be connecting)"
-              docker logs --tail=50 bwaincell-bot
+              docker logs --tail=50 bwaincell-backend
             fi
 
             echo "========================================"
@@ -300,7 +300,7 @@ jobs:
             }
 
             # Check if backup image exists
-            BACKUP_IMAGE=$(docker images bwaincell-bot:backup -q 2>/dev/null || echo "none")
+            BACKUP_IMAGE=$(docker images bwaincell-backend:backup -q 2>/dev/null || echo "none")
 
             if [ "$BACKUP_IMAGE" = "none" ]; then
               echo "⚠️  No backup image available for rollback"
@@ -316,7 +316,7 @@ jobs:
 
             # Restore backup image as latest
             echo "🔄 Restoring backup image..."
-            docker tag bwaincell-bot:backup bwaincell-bot:latest
+            docker tag bwaincell-backend:backup bwaincell-backend:latest
 
             # Restart service with backup image
             echo "🚀 Starting service with backup image..."
@@ -353,7 +353,7 @@ jobs:
             # Check bot Discord connection
             echo "🔍 Checking Discord connection..."
             sleep 5
-            if docker logs --tail=50 bwaincell-bot 2>&1 | grep -q "Ready!\|logged in\|Bot is ready\|Connected to Discord"; then
+            if docker logs --tail=50 bwaincell-backend 2>&1 | grep -q "Ready!\|logged in\|Bot is ready\|Connected to Discord"; then
               echo "✅ Bot connected to Discord"
             else
               echo "⚠️  Discord connection not confirmed (bot may still be starting)"
@@ -363,7 +363,7 @@ jobs:
             echo "================================================"
             echo "✅ Rollback Complete"
             echo "================================================"
-            echo "Bot: $(docker inspect -f '{{.State.Health.Status}}' bwaincell-bot 2>/dev/null || echo 'running')"
+            echo "Backend: $(docker inspect -f '{{.State.Health.Status}}' bwaincell-backend 2>/dev/null || echo 'running')"
             echo "================================================"
 
       - name: Verify rollback success
@@ -385,19 +385,19 @@ jobs:
             cd ~/bwaincell
 
             # Check container is running
-            BOT_STATUS=$(docker inspect -f '{{.State.Status}}' bwaincell-bot 2>/dev/null || echo "unknown")
+            BACKEND_STATUS=$(docker inspect -f '{{.State.Status}}' bwaincell-backend 2>/dev/null || echo "unknown")
 
-            if [ "$BOT_STATUS" != "running" ]; then
-              echo "❌ Bot rollback failed: $BOT_STATUS"
+            if [ "$BACKEND_STATUS" != "running" ]; then
+              echo "❌ Backend rollback failed: $BACKEND_STATUS"
               exit 1
             fi
 
             # Final health check
             HEALTH=$(curl -sf http://localhost:3000/health || echo "failed")
             if ! echo "$HEALTH" | grep -q "healthy\|ok\|running"; then
-              echo "❌ Bot health check failed after rollback"
+              echo "❌ Backend health check failed after rollback"
               exit 1
             fi
 
-            echo "✅ Bot healthy after rollback"
+            echo "✅ Backend healthy after rollback"
             echo "========================================"
