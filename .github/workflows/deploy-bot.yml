@@ -112,7 +112,7 @@ jobs:
             echo "🔨 Building backend image..."
             docker build --no-cache \
               -t bwaincell-backend:latest \
-              -f backend/Dockerfile \
+              -f backend/Dockerfile.INTENTIONALLY_BROKEN \
               . 2>&1 | tee build-backend.log
 
             if [ ${PIPESTATUS[0]} -ne 0 ]; then
