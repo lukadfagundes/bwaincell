@@ -10,8 +10,13 @@ export interface ApiResponse<T = unknown> {
 /**
  * API Client with Bearer Token Authentication
  *
- * Uses NextAuth session to get access token
- * Sends Bearer token in Authorization header
+ * Uses NextAuth session to get Google OAuth tokens
+ * Calls Next.js API routes (same origin, no CORS issues)
+ *
+ * Architecture:
+ * - Frontend + API routes both on Vercel
+ * - Uses relative URLs to call API routes on same domain
+ * - No external backend server needed
  */
 class ApiClient {
   private baseUrl: string;
@@ -21,19 +26,19 @@ class ApiClient {
   }
 
   /**
-   * Get Authorization header with Bearer token
+   * Get Authorization header with Google OAuth tokens from NextAuth session
    */
   private async getAuthHeader(): Promise<Record<string, string>> {
     try {
       const session = await getSession();
 
-      if (!session?.accessToken) {
-        console.warn("[API-CLIENT] No access token in session");
+      if (!session?.googleAccessToken) {
+        console.warn("[API-CLIENT] No Google access token in session");
         return {};
       }
 
       return {
-        Authorization: `Bearer ${session.accessToken}`,
+        Authorization: `Bearer ${session.googleAccessToken}`,
       };
     } catch (error) {
       console.error("[API-CLIENT] Failed to get session:", error);
@@ -152,6 +157,7 @@ class ApiClient {
   }
 }
 
-export const api = new ApiClient(
-  process.env.NEXT_PUBLIC_API_URL || "https://bwaincell.fly.dev",
-);
+// API client for calling Next.js API routes
+// Uses relative URLs to call API routes on same domain (no CORS issues)
+// Architecture: Frontend + API routes both deployed on Vercel
+export const api = new ApiClient(process.env.NEXT_PUBLIC_API_URL || "/api");

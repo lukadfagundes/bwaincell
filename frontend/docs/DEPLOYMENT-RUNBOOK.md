@@ -19,7 +19,7 @@ This document provides step-by-step instructions for deploying and managing the 
 
 - GitHub repository access
 - Vercel account with deployment permissions
-- Backend API must be running at `https://bwaincell.fly.dev`
+- Google OAuth 2.0 credentials configured
 
 ### Required Tools
 
@@ -32,9 +32,15 @@ This document provides step-by-step instructions for deploying and managing the 
 Ensure these environment variables are set in Vercel:
 
 ```bash
-NEXT_PUBLIC_API_URL=https://bwaincell.fly.dev
+NEXTAUTH_URL=https://bwaincell.sunny-stack.com
+NEXTAUTH_SECRET=(your NextAuth secret)
+GOOGLE_CLIENT_ID=(your Google OAuth client ID)
+GOOGLE_CLIENT_SECRET=(your Google OAuth secret)
+NEXT_PUBLIC_GOOGLE_CLIENT_ID=(same as GOOGLE_CLIENT_ID)
 NODE_ENV=production
 ```
+
+Note: `NEXT_PUBLIC_API_URL` is NOT needed - the frontend uses Next.js API routes (relative `/api` URLs)
 
 ---
 
@@ -90,8 +96,20 @@ NODE_ENV=production
 4. **Set environment variables:**
 
    ```bash
-   vercel env add NEXT_PUBLIC_API_URL production
-   # Enter: https://bwaincell.fly.dev
+   vercel env add NEXTAUTH_URL production
+   # Enter: https://bwaincell.sunny-stack.com
+
+   vercel env add NEXTAUTH_SECRET production
+   # Enter: (your NextAuth secret)
+
+   vercel env add GOOGLE_CLIENT_ID production
+   # Enter: (your Google OAuth client ID)
+
+   vercel env add GOOGLE_CLIENT_SECRET production
+   # Enter: (your Google OAuth secret)
+
+   vercel env add NEXT_PUBLIC_GOOGLE_CLIENT_ID production
+   # Enter: (same as GOOGLE_CLIENT_ID)
    ```
 
 5. **Verify deployment:**
