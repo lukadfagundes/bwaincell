@@ -149,7 +149,17 @@ async function migrateTable(tableName: string): Promise<MigrationStats> {
       const placeholders = Object.keys(row)
         .map((_, i) => `$${i + 1}`)
         .join(', ');
-      const values = Object.values(row);
+
+      // Stringify JSON/JSONB columns for proper binding
+      const values = Object.values(row).map((value) => {
+        if (typeof value === 'object' && value !== null && !Array.isArray(value) && !(value instanceof Date)) {
+          return JSON.stringify(value);
+        }
+        if (Array.isArray(value)) {
+          return JSON.stringify(value);
+        }
+        return value;
+      });
 
       const insertSql = `
         INSERT INTO ${tableName} (${columns})
