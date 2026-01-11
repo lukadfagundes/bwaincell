@@ -190,7 +190,10 @@ jobs:
 
       - name: Build frontend
         env:
+          DATABASE_URL: postgresql://test_user:test_password@localhost:5432/bwaincell_test
           NEXT_PUBLIC_API_URL: http://localhost:3000
+          NEXTAUTH_SECRET: test_secret_for_ci_build_only
+          NEXTAUTH_URL: http://localhost:3000
         run: npm run build --workspace=frontend
 
       - name: Run frontend tests
