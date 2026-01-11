@@ -64,7 +64,9 @@ export async function PATCH(
     }
 
     // Parse existing items
-    const items: ListItem[] = Array.isArray(list.items) ? list.items : [];
+    const items: ListItem[] = Array.isArray(list.items)
+      ? (list.items as unknown as ListItem[])
+      : [];
 
     // Find and toggle the item (case-insensitive match)
     let itemFound = false;
@@ -89,7 +91,7 @@ export async function PATCH(
     // Update list with toggled items array
     const updatedList = await prisma.list.update({
       where: { id: list.id },
-      data: { items: updatedItems },
+      data: { items: updatedItems as any },
     });
 
     return NextResponse.json({

@@ -64,7 +64,9 @@ export async function DELETE(
     }
 
     // Parse existing items
-    const items: ListItem[] = Array.isArray(list.items) ? list.items : [];
+    const items: ListItem[] = Array.isArray(list.items)
+      ? (list.items as unknown as ListItem[])
+      : [];
 
     // Remove the item (case-insensitive match)
     const updatedItems = items.filter(
@@ -81,7 +83,7 @@ export async function DELETE(
     // Update list with filtered items array
     const updatedList = await prisma.list.update({
       where: { id: list.id },
-      data: { items: updatedItems },
+      data: { items: updatedItems as any },
     });
 
     return NextResponse.json({

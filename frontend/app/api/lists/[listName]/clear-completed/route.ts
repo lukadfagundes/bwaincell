@@ -63,7 +63,9 @@ export async function POST(
     }
 
     // Parse existing items
-    const items: ListItem[] = Array.isArray(list.items) ? list.items : [];
+    const items: ListItem[] = Array.isArray(list.items)
+      ? (list.items as unknown as ListItem[])
+      : [];
 
     // Filter out completed items
     const updatedItems = items.filter((item) => !item.completed);
@@ -73,7 +75,7 @@ export async function POST(
     // Update list with filtered items array
     const updatedList = await prisma.list.update({
       where: { id: list.id },
-      data: { items: updatedItems },
+      data: { items: updatedItems as any },
     });
 
     return NextResponse.json({
