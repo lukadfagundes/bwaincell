@@ -1,14 +1,14 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
-import { authOptions } from "../auth/[...nextauth]/route";
+import { authOptions } from "../../auth/[...nextauth]/route";
 import { prisma } from "@/lib/db/prisma";
 
 export const dynamic = "force-dynamic";
 export const runtime = "nodejs";
 
 /**
- * GET /api/tasks
- * Returns all tasks for the authenticated user's guild
+ * GET /api/budget/transactions
+ * Retrieve all budget transactions for the authenticated user's guild
  */
 export async function GET(request: NextRequest) {
   try {
@@ -33,21 +33,21 @@ export async function GET(request: NextRequest) {
       );
     }
 
-    const tasks = await prisma.task.findMany({
+    const transactions = await prisma.budget.findMany({
       where: { guildId: user.guildId },
-      orderBy: { createdAt: "desc" },
+      orderBy: { date: "desc" },
     });
 
     return NextResponse.json({
       success: true,
-      data: tasks,
+      data: transactions,
     });
   } catch (error) {
-    console.error("[API] GET /api/tasks error:", error);
+    console.error("[API] Error fetching budget transactions:", error);
     return NextResponse.json(
       {
         success: false,
-        error: "Failed to fetch tasks",
+        error: "Failed to fetch transactions",
         message: error instanceof Error ? error.message : "Unknown error",
       },
       { status: 500 },
@@ -56,8 +56,8 @@ export async function GET(request: NextRequest) {
 }
 
 /**
- * POST /api/tasks
- * Creates a new task
+ * POST /api/budget/transactions
+ * Create a new budget transaction
  */
 export async function POST(request: NextRequest) {
   try {
@@ -83,43 +83,56 @@ export async function POST(request: NextRequest) {
     }
 
     const body = await request.json();
-    const { description, dueDate } = body;
+    const { amount, type, category, description, date } = body;
 
-    if (
-      !description ||
-      typeof description !== "string" ||
-      description.trim().length === 0
-    ) {
+    // Validate required fields
+    if (!amount || typeof amount !== "number") {
       return NextResponse.json(
-        { success: false, error: "Description is required" },
+        { success: false, error: "Amount is required and must be a number" },
         { status: 400 },
       );
     }
 
-    const task = await prisma.task.create({
+    if (!type || (type !== "income" && type !== "expense")) {
+      return NextResponse.json(
+        { success: false, error: "Type must be 'income' or 'expense'" },
+        { status: 400 },
+      );
+    }
+
+    if (!category || typeof category !== "string") {
+      return NextResponse.json(
+        { success: false, error: "Category is required" },
+        { status: 400 },
+      );
+    }
+
+    const transaction = await prisma.budget.create({
       data: {
-        description: description.trim(),
-        dueDate: dueDate ? new Date(dueDate) : null,
+        amount,
+        type,
+        category,
+        description: description || null,
+        date: date ? new Date(date) : new Date(),
         userId: user.discordId,
         guildId: user.guildId,
-        completed: false,
       },
     });
 
     return NextResponse.json(
       {
         success: true,
-        data: task,
-        message: "Task created successfully",
+        data: transaction,
+        message: "Transaction created successfully",
       },
       { status: 201 },
     );
   } catch (error) {
-    console.error("[API] POST /api/tasks error:", error);
+    console.error("[API] Error creating budget transaction:", error);
     return NextResponse.json(
       {
         success: false,
-        error: "Failed to create task",
+        error: "Failed to create transaction",
         message: error instanceof Error ? error.message : "Unknown error",
       },
       { status: 500 },
