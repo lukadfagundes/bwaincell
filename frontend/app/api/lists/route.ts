@@ -2,77 +2,87 @@ import { NextRequest, NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
 
 /**
- * GET /api/lists
- * Returns all lists for the authenticated user
- *
- * TODO: Implement backend integration
- * This is a stub that returns empty data until backend integration is complete
+ * Proxy requests to the backend API
+ * Adds Google OAuth Bearer token from NextAuth session
  */
-export async function GET(request: NextRequest) {
+async function proxyToBackend(
+  request: NextRequest,
+  method: string,
+  endpoint: string,
+  body?: unknown,
+) {
+  const session = await getServerSession();
+
+  if (!session?.googleAccessToken) {
+    return NextResponse.json(
+      { success: false, error: "No authentication token" },
+      { status: 401 },
+    );
+  }
+
+  const backendUrl = process.env.BACKEND_API_URL || "http://localhost:3000";
+  const url = `${backendUrl}${endpoint}`;
+
+  console.log(`[API-PROXY] ${method} ${url}`);
+
   try {
-    // Check authentication
-    const session = await getServerSession();
-
-    if (!session?.user?.email) {
-      return NextResponse.json(
-        { success: false, error: "Unauthorized" },
-        { status: 401 },
-      );
-    }
-
-    // TODO: Call Discord bot backend API or database
-    // For now, return empty array
-    return NextResponse.json({
-      success: true,
-      data: [],
+    const response = await fetch(url, {
+      method,
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${session.googleAccessToken}`,
+      },
+      ...(body && { body: JSON.stringify(body) }),
     });
+
+    const data = await response.json();
+
+    return NextResponse.json(data, { status: response.status });
   } catch (error) {
-    console.error("[API] GET /api/lists error:", error);
+    console.error(`[API-PROXY] ${method} ${url} error:`, error);
     return NextResponse.json(
       {
         success: false,
-        error: "Internal server error",
+        error: "Backend API unavailable",
+        message:
+          error instanceof Error ? error.message : "Unknown error occurred",
       },
-      { status: 500 },
+      { status: 503 },
     );
   }
 }
 
 /**
- * POST /api/lists
- * Creates a new list
- *
- * TODO: Implement backend integration
+ * GET /api/lists
+ * Proxies to backend API: GET /api/lists
  */
-export async function POST(request: NextRequest) {
-  try {
-    // Check authentication
-    const session = await getServerSession();
+export async function GET(request: NextRequest) {
+  const session = await getServerSession();
 
-    if (!session?.user?.email) {
-      return NextResponse.json(
-        { success: false, error: "Unauthorized" },
-        { status: 401 },
-      );
-    }
-
-    const body = await request.json();
-
-    // TODO: Call Discord bot backend API or database to create list
-    console.log("[API] POST /api/lists - creating list:", body);
-
-    return NextResponse.json({
-      success: true,
-      message: "List creation not yet implemented",
-    });
-  } catch (error) {
-    console.error("[API] POST /api/lists error:", error);
+  if (!session?.user?.email) {
     return NextResponse.json(
-      {
-        success: false,
-        error: "Internal server error",
-      },
-      { status: 500 },
+      { success: false, error: "Unauthorized" },
+      { status: 401 },
     );
   }
+
+  return proxyToBackend(request, "GET", "/api/lists");
+}
+
+/**
+ * POST /api/lists
+ * Proxies to backend API: POST /api/lists
+ */
+export async function POST(request: NextRequest) {
+  const session = await getServerSession();
+
+  if (!session?.user?.email) {
+    return NextResponse.json(
+      { success: false, error: "Unauthorized" },
+      { status: 401 },
+    );
+  }
+
+  const body = await request.json();
+  return proxyToBackend(request, "POST", "/api/lists", body);
 }
