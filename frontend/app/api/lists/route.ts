@@ -1,93 +1,133 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
-
-/**
- * Proxy requests to the backend API
- * Adds Google OAuth Bearer token from NextAuth session
- */
-async function proxyToBackend(
-  request: NextRequest,
-  method: string,
-  endpoint: string,
-  body?: unknown,
-) {
-  const session = await getServerSession();
-
-  if (!session?.googleAccessToken) {
-    return NextResponse.json(
-      { success: false, error: "No authentication token" },
-      { status: 401 },
-    );
-  }
-
-  const backendUrl = process.env.BACKEND_API_URL || "http://localhost:3000";
-  const url = `${backendUrl}${endpoint}`;
-
-  console.log(`[API-PROXY] ${method} ${url}`);
-
-  try {
-    const fetchOptions: RequestInit = {
-      method,
-      headers: {
-        "Content-Type": "application/json",
-        Authorization: `Bearer ${session.googleAccessToken}`,
-      },
-    };
-
-    if (body) {
-      fetchOptions.body = JSON.stringify(body);
-    }
-
-    const response = await fetch(url, fetchOptions);
-
-    const data = await response.json();
-
-    return NextResponse.json(data, { status: response.status });
-  } catch (error) {
-    console.error(`[API-PROXY] ${method} ${url} error:`, error);
-    return NextResponse.json(
-      {
-        success: false,
-        error: "Backend API unavailable",
-        message:
-          error instanceof Error ? error.message : "Unknown error occurred",
-      },
-      { status: 503 },
-    );
-  }
-}
+import { authOptions } from "../auth/[...nextauth]/route";
+import { prisma } from "@/lib/db/prisma";
 
 /**
  * GET /api/lists
- * Proxies to backend API: GET /api/lists
+ * Retrieve all lists for the authenticated user's guild
  */
 export async function GET(request: NextRequest) {
-  const session = await getServerSession();
+  try {
+    const session = await getServerSession(authOptions);
 
-  if (!session?.user?.email) {
+    if (!session?.user?.email) {
+      return NextResponse.json(
+        { success: false, error: "Unauthorized" },
+        { status: 401 },
+      );
+    }
+
+    // Get user from database to access guildId
+    const user = await prisma.user.findUnique({
+      where: { email: session.user.email },
+      select: { guildId: true },
+    });
+
+    if (!user) {
+      return NextResponse.json(
+        { success: false, error: "User not found" },
+        { status: 404 },
+      );
+    }
+
+    // Fetch all lists for this guild
+    const lists = await prisma.list.findMany({
+      where: { guildId: user.guildId },
+      orderBy: { createdAt: "desc" },
+    });
+
+    return NextResponse.json({ success: true, data: lists });
+  } catch (error) {
+    console.error("[API] Error fetching lists:", error);
     return NextResponse.json(
-      { success: false, error: "Unauthorized" },
-      { status: 401 },
+      {
+        success: false,
+        error: "Failed to fetch lists",
+        message: error instanceof Error ? error.message : "Unknown error",
+      },
+      { status: 500 },
     );
   }
-
-  return proxyToBackend(request, "GET", "/api/lists");
 }
 
 /**
  * POST /api/lists
- * Proxies to backend API: POST /api/lists
+ * Create a new list
  */
 export async function POST(request: NextRequest) {
-  const session = await getServerSession();
+  try {
+    const session = await getServerSession(authOptions);
 
-  if (!session?.user?.email) {
+    if (!session?.user?.email) {
+      return NextResponse.json(
+        { success: false, error: "Unauthorized" },
+        { status: 401 },
+      );
+    }
+
+    // Get user from database to access guildId and discordId
+    const user = await prisma.user.findUnique({
+      where: { email: session.user.email },
+      select: { guildId: true, discordId: true },
+    });
+
+    if (!user) {
+      return NextResponse.json(
+        { success: false, error: "User not found" },
+        { status: 404 },
+      );
+    }
+
+    const body = await request.json();
+    const { name } = body;
+
+    // Validate required fields
+    if (!name || typeof name !== "string" || name.trim().length === 0) {
+      return NextResponse.json(
+        { success: false, error: "Name is required and cannot be empty" },
+        { status: 400 },
+      );
+    }
+
+    // Check if list with this name already exists (case-insensitive)
+    const existingList = await prisma.list.findFirst({
+      where: {
+        guildId: user.guildId,
+        name: {
+          equals: name.trim(),
+          mode: "insensitive",
+        },
+      },
+    });
+
+    if (existingList) {
+      return NextResponse.json(
+        { success: false, error: "A list with this name already exists" },
+        { status: 400 },
+      );
+    }
+
+    // Create new list
+    const list = await prisma.list.create({
+      data: {
+        name: name.trim(),
+        userId: user.discordId,
+        guildId: user.guildId,
+        items: [],
+      },
+    });
+
+    return NextResponse.json({ success: true, data: list }, { status: 201 });
+  } catch (error) {
+    console.error("[API] Error creating list:", error);
     return NextResponse.json(
-      { success: false, error: "Unauthorized" },
-      { status: 401 },
+      {
+        success: false,
+        error: "Failed to create list",
+        message: error instanceof Error ? error.message : "Unknown error",
+      },
+      { status: 500 },
     );
   }
-
-  const body = await request.json();
-  return proxyToBackend(request, "POST", "/api/lists", body);
 }
