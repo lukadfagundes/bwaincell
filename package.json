@@ -49,8 +49,8 @@
     "docker:logs": "docker compose logs -f",
     "docker:backend": "docker compose logs -f backend",
     "docker:frontend": "docker compose logs -f frontend",
-    "postinstall": "npm run build:shared --if-present",
-    "prepare": "husky || true"
+    "postinstall": "test \"$VERCEL\" = \"1\" && echo 'Skipping postinstall on Vercel' || npm run build:shared --if-present",
+    "prepare": "test \"$VERCEL\" = \"1\" && echo 'Skipping prepare on Vercel' || husky || true"
   },
   "keywords": [],
   "author": "",
