@@ -3,6 +3,10 @@ import { getServerSession } from "next-auth";
 import { authOptions } from "../auth/[...nextauth]/route";
 import { prisma } from "@/lib/db/prisma";
 
+// Force dynamic rendering (no static optimization)
+export const dynamic = "force-dynamic";
+export const runtime = "nodejs";
+
 /**
  * GET /api/lists
  * Retrieve all lists for the authenticated user's guild
@@ -26,7 +30,12 @@ export async function GET(request: NextRequest) {
 
     if (!user) {
       return NextResponse.json(
-        { success: false, error: "User not found" },
+        {
+          success: false,
+          error: "User not found in database",
+          message:
+            "Please authenticate via Discord bot first to create your user account",
+        },
         { status: 404 },
       );
     }
@@ -40,6 +49,14 @@ export async function GET(request: NextRequest) {
     return NextResponse.json({ success: true, data: lists });
   } catch (error) {
     console.error("[API] Error fetching lists:", error);
+
+    // Log more details about the error
+    if (error instanceof Error) {
+      console.error("[API] Error name:", error.name);
+      console.error("[API] Error message:", error.message);
+      console.error("[API] Error stack:", error.stack);
+    }
+
     return NextResponse.json(
       {
         success: false,
@@ -121,6 +138,14 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ success: true, data: list }, { status: 201 });
   } catch (error) {
     console.error("[API] Error creating list:", error);
+
+    // Log more details about the error
+    if (error instanceof Error) {
+      console.error("[API] Error name:", error.name);
+      console.error("[API] Error message:", error.message);
+      console.error("[API] Error stack:", error.stack);
+    }
+
     return NextResponse.json(
       {
         success: false,
