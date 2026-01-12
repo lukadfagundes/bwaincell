@@ -236,7 +236,7 @@ export default {
 
           if (note.updated_at !== note.created_at) {
             embed.addFields({
-              name: 'Last Updated',
+              name: '**Last Updated**',
               value: new Date(note.updated_at).toLocaleDateString(),
             });
           }

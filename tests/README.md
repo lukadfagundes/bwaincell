@@ -24,7 +24,7 @@ The `tests/` directory contains all testing infrastructure for the Bwaincell pro
 - **integration/** - Integration tests for API endpoints and multi-component workflows
 - **e2e/** - End-to-end tests for complete user journeys
 - **helpers/** - Test utilities, mocks, fixtures, factories
-- ****mocks**/** - Mock implementations for external dependencies
+- \***\*mocks**/\*\* - Mock implementations for external dependencies
 
 ---
 
@@ -549,6 +549,6 @@ See [Contributing Guidelines](../CONTRIBUTING.md) for general contribution proce
 **Testing Framework:** Jest 30.1.3 + ts-jest 29.4.4
 **Coverage Target:** 80%+ (Statements, Branches, Functions, Lines)
 **Current Coverage:** 35% backend, 45% frontend
-**Last Updated:** 2026-01-11
+**Last Updated** 2026-01-12
 
 ---

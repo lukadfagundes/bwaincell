@@ -1,7 +1,7 @@
 # Deployment Guide
 
 **Version:** 2.0.0
-**Last Updated:** 2026-01-11
+**Last Updated** 2026-01-12
 **Target Platform:** Raspberry Pi 4B (4GB RAM)
 **Deployment Method:** Docker Compose + GitHub Actions
 

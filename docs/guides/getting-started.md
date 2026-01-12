@@ -1,7 +1,7 @@
 # Getting Started with Bwaincell
 
 **Version:** 2.0.0
-**Last Updated:** 2026-01-11
+**Last Updated** 2026-01-12
 
 ## Overview
 

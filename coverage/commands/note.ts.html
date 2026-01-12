@@ -1140,7 +1140,7 @@ export default {
                     }
 &nbsp;
 <span class="cstat-no" title="statement not covered" >                    if (note.updated_at !== note.created_at) {</span>
-<span class="cstat-no" title="statement not covered" >                        embed.addFields({ name: 'Last Updated', value: new Date(note.updated_at).toLocaleDateString() });</span>
+<span class="cstat-no" title="statement not covered" >                        embed.addFields({ name: '**Last Updated**', value: new Date(note.updated_at).toLocaleDateString() });</span>
                     }
 &nbsp;
 <span class="cstat-no" title="statement not covered" >                    await interaction.editReply({ embeds: [embed] });</span>

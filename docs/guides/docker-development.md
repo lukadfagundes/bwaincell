@@ -1097,6 +1097,6 @@ docker compose up -d
 
 ---
 
-**Last updated:** 2026-01-11
+**Last Updated** 2026-01-12
 **Version:** 2.0.0
 **Maintained by:** Bwaincell Development Team

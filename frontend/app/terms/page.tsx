@@ -8,7 +8,7 @@ export default function TermsOfServicePage() {
           Terms of Service
         </h1>
         <p className="text-sm text-muted-foreground mb-8">
-          Last Updated: October 9, 2025
+          **Last Updated**: October 9, 2025
         </p>
 
         <div className="prose prose-sm dark:prose-invert max-w-none space-y-8">
@@ -396,7 +396,7 @@ export default function TermsOfServicePage() {
             </p>
             <ul className="list-disc pl-6 text-foreground space-y-2 mt-2">
               <li>Posting the updated Terms on this page</li>
-              <li>Updating the "Last Updated" date</li>
+              <li>Updating the "**Last Updated**" date</li>
               <li>Sending an email notification (for material changes)</li>
               <li>Displaying an in-app notification</li>
             </ul>

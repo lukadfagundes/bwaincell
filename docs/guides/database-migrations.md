@@ -1,6 +1,6 @@
 # Database Migrations Guide
 
-**Last Updated:** 2026-01-11
+**Last Updated** 2026-01-12
 **Target:** Contributors migrating from SQLite to PostgreSQL 15
 
 ---

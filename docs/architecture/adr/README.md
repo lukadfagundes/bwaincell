@@ -326,6 +326,6 @@ If you have questions about ADRs or need help writing one:
 
 ---
 
-**Last Updated:** 2026-01-11
+**Last Updated** 2026-01-12
 **Total ADRs:** 4
 **Next ADR Number:** 0005

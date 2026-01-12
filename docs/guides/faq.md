@@ -1,7 +1,7 @@
 # Frequently Asked Questions (FAQ)
 
 **Version:** 2.0.0
-**Last Updated:** 2026-01-11
+**Last Updated** 2026-01-12
 
 Complete FAQ covering installation, Discord bot, development, deployment, and troubleshooting for Bwaincell productivity platform.
 
@@ -834,7 +834,7 @@ Yes! Bwaincell can deploy to any platform supporting Node.js + PostgreSQL.
 **Vercel (Frontend):**
 
 1. Go to Vercel dashboard → Project → Settings → Environment Variables
-2. Add each variable (NEXT*PUBLIC*_, NEXTAUTH\__, etc.)
+2. Add each variable (NEXT*PUBLIC*\_, NEXTAUTH\_\_, etc.)
 3. Redeploy: `vercel deploy --prod`
 
 **Security:**
@@ -1295,6 +1295,6 @@ docker stop $(docker ps -q --filter "expose=3000")
 
 ---
 
-**Last Updated:** 2026-01-11
+**Last Updated** 2026-01-12
 **Version:** 2.0.0
 **Questions:** 60+ FAQs across 6 categories

@@ -1,7 +1,7 @@
 # Database Schema
 
 **Version:** 2.0.0
-**Last Updated:** 2026-01-11
+**Last Updated** 2026-01-12
 **Database:** PostgreSQL 15
 **ORM:** Sequelize 6.37.5
 
@@ -1120,5 +1120,5 @@ psql -U bwaincell -d bwaincell -f backup.sql
 
 ---
 
-**Last Updated:** 2026-01-11
+**Last Updated** 2026-01-12
 **Version:** 2.0.0

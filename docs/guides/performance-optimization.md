@@ -1421,6 +1421,6 @@ k6 run --env BASIC_AUTH=$(echo -n "user:pass" | base64) load-test.js
 
 ---
 
-**Last updated:** 2026-01-11
+**Last Updated** 2026-01-12
 **Version:** 2.0.0
 **Maintained by:** Bwaincell Development Team
