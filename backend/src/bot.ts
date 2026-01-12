@@ -135,11 +135,16 @@ async function setupScheduler() {
     client = createClient();
   }
 
-  const schedulerPath = path.join(__dirname, '..', 'utils', 'scheduler.js');
-  if (existsSync(schedulerPath)) {
-    const { startScheduler } = require(schedulerPath);
+  try {
+    // Try TypeScript first (dev mode), fallback to compiled JS (production)
+    const { startScheduler } = await import('../utils/scheduler');
     startScheduler(client);
-    logger.info('Scheduler initialized');
+    logger.info('Scheduler initialized successfully');
+  } catch (error) {
+    logger.error('Failed to initialize scheduler', {
+      error: error instanceof Error ? error.message : 'Unknown error',
+      stack: error instanceof Error ? error.stack : undefined,
+    });
   }
 }
 

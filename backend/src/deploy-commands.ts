@@ -16,13 +16,17 @@ const commands: any[] = [];
 const commandsPath = path.join(__dirname, '..', 'commands');
 
 if (!fs.existsSync(commandsPath)) {
-  logger.error('Commands directory not found. Run build first.');
+  logger.error('Commands directory not found.');
   process.exit(1);
 }
 
+// Support both TypeScript (dev) and JavaScript (production)
+const isDevelopment = !__dirname.includes('dist');
+const fileExtension = isDevelopment ? '.ts' : '.js';
+
 const commandFiles = fs
   .readdirSync(commandsPath)
-  .filter((file) => file.endsWith('.js') && !file.endsWith('.d.ts'));
+  .filter((file) => file.endsWith(fileExtension) && !file.endsWith('.d.ts'));
 
 for (const file of commandFiles) {
   const filePath = path.join(commandsPath, file);

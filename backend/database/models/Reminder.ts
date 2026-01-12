@@ -58,9 +58,10 @@ class Reminder
     time: string,
     frequency: ReminderFrequency = 'once',
     dayOfWeek: number | null = null,
-    userId?: string
+    userId?: string,
+    targetDate?: Date | null
   ): Promise<Reminder> {
-    const nextTrigger = this.calculateNextTrigger(time, frequency, dayOfWeek);
+    const nextTrigger = this.calculateNextTrigger(time, frequency, dayOfWeek, targetDate);
 
     return await (this as any).create({
       user_id: userId || 'system', // Keep for audit trail (WO-015)
@@ -84,12 +85,14 @@ class Reminder
    * @param time - Time string in 24-hour format (e.g., "17:00")
    * @param frequency - Reminder frequency: 'once', 'daily', or 'weekly'
    * @param dayOfWeek - Day of week for weekly reminders (0-6, Sun-Sat), null otherwise
+   * @param targetDate - Optional specific date for one-time reminders
    * @returns JavaScript Date object representing next trigger time
    */
   static calculateNextTrigger(
     time: string,
     frequency: ReminderFrequency,
-    dayOfWeek: number | null
+    dayOfWeek: number | null,
+    targetDate?: Date | null
   ): Date {
     const timezone = config.settings.timezone; // e.g., 'America/Los_Angeles'
 
@@ -100,16 +103,29 @@ class Reminder
     const [hours, minutes] = time.split(':').map(Number);
 
     // Create datetime in user's timezone
-    let nextTrigger = DateTime.now().setZone(timezone).set({
-      hour: hours,
-      minute: minutes,
-      second: 0,
-      millisecond: 0,
-    });
+    let nextTrigger: DateTime;
+
+    if (targetDate) {
+      // Use the specific target date provided
+      nextTrigger = DateTime.fromJSDate(targetDate).setZone(timezone).set({
+        hour: hours,
+        minute: minutes,
+        second: 0,
+        millisecond: 0,
+      });
+    } else {
+      // Use today's date
+      nextTrigger = DateTime.now().setZone(timezone).set({
+        hour: hours,
+        minute: minutes,
+        second: 0,
+        millisecond: 0,
+      });
+    }
 
     if (frequency === 'once') {
-      // If time has already passed today, schedule for tomorrow
-      if (nextTrigger <= now) {
+      // If no target date specified and time has already passed today, schedule for tomorrow
+      if (!targetDate && nextTrigger <= now) {
         nextTrigger = nextTrigger.plus({ days: 1 });
       }
     } else if (frequency === 'daily') {
@@ -124,8 +140,13 @@ class Reminder
 
       let daysUntilNext = (luxonWeekday - currentWeekday + 7) % 7;
 
-      if (daysUntilNext === 0 && nextTrigger <= now) {
-        daysUntilNext = 7;
+      // If it's the same day, check if the time has passed
+      if (daysUntilNext === 0) {
+        // If time hasn't passed yet today, keep it at 0 days (today)
+        // If time has passed, schedule for next week (7 days)
+        if (nextTrigger <= now) {
+          daysUntilNext = 7;
+        }
       }
 
       nextTrigger = nextTrigger.plus({ days: daysUntilNext });

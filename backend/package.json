@@ -17,6 +17,7 @@
     "dev": "dotenv -e ../.env -- ts-node-dev -r tsconfig-paths/register --respawn --transpile-only src/bot.ts",
     "start": "node dist/src/bot.js",
     "deploy": "dotenv -e ../.env -- node dist/src/deploy-commands.js",
+    "deploy:dev": "dotenv -e ../.env -- ts-node -r tsconfig-paths/register src/deploy-commands.ts",
     "generate-assets": "ts-node generate-assets.ts",
     "clean": "rm -rf dist",
     "rebuild": "npm run clean && npm run build",

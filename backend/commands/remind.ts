@@ -72,6 +72,12 @@ export default {
             .setDescription('Time (12-hour format, e.g., 2:30 PM)')
             .setRequired(true)
         )
+        .addStringOption((option) =>
+          option
+            .setName('date')
+            .setDescription('Date (YYYY-MM-DD, or "tomorrow"). Defaults to today/tomorrow.')
+            .setRequired(false)
+        )
     )
     .addSubcommand((subcommand) =>
       subcommand
@@ -160,6 +166,7 @@ export default {
         case 'me': {
           const message = interaction.options.getString('message', true);
           const timeInput = interaction.options.getString('time', true);
+          const dateInput = interaction.options.getString('date', false);
 
           const time = parseTimeToMilitaryFormat(timeInput);
           if (!time) {
@@ -169,6 +176,32 @@ export default {
             return;
           }
 
+          // Parse date if provided
+          let targetDate: Date | null = null;
+          if (dateInput) {
+            if (dateInput.toLowerCase() === 'tomorrow') {
+              targetDate = DateTime.now()
+                .setZone(config.settings.timezone)
+                .plus({ days: 1 })
+                .toJSDate();
+            } else {
+              // Try parsing YYYY-MM-DD format
+              const dateMatch = dateInput.match(/^(\d{4})-(\d{1,2})-(\d{1,2})$/);
+              if (dateMatch) {
+                const [, year, month, day] = dateMatch;
+                targetDate = DateTime.fromObject(
+                  { year: parseInt(year), month: parseInt(month), day: parseInt(day) },
+                  { zone: config.settings.timezone }
+                ).toJSDate();
+              } else {
+                await interaction.editReply({
+                  content: '❌ Invalid date format. Use YYYY-MM-DD or "tomorrow".',
+                });
+                return;
+              }
+            }
+          }
+
           const reminder = await Reminder.createReminder(
             guildId,
             channelId,
@@ -176,7 +209,8 @@ export default {
             time,
             'once',
             null,
-            userId
+            userId,
+            targetDate
           );
 
           // Add reminder to scheduler
@@ -551,6 +585,7 @@ export default {
         subcommand,
         error: errorMessage,
         stack: errorStack,
+        fullError: error, // Log the full error object for Sequelize details
         userId: interaction.user.id,
         guildId: interaction.guild?.id,
       });

@@ -19,8 +19,8 @@ CREATE EXTENSION IF NOT EXISTS "pg_trgm";
 -- -----------------------------------------------------------------------------
 -- Timezone Configuration
 -- -----------------------------------------------------------------------------
--- Set timezone for reminder functionality (America/Chicago = CST/CDT)
-SET timezone = 'America/Chicago';
+-- Set timezone for reminder functionality (America/Los_Angeles = PST/PDT)
+SET timezone = 'America/Los_Angeles';
 
 -- -----------------------------------------------------------------------------
 -- User Privileges

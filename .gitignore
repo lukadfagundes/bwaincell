@@ -38,6 +38,10 @@ frontend/.next/
 frontend/out/
 shared/dist/
 
+# PWA service worker files (auto-generated)
+frontend/public/sw.js
+frontend/public/workbox-*.js
+
 # Temporary files
 tmp/
 temp/

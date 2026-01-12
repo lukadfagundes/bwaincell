@@ -103,10 +103,17 @@ jobs:
             # Force remove any lingering containers
             docker rm -f bwaincell-backend bwaincell-db 2>/dev/null || true
 
-            # Clean up old images
-            echo "🧹 Cleaning up old images..."
+            # Clean up old images and free disk space
+            echo "🧹 Cleaning up old images and freeing disk space..."
             docker rmi -f bwaincell-backend:latest || true
+
+            # Remove dangling images and unused resources (keep backup for rollback)
+            docker image prune -af --filter "label!=com.bwaincell.service" || true
             docker builder prune -af
+
+            # Show disk space after cleanup
+            echo "💾 Disk space after cleanup:"
+            df -h / | grep -E "Filesystem|/dev/"
 
             # Build backend image
             echo "🔨 Building backend image..."
