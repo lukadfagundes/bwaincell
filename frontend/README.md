@@ -2,7 +2,7 @@
 
 A modern Progressive Web App (PWA) for managing your daily productivity. Built with Next.js 14, React 18, and TypeScript, featuring Google OAuth 2.0 authentication.
 
-**Live App:** [https://bwain-app.vercel.app](https://bwain-app.vercel.app)
+**Live App:** [https://bwaincell.sunny-stack.com](https://bwaincell.sunny-stack.com)
 
 _Same Fweak, Same Bwaincell_ ✨
 
@@ -78,8 +78,8 @@ Inspired by the anime film "Your Name" (Kimi no Na wa), the app features three t
 
 ```bash
 # Clone the repository
-git clone https://github.com/yourusername/bwaincell-pwa.git
-cd bwaincell-pwa
+git clone https://github.com/lukadfagundes/bwaincell.git
+cd bwaincell/frontend
 
 # Install dependencies
 npm install
@@ -102,7 +102,7 @@ NEXT_PUBLIC_API_URL=http://localhost:3000
 
 # NextAuth Configuration
 # Development: http://localhost:3001
-# Production: https://bwain-app.vercel.app
+# Production: https://bwaincell.sunny-stack.com
 NEXTAUTH_URL=http://localhost:3001
 NEXTAUTH_SECRET=generate_with_openssl_rand_base64_32
 
@@ -218,7 +218,7 @@ The app uses **Google OAuth 2.0** via NextAuth.js for secure authentication.
 
 ### iOS (Safari)
 
-1. Open [https://bwain-app.vercel.app](https://bwain-app.vercel.app) in Safari
+1. Open [https://bwaincell.sunny-stack.com](https://bwaincell.sunny-stack.com) in Safari
 2. Tap the **Share** button (square with arrow)
 3. Scroll down and tap **"Add to Home Screen"**
 4. Tap **"Add"**
@@ -227,7 +227,7 @@ The app uses **Google OAuth 2.0** via NextAuth.js for secure authentication.
 
 ### Android (Chrome)
 
-1. Open [https://bwain-app.vercel.app](https://bwain-app.vercel.app) in Chrome
+1. Open [https://bwaincell.sunny-stack.com](https://bwaincell.sunny-stack.com) in Chrome
 2. Tap the **Menu** button (three dots)
 3. Tap **"Install app"** or **"Add to Home screen"**
 4. Tap **"Install"**
@@ -235,7 +235,7 @@ The app uses **Google OAuth 2.0** via NextAuth.js for secure authentication.
 
 ### Desktop (Chrome/Edge)
 
-1. Open [https://bwain-app.vercel.app](https://bwain-app.vercel.app)
+1. Open [https://bwaincell.sunny-stack.com](https://bwaincell.sunny-stack.com)
 2. Click the **Install** button in the address bar
 3. Or go to Menu → "Install Bwain.app..."
 4. The app will open in its own window
@@ -313,7 +313,6 @@ The app uses **Google OAuth 2.0** via NextAuth.js for secure authentication.
 
 ## Performance
 
-- **Lighthouse Score:** 95+ (Performance, Accessibility, Best Practices, SEO)
 - **PWA Score:** 100/100
 - **First Contentful Paint:** < 1.5s
 - **Time to Interactive:** < 3.0s
@@ -406,9 +405,9 @@ MIT License - see [LICENSE](LICENSE) file for details.
 
 ---
 
-**Version:** 1.0.0
+**Version:** 2.0.0
 **Status:** Production Ready
-**Last Updated:** 2025-10-09
+**Last Updated:** 2026-01-11
 **Maintained by:** Bwain.app team
 
 ---
@@ -416,94 +415,3 @@ MIT License - see [LICENSE](LICENSE) file for details.
 **Built with love by the Bwaincell team**
 
 _Same Fweak, Same Bwaincell_ ✨
-
-## 🔱 Trinity Method
-
-This project uses the **Trinity Method** - an investigation-first development methodology powered by AI agents.
-
-### Quick Commands
-
-#### Leadership Team
-
-- **Aly (CTO)** - Strategic planning and work order creation
-
-  ```bash
-  /trinity-aly
-  ```
-
-- **AJ (Implementation Lead)** - Code execution and implementation
-  ```bash
-  /trinity-aj
-  ```
-
-#### Deployment Team
-
-- **TAN (Structure Specialist)** - Directory architecture and organization
-
-  ```bash
-  /trinity-tan
-  ```
-
-- **ZEN (Knowledge Specialist)** - Documentation and knowledge base
-
-  ```bash
-  /trinity-zen
-  ```
-
-- **INO (Context Specialist)** - Codebase analysis and context building
-
-  ```bash
-  /trinity-ino
-  ```
-
-- **Ein (CI/CD Specialist)** - Continuous integration and deployment automation
-  ```bash
-  /trinity-ein
-  ```
-
-#### Audit Team
-
-- **JUNO (Auditor)** - Quality assurance and comprehensive auditing
-  ```bash
-  /trinity-juno
-  ```
-
-### Documentation
-
-All project knowledge is maintained in `trinity/knowledge-base/`:
-
-- **ARCHITECTURE.md** - System design and technical decisions
-- **ISSUES.md** - Known problems and their status
-- **To-do.md** - Task tracking and priorities
-- **Technical-Debt.md** - Debt management and refactoring plans
-- **Trinity.md** - Trinity Method guidelines and protocols
-
-### Session Management
-
-Trinity Method uses investigation-first approach:
-
-1. **Assess** - Understand current state
-2. **Investigate** - Deep dive into root causes
-3. **Plan** - Create comprehensive strategy
-4. **Execute** - Implement with precision
-5. **Verify** - Confirm success criteria met
-
-Session archives are stored in `trinity/sessions/` for historical reference.
-
-### Project Info
-
-- **Framework:** React
-- **Trinity Version:** 1.0.0
-- **Agent Configuration:** `.claude/`
-- **Knowledge Base:** `trinity/knowledge-base/`
-
-### Getting Started
-
-1. Review the [Employee Directory](.claude/EMPLOYEE-DIRECTORY.md) for agent details
-2. Check [Trinity.md](trinity/knowledge-base/Trinity.md) for methodology guidelines
-3. Open Claude Code and invoke agents as needed
-4. Agents automatically access project context and documentation
-
----
-
-_Deployed with Trinity Method SDK v1.0.0_

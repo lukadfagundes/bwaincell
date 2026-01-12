@@ -1,291 +1,189 @@
 # Getting Started with Bwaincell
 
-Welcome to Bwaincell - a dual-purpose productivity platform providing both Discord bot functionality and a secure REST API for task management, reminders, lists, notes, budgets, and scheduling.
+**Version:** 2.0.0
+**Last Updated:** 2026-01-11
 
----
+## Overview
+
+Bwaincell is a unified monorepo productivity platform providing task management, reminders, lists, notes, budgets, and scheduling through three integrated interfaces: Discord Bot, REST API, and Progressive Web App.
 
 ## Prerequisites
 
-Before you begin, ensure you have the following:
-
-- **Node.js** 18 or higher ([Download](https://nodejs.org/))
-- **PostgreSQL** 8+ database ([Download](https://www.postgresql.org/download/))
-- **Discord Bot Token** ([Discord Developer Portal](https://discord.com/developers/applications))
-- **Google OAuth 2.0 Credentials** ([Google Cloud Console](https://console.cloud.google.com/))
-
----
+- Node.js ≥ 18.0.0
+- npm ≥ 9.0.0
+- PostgreSQL 15 or higher
+- Discord Bot Token ([Discord Developer Portal](https://discord.com/developers/applications))
+- Google OAuth 2.0 Credentials ([Google Cloud Console](https://console.cloud.google.com))
 
 ## Installation
 
-### 1. Clone the Repository
-
 ```bash
-git clone https://github.com/yourusername/bwaincell.git
+# Clone repository
+git clone https://github.com/lukadfagundes/bwaincell.git
 cd bwaincell
-```
 
-### 2. Install Dependencies
-
-```bash
+# Install dependencies for all workspaces
 npm install
+
+# Build shared types package (required before running backend/frontend)
+npm run build:shared
+
+# Create environment file
+cp .env.example .env
+
+# Edit .env with your credentials
+# Required: Discord bot token, Google OAuth credentials, PostgreSQL connection, JWT secret
 ```
 
-### 3. Configure Environment Variables
+## Project Structure
 
-Copy the example environment file:
+```
+bwaincell/
+├── backend/              # Discord bot + REST API (Express + Discord.js)
+│   ├── src/             # Source code (bot.ts, api/, types/)
+│   │   └── api/        # Express API (routes/, middleware/)
+│   ├── commands/        # Discord slash commands
+│   ├── database/        # Sequelize models, migrations, schema
+│   ├── utils/           # Utilities (logger, validators, interactions)
+│   └── tests/           # Backend tests
+├── frontend/            # Next.js 14.2+ PWA
+│   ├── app/            # App Router (dashboard/, api/)
+│   ├── components/     # React components
+│   ├── hooks/          # Custom hooks (useTasks, useLists, etc.)
+│   ├── lib/            # API client, utilities
+│   └── public/         # Static assets, PWA manifest
+├── shared/              # Shared TypeScript types across workspaces
+│   ├── types/          # Type definitions
+│   ├── utils/          # Shared utilities (logger)
+│   └── validation/     # Shared validators
+├── tests/               # Integration and E2E tests
+├── docker-compose.yml   # Docker configuration
+└── package.json         # Monorepo workspace configuration
+```
+
+## Quick Start
+
+### Backend (Discord Bot + REST API)
 
 ```bash
-cp .env.example .env
+# Development mode (starts both Discord bot and API server)
+npm run dev:backend
+
+# Production build and start
+npm run build:backend
+npm start --workspace=backend
+
+# Deploy Discord slash commands
+npm run deploy --workspace=backend
 ```
 
-Edit `.env` with your credentials:
+**Backend runs on:** http://localhost:3000
 
-```env
-# Discord Configuration
-DISCORD_TOKEN=your_discord_bot_token
-CLIENT_ID=your_discord_client_id
-GUILD_ID=your_discord_guild_id
-REMINDER_CHANNEL_ID=channel_id_for_reminders
+### Frontend (Progressive Web App)
 
-# Google OAuth Configuration
-GOOGLE_CLIENT_ID=your_google_client_id
-GOOGLE_CLIENT_SECRET=your_google_client_secret
+```bash
+# Development mode (port 3010)
+npm run dev:frontend
 
-# JWT Configuration
-JWT_SECRET=your_secure_jwt_secret
+# Production build
+npm run build:frontend
+npm start --workspace=frontend
+```
 
-# Database Configuration
-DATABASE_URL=postgresql://user:password@localhost:5432/bwaincell
+**Frontend runs on:** http://localhost:3010
 
-# API Configuration
+### Full Stack Development
+
+```bash
+# Start backend and frontend concurrently
+npm run dev
+
+# Run tests across all workspaces
+npm test
+
+# Lint all workspaces
+npm run lint
+```
+
+## Environment Configuration
+
+### Required Environment Variables
+
+See [.env.example](.env.example) for the complete list. Key variables:
+
+```bash
+# Discord Bot Configuration
+DISCORD_BOT_TOKEN=your_discord_bot_token
+DISCORD_CLIENT_ID=your_discord_client_id
+DISCORD_GUILD_ID=your_discord_guild_id
+
+# PostgreSQL Database
+DATABASE_URL=postgresql://user:password@localhost:5433/bwaincell
+
+# REST API
 API_PORT=3000
-TIMEZONE=America/New_York
+JWT_SECRET=generate_with_openssl_rand_base64_32
 
-# User Mapping (Discord ID to Email)
+# Google OAuth 2.0
+GOOGLE_CLIENT_ID=your-google-client-id.apps.googleusercontent.com
+GOOGLE_CLIENT_SECRET=your-google-client-secret
+
+# User-Discord ID Mapping
 USER1_EMAIL=user@gmail.com
 USER1_DISCORD_ID=123456789
 ```
 
-**Generate JWT Secret:**
+## Database Setup
+
+### PostgreSQL Initialization
 
 ```bash
-openssl rand -base64 32
+# Create database
+psql -U postgres -c "CREATE DATABASE bwaincell;"
+
+# Create user
+psql -U postgres -c "CREATE USER bwaincell WITH PASSWORD 'your_password';"
+
+# Grant privileges
+psql -U postgres -c "GRANT ALL PRIVILEGES ON DATABASE bwaincell TO bwaincell;"
 ```
 
----
-
-## Setup Database
-
-### 1. Create PostgreSQL Database
-
-```bash
-# Using PostgreSQL CLI
-createdb bwaincell
-
-# Or using psql
-psql -U postgres
-CREATE DATABASE bwaincell;
-\q
-```
-
-### 2. Configure Database Connection
-
-Update `DATABASE_URL` in `.env`:
-
-```env
-# For local development
-DATABASE_URL=postgresql://postgres:password@localhost:5432/bwaincell
-
-# For Docker Compose
-DATABASE_URL=postgresql://bwaincell:password@postgres:5433/bwaincell
-```
-
----
-
-## Build and Deploy
-
-### 1. Build TypeScript
-
-Compile TypeScript to JavaScript:
-
-```bash
-npm run build
-```
-
-This creates compiled files in the `dist/` directory.
-
-### 2. Deploy Discord Commands
-
-Register slash commands with Discord:
-
-```bash
-npm run deploy
-```
-
-This registers all commands defined in `commands/` with your Discord bot.
-
----
-
-## Start Application
-
-### Development Mode (Hot Reload)
-
-```bash
-npm run dev
-```
-
-**Features:**
-
-- Automatic restart on file changes
-- TypeScript compilation on-the-fly
-- Detailed logging for debugging
-
-### Production Mode
-
-```bash
-npm start
-```
-
-**Features:**
-
-- Runs compiled JavaScript from `dist/`
-- Optimized performance
-- Production-level logging
-
----
-
-## Verify Installation
-
-### 1. Check Discord Bot Status
-
-In your Discord server, verify:
-
-- Bot appears online
-- Slash commands are available (type `/`)
-
-Try a test command:
-
-```
-/task list
-```
-
-### 2. Check API Server
-
-Test the health endpoint:
-
-```bash
-curl http://localhost:3000/health
-```
-
-**Expected Response:**
-
-```json
-{
-  "status": "ok",
-  "timestamp": "2026-01-09T12:00:00Z"
-}
-```
-
-### 3. Test Authentication
-
-Authenticate with Google OAuth and test a protected endpoint:
-
-```bash
-# 1. Get JWT token from /api/auth/google/verify
-# 2. Use token to access protected endpoint
-
-curl -H "Authorization: Bearer YOUR_JWT_TOKEN" \
-  http://localhost:3000/api/tasks
-```
-
----
-
-## Quick Setup Script
-
-For a fresh installation with all steps combined:
-
-```bash
-npm run setup && npm start
-```
-
-This runs:
-
-1. `npm run build` - Compile TypeScript
-2. `npm run deploy` - Register Discord commands
-3. `npm start` - Start production server
-
----
-
-## Troubleshooting
-
-### Bot Not Responding
-
-**Issue:** Discord bot doesn't respond to commands
-
-**Solutions:**
-
-1. Verify `DISCORD_TOKEN` is correct in `.env`
-2. Check bot has necessary permissions in Discord server:
-   - Read Messages/View Channels
-   - Send Messages
-   - Use Slash Commands
-3. Ensure commands are deployed: `npm run deploy`
-4. Check logs: `docker-compose logs -f` or console output
-
-### Database Connection Failed
-
-**Issue:** `Error: connect ECONNREFUSED`
-
-**Solutions:**
-
-1. Verify PostgreSQL is running: `pg_isready`
-2. Check `DATABASE_URL` is correct in `.env`
-3. Ensure database exists: `psql -l | grep bwaincell`
-4. Test connection: `psql $DATABASE_URL`
-
-### Authentication Errors
-
-**Issue:** JWT or Google OAuth errors
-
-**Solutions:**
-
-1. Verify `GOOGLE_CLIENT_ID` and `GOOGLE_CLIENT_SECRET` are correct
-2. Check user email is whitelisted in `ALLOWED_GOOGLE_EMAILS`
-3. Ensure `JWT_SECRET` is set and consistent across restarts
-4. Check token expiry (tokens expire after 1 hour)
-
-### Port Already in Use
-
-**Issue:** `Error: listen EADDRINUSE: address already in use :::3000`
-
-**Solutions:**
-
-1. Change `API_PORT` in `.env` to a different port
-2. Kill existing process: `lsof -ti:3000 | xargs kill -9` (Linux/Mac)
-3. Use different port: `PORT=3001 npm start`
-
----
+**Note:** Database migrations run automatically on backend startup using Sequelize.
 
 ## Next Steps
 
-Now that you have Bwaincell installed and running:
+- [API Documentation](../api/) - REST API endpoints and authentication flow
+- [Architecture Overview](../architecture/overview.md) - System design and tech stack
+- [Discord Bot Commands](../api/discord-commands.md) - Complete command reference
 
-1. **Explore Discord Commands** - See [Discord Commands Guide](../reference/discord-commands.md)
-2. **Learn the API** - See [API Documentation](../api/README.md)
-3. **Deploy to Production** - See [Deployment Guide](deployment.md)
-4. **Add Features** - See [Development Guide](../architecture/development.md)
+## Common Issues
 
----
+### Module not found errors
 
-## Getting Help
+- Run `npm install` in the project root
+- Run `npm run build:shared` to build shared types package
+- Clear node_modules: `rm -rf node_modules package-lock.json && npm install`
 
-- **API Reference:** [docs/api/README.md](../api/README.md)
-- **Architecture Overview:** [docs/architecture/overview.md](../architecture/overview.md)
-- **Source Code:** [src/README.md](../../src/README.md)
-- **Discord.js Guide:** [https://discordjs.guide/](https://discordjs.guide/)
-- **Express Documentation:** [https://expressjs.com/](https://expressjs.com/)
+### Database connection errors
 
----
+- Verify PostgreSQL is running: `pg_isready`
+- Check DATABASE_URL in .env matches your PostgreSQL credentials
+- Ensure PostgreSQL port (5433 or 5432) is not blocked by firewall
 
-**Last Updated:** 2026-01-09
-**Version:** 1.0.0
+### Discord bot not responding
+
+- Verify BOT_TOKEN is correct in .env
+- Deploy slash commands: `npm run deploy --workspace=backend`
+- Check bot has proper permissions in Discord server
+- Check logs: `docker logs bwaincell-bot` (if using Docker)
+
+### JWT authentication errors
+
+- Generate secure JWT_SECRET: `openssl rand -base64 32`
+- Verify Google OAuth credentials are correct
+- Check user email is mapped to Discord ID in .env
+
+## Support
+
+- GitHub Issues: [github.com/lukadfagundes/bwaincell/issues](https://github.com/lukadfagundes/bwaincell/issues)
+- Documentation: [docs/](../)

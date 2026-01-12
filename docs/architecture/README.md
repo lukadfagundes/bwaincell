@@ -1,35 +1,38 @@
 # Architecture Documentation
 
-Technical architecture, design decisions, and development guides.
+System architecture, design decisions, and technical specifications.
 
----
+## Available Documentation
 
-## Architecture Overview
+- **[Architecture Overview](overview.md)** - Complete system architecture, tech stack, and design decisions
+- **[Database Schema](database-schema.md)** - PostgreSQL schema with Sequelize models, ER diagram, and query patterns (6 models)
+- **[Architecture Diagrams](diagrams.md)** - Visual documentation with 6 Mermaid diagrams: System Architecture, Component Interaction, Database ER, Authentication Flow, Deployment Architecture, Data Flow
 
-- **[Overview](overview.md)** - Complete system architecture, data flow, and technology stack
+## Architecture Topics
 
----
+### System Design
 
-## Development
+- [Architecture Overview](overview.md) - High-level system architecture
+- [Database Schema](database-schema.md) - PostgreSQL schema, models, indexes, and query patterns
+- API Design - REST API architecture (See [../api/](../api/))
+- Authentication Flow - Google OAuth + JWT (See overview.md)
 
-- **[Development Guide](development.md)** - Adding features, testing, and contribution guidelines
+### Technology Stack
 
----
+- Backend Stack - Discord.js + Express + Sequelize (See overview.md)
+- Frontend Stack - Next.js + React Query + Zustand (See overview.md)
+- Shared Types - TypeScript monorepo architecture (See overview.md)
+- Deployment - Raspberry Pi + Vercel (See overview.md)
 
-## Design Documents
+### Design Patterns
 
-- **[Database Schema](database-schema.md)** - PostgreSQL schema and model definitions
-- **[Authentication Flow](authentication.md)** - Google OAuth and JWT authentication
-- **[API Design](api-design.md)** - REST API design patterns and conventions
+- Monorepo Architecture - Workspace structure (See overview.md)
+- Three-Interface Pattern - Discord Bot + API + PWA (See overview.md)
+- User Isolation - Data segregation by user_id + guild_id (See overview.md)
+- Authentication - OAuth + JWT flow (See overview.md)
 
----
+## Related Documentation
 
-## Additional Resources
-
-- **[Getting Started](../guides/getting-started.md)** - Installation and setup
-- **[API Reference](../api/README.md)** - REST API documentation
-- **[Discord Commands](../reference/README.md)** - Command reference
-
----
-
-**Last Updated:** 2026-01-09
+- [Getting Started](../guides/getting-started.md)
+- [API Documentation](../api/)
+- [Reference](../reference/)

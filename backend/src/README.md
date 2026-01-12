@@ -534,13 +534,6 @@ app = "bwaincell"
 
 - **[../README.md](../README.md)** - Project overview, API documentation, setup guide
 - **[../CONTRIBUTING.md](../CONTRIBUTING.md)** - Contribution guidelines
-- **[../trinity/knowledge-base/ARCHITECTURE.md](../trinity/knowledge-base/ARCHITECTURE.md)** - System architecture
-
-### Trinity Method
-
-- **[../trinity/knowledge-base/CODING-PRINCIPLES.md](../trinity/knowledge-base/CODING-PRINCIPLES.md)** - Code quality standards
-- **[../trinity/knowledge-base/TESTING-PRINCIPLES.md](../trinity/knowledge-base/TESTING-PRINCIPLES.md)** - Testing methodology
-- **[CLAUDE.md](./CLAUDE.md)** - Source code behavioral rules (if exists)
 
 ### Testing
 
@@ -606,13 +599,13 @@ app = "bwaincell"
 - **Language:** TypeScript 5.9.2
 - **Framework:** Express.js 4.x
 - **Discord:** Discord.js 14.14.1
-- **Database:** SQLite 3 + Sequelize ORM
+- **Database:** PostgreSQL 15 + Sequelize ORM
 - **Authentication:** Google OAuth 2.0 + JWT
 - **Scheduler:** node-cron 4.2.1
 - **Logging:** Winston 3.17.0
 
 **Project:** Bwaincell
 **Trinity Version:** 2.0.8
-**Last Updated:** 2026-01-09
+**Last Updated:** 2026-01-11
 
 ---

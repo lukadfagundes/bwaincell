@@ -1,662 +1,467 @@
-# Bwaincell Architecture Overview
-
-Bwaincell is a dual-purpose productivity platform combining Discord bot functionality with a secure REST API, providing comprehensive task management, reminders, lists, notes, budgets, and scheduling capabilities.
-
----
-
-## System Architecture
-
-### High-Level Architecture
-
-```
-┌─────────────────────────────────────────────────────────────────┐
-│                        Client Layer                              │
-├─────────────────────────────────────────────────────────────────┤
-│  Discord Client          │         PWA Frontend                  │
-│  (slash commands)        │         (React/Next.js)              │
-└────────┬─────────────────┴──────────────────┬──────────────────┘
-         │                                    │
-         │ Discord Gateway                    │ HTTPS/REST
-         │                                    │
-┌────────▼────────────────────────────────────▼──────────────────┐
-│                    Application Layer                            │
-├─────────────────────────────────────────────────────────────────┤
-│                                                                  │
-│  ┌─────────────────┐              ┌─────────────────┐          │
-│  │   Discord Bot   │              │   Express API   │          │
-│  │   (Discord.js)  │              │   (REST)        │          │
-│  └────────┬────────┘              └────────┬────────┘          │
-│           │                                │                    │
-│           └────────────┬───────────────────┘                    │
-│                        │                                        │
-│           ┌────────────▼────────────┐                          │
-│           │   Business Logic Layer  │                          │
-│           ├─────────────────────────┤                          │
-│           │ - TaskService           │                          │
-│           │ - ListService           │                          │
-│           │ - NoteService           │                          │
-│           │ - ReminderService       │                          │
-│           │ - BudgetService         │                          │
-│           │ - ScheduleService       │                          │
-│           └────────────┬────────────┘                          │
-│                        │                                        │
-└────────────────────────┼────────────────────────────────────────┘
-                         │
-                         │ Sequelize ORM
-                         │
-┌────────────────────────▼────────────────────────────────────────┐
-│                     Data Layer                                   │
-├─────────────────────────────────────────────────────────────────┤
-│                  PostgreSQL Database                             │
-│  ┌──────────┬──────────┬──────────┬──────────┬──────────┐      │
-│  │  Tasks   │  Lists   │  Notes   │ Reminders│  Budget  │      │
-│  └──────────┴──────────┴──────────┴──────────┴──────────┘      │
-└─────────────────────────────────────────────────────────────────┘
-```
-
----
-
-## Core Components
-
-### 1. Discord Bot (`src/bot.ts`)
-
-**Purpose:** Discord slash command interface for productivity features
-
-**Responsibilities:**
-
-- Initialize Discord.js client with gateway intents
-- Load and register slash commands dynamically
-- Handle command interactions and button/modal interactions
-- Manage reminder scheduler (node-cron)
-- User authentication via Discord user ID
-
-**Key Features:**
-
-- Real-time command execution
-- Interactive buttons and modals
-- Scheduled reminder delivery to Discord channels
-- Auto-deletion of ephemeral responses
-
-**Entry Point:** `src/bot.ts`
-
-**Dependencies:**
-
-- Discord.js 14.14.1
-- node-cron 4.2.1
-- Winston logger
-
----
-
-### 2. REST API (`src/api/server.ts`)
-
-**Purpose:** RESTful HTTP interface for PWA and external clients
-
-**Responsibilities:**
-
-- Express server setup with middleware configuration
-- Route handling for all resource endpoints
-- Google OAuth 2.0 authentication
-- JWT token generation and validation
-- CORS configuration for PWA integration
-- Health check endpoint
-
-**Key Features:**
-
-- Standardized JSON response format
-- Error handling middleware
-- Input validation (Joi schemas)
-- User isolation by Discord ID
-- Token refresh mechanism
-
-**Entry Point:** `src/api/server.ts`
-
-**Dependencies:**
-
-- Express 4.21.2
-- cors 2.8.5
-- jsonwebtoken 9.0.2
-- google-auth-library 10.4.0
-
----
-
-### 3. Database Layer (`database/`)
-
-**Purpose:** PostgreSQL data persistence with Sequelize ORM
-
-**Database Schema:**
-
-```sql
--- Users (implicitly managed via Discord ID)
-
--- Tasks
-CREATE TABLE tasks (
-  id SERIAL PRIMARY KEY,
-  user_id VARCHAR(255) NOT NULL,
-  guild_id VARCHAR(255) NOT NULL,
-  text TEXT NOT NULL,
-  completed BOOLEAN DEFAULT FALSE,
-  due_date DATE,
-  created_at TIMESTAMP DEFAULT NOW(),
-  updated_at TIMESTAMP DEFAULT NOW()
-);
-
--- Lists
-CREATE TABLE lists (
-  name VARCHAR(255) NOT NULL,
-  user_id VARCHAR(255) NOT NULL,
-  guild_id VARCHAR(255) NOT NULL,
-  items JSONB DEFAULT '[]',
-  created_at TIMESTAMP DEFAULT NOW(),
-  PRIMARY KEY (name, user_id, guild_id)
-);
-
--- Notes
-CREATE TABLE notes (
-  id SERIAL PRIMARY KEY,
-  user_id VARCHAR(255) NOT NULL,
-  guild_id VARCHAR(255) NOT NULL,
-  content TEXT NOT NULL,
-  tags VARCHAR(255),
-  created_at TIMESTAMP DEFAULT NOW(),
-  updated_at TIMESTAMP DEFAULT NOW()
-);
-
--- Reminders
-CREATE TABLE reminders (
-  id SERIAL PRIMARY KEY,
-  user_id VARCHAR(255) NOT NULL,
-  guild_id VARCHAR(255) NOT NULL,
-  message TEXT NOT NULL,
-  time VARCHAR(10) NOT NULL,
-  frequency VARCHAR(20) NOT NULL,
-  day_of_week INTEGER,
-  created_at TIMESTAMP DEFAULT NOW()
-);
-
--- Budget
-CREATE TABLE budget_transactions (
-  id SERIAL PRIMARY KEY,
-  user_id VARCHAR(255) NOT NULL,
-  guild_id VARCHAR(255) NOT NULL,
-  amount DECIMAL(10, 2) NOT NULL,
-  category VARCHAR(255) NOT NULL,
-  description TEXT,
-  type VARCHAR(20) NOT NULL,
-  created_at TIMESTAMP DEFAULT NOW()
-);
-
--- Schedules
-CREATE TABLE schedules (
-  id SERIAL PRIMARY KEY,
-  user_id VARCHAR(255) NOT NULL,
-  guild_id VARCHAR(255) NOT NULL,
-  title VARCHAR(255) NOT NULL,
-  start_time TIMESTAMP NOT NULL,
-  end_time TIMESTAMP,
-  recurrence VARCHAR(50),
-  created_at TIMESTAMP DEFAULT NOW()
-);
-```
-
-**ORM Models:** Located in `database/models/`
-
----
-
-### 4. Business Logic Layer
-
-**Services:** `src/services/` (if exists) or embedded in routes
-
-**Responsibilities:**
-
-- Validation logic
-- Data transformation
-- Business rule enforcement
-- Database query orchestration
-
-**Service Pattern:**
-
-```typescript
-class TaskService {
-  async createTask(userId: string, guildId: string, taskData: TaskData) {
-    // 1. Validate input
-    // 2. Transform data
-    // 3. Persist to database
-    // 4. Return result
-  }
-}
-```
-
----
-
-### 5. Authentication & Authorization
-
-**Authentication Flow:**
-
-```
-┌─────────────┐
-│   Client    │
-└──────┬──────┘
-       │
-       │ 1. Google OAuth login
-       ▼
-┌─────────────┐
-│   Google    │
-└──────┬──────┘
-       │
-       │ 2. ID token
-       ▼
-┌─────────────┐
-│ Bwaincell   │
-│ API Server  │
-└──────┬──────┘
-       │
-       │ 3. Verify token
-       │ 4. Check email whitelist
-       │ 5. Map email → Discord ID
-       │ 6. Generate JWT
-       │
-       ▼
-┌─────────────┐
-│   Client    │
-│ (JWT stored)│
-└─────────────┘
-```
-
-**Authorization:**
-
-- Discord Bot: User ID from interaction context
-- REST API: User ID from JWT payload
-- All queries filtered by `user_id` AND `guild_id`
-
-**Security:**
-
-- Email whitelist (`ALLOWED_GOOGLE_EMAILS`)
-- JWT expiry: 1 hour (access token)
-- Refresh token expiry: 7 days
-- HTTPS enforcement (production)
-- Input validation on all endpoints
-
----
-
-## Data Flow
-
-### Discord Command Execution
-
-```
-User types /task add "Buy milk"
-         │
-         ▼
-┌─────────────────┐
-│ Discord Gateway │
-└────────┬────────┘
-         │ CommandInteraction
-         ▼
-┌─────────────────┐
-│  bot.ts         │
-│ (event handler) │
-└────────┬────────┘
-         │
-         ▼
-┌─────────────────┐
-│ /commands/task/ │
-│ add.ts          │
-└────────┬────────┘
-         │
-         ▼
-┌─────────────────┐
-│ Task Model      │
-│ (Sequelize)     │
-└────────┬────────┘
-         │
-         ▼
-┌─────────────────┐
-│ PostgreSQL      │
-└────────┬────────┘
-         │
-         ▼
-┌─────────────────┐
-│ Response to     │
-│ Discord Channel │
-└─────────────────┘
-```
-
-### REST API Request
-
-```
-PWA sends GET /api/tasks
-         │
-         ▼
-┌─────────────────┐
-│ Express Router  │
-└────────┬────────┘
-         │
-         ▼
-┌─────────────────┐
-│ authenticateToken│
-│ middleware      │
-└────────┬────────┘
-         │ (JWT verified)
-         ▼
-┌─────────────────┐
-│ /api/routes/    │
-│ tasks.ts        │
-└────────┬────────┘
-         │
-         ▼
-┌─────────────────┐
-│ Task Model      │
-│ (Sequelize)     │
-└────────┬────────┘
-         │
-         ▼
-┌─────────────────┐
-│ PostgreSQL      │
-└────────┬────────┘
-         │
-         ▼
-┌─────────────────┐
-│ JSON Response   │
-│ { success, data }│
-└─────────────────┘
-```
-
----
-
-## Module System
-
-### TypeScript Path Aliases
-
-Configured in `tsconfig.json`:
-
-```json
-{
-  "paths": {
-    "@shared/*": ["shared/*"],
-    "@commands/*": ["src/commands/*"],
-    "@handlers/*": ["src/handlers/*"],
-    "@services/*": ["src/services/*"],
-    "@database/*": ["database/*"]
-  }
-}
-```
-
-**Runtime Resolution:** `module-alias` package maps to compiled `dist/` paths
-
----
+# Architecture Overview
+
+**Project:** Bwaincell
+**Type:** Node.js Monorepo
+**Framework:** Discord.js + Express + Next.js
+**Version:** 2.0.0
+**Last Updated:** 2026-01-11
+
+## System Overview
+
+Bwaincell is a unified monorepo productivity platform providing task management, reminders, lists, notes, budgets, and scheduling through three integrated interfaces: Discord Bot, REST API, and Progressive Web App. The system is designed for multi-user productivity management with data isolation by Discord user_id and guild_id.
+
+## Technology Stack
+
+**Runtime:** Node.js 18.0+
+**Package Manager:** npm 9.0+ (workspaces)
+**Database:** PostgreSQL 15
+**ORM:** Sequelize 6.37.7
+
+### Backend Stack
+
+- **Framework:** Express 4.21.2
+- **Bot Framework:** Discord.js 14.14.1
+- **Authentication:** Google OAuth 2.0 (google-auth-library 10.4.0)
+- **JWT:** jsonwebtoken 9.0.2
+- **Logging:** Winston 3.17.0
+- **Validation:** Joi 18.0.1
+- **Scheduling:** node-cron 4.2.1
+- **Database Driver:** pg 8.16.3
+
+### Frontend Stack
+
+- **Framework:** Next.js 14.2.35
+- **React:** 18.3.1
+- **PWA:** next-pwa 5.6.0
+- **Auth:** NextAuth 4.24.7
+- **State:** Zustand 5.0.8
+- **Data Fetching:** TanStack React Query 5.90.2
+- **UI Components:** Radix UI + shadcn/ui
+- **Styling:** Tailwind CSS 3.4.1
+- **Database (Frontend ORM):** Prisma 5.22.0
+
+### Shared Dependencies
+
+- **TypeScript:** 5.9.2 (strict mode)
+- **Linting:** ESLint 8.x + Prettier 3.0
+- **Testing:** Jest 30.1.3 + ts-jest 29.4.4
+
+**Key Dependencies (Backend):**
+
+- discord.js 14.14.1 - Discord bot framework
+- express 4.21.2 - REST API server
+- google-auth-library 10.4.0 - OAuth verification
+- jsonwebtoken 9.0.2 - JWT authentication
+- sequelize 6.37.7 - PostgreSQL ORM
+- winston 3.17.0 - Structured logging
+- joi 18.0.1 - Input validation
+- luxon 3.7.2 - DateTime operations
+- node-cron 4.2.1 - Task scheduling
+- pg 8.16.3 - PostgreSQL driver
+- cors 2.8.5 - CORS middleware
+- dotenv 17.2.2 - Environment variables
+
+**Key Dependencies (Frontend):**
+
+- next 14.2.35 - React framework
+- react 18.3.1 - UI library
+- next-auth 4.24.7 - Authentication
+- @tanstack/react-query 5.90.2 - Data fetching
+- zustand 5.0.8 - State management
+- @prisma/client 5.22.0 - Database client
+- lucide-react 0.545.0 - Icons
+- tailwindcss 3.4.1 - CSS framework
+- date-fns 4.1.0 - Date utilities
+- recharts 3.2.1 - Charts
+
+## Architecture Pattern
+
+**Pattern:** Monorepo with Workspaces
+
+This is a monorepo structure with:
+
+- **backend/** - Express API + Discord bot
+- **frontend/** - Next.js PWA
+- **shared/** - Shared TypeScript types and utilities
+
+### Three-Interface Architecture
+
+1. **Discord Bot** - Primary interface via Discord slash commands
+2. **REST API** - Express-based API for programmatic access
+3. **PWA** - Next.js frontend for web/mobile access
+
+All three interfaces share the same PostgreSQL database and enforce user isolation by Discord user_id + guild_id.
 
 ## Directory Structure
 
 ```
 bwaincell/
-├── src/                          # Source code
-│   ├── api/                     # REST API implementation
-│   │   ├── routes/              # API route handlers
-│   │   │   ├── health.ts       # Health check endpoint
-│   │   │   ├── tasks.ts        # Tasks CRUD operations
-│   │   │   ├── lists.ts        # Lists CRUD operations
-│   │   │   ├── notes.ts        # Notes CRUD operations
-│   │   │   ├── reminders.ts    # Reminders CRUD operations
-│   │   │   ├── budget.ts       # Budget CRUD operations
-│   │   │   ├── schedule.ts     # Schedule CRUD operations
-│   │   │   └── oauth.ts        # Google OAuth endpoints
-│   │   ├── middleware/          # Express middleware
-│   │   │   ├── oauth.ts        # JWT authentication
-│   │   │   └── errorHandler.ts # Global error handling
-│   │   └── server.ts            # Express app setup
-│   ├── bot.ts                   # Discord bot entry point
-│   ├── deploy-commands.ts       # Command registration script
-│   └── types/                   # TypeScript type definitions
-├── commands/                     # Discord slash commands
-│   ├── task/                    # Task command subcommands
-│   ├── list/                    # List command subcommands
-│   ├── note/                    # Note command subcommands
-│   ├── reminder/                # Reminder command subcommands
-│   ├── budget/                  # Budget command subcommands
-│   └── schedule/                # Schedule command subcommands
-├── database/                     # Database layer
-│   ├── models/                  # Sequelize models
-│   │   ├── Task.ts
-│   │   ├── List.ts
-│   │   ├── Note.ts
-│   │   ├── Reminder.ts
-│   │   ├── Budget.ts
-│   │   └── Schedule.ts
-│   └── index.ts                 # Database initialization
-├── shared/                       # Shared utilities
-│   ├── utils/                   # Utility functions
-│   │   ├── logger.ts           # Winston logger
-│   │   └── dateFormatter.ts    # Date formatting utilities
-│   └── validation/              # Input validation
-│       └── env.ts               # Environment variable validation
-├── utils/                        # Helper utilities
-│   └── interactions.ts          # Discord interaction handlers
-├── tests/                        # Test suites
-│   ├── unit/                    # Unit tests
-│   └── integration/             # Integration tests
-├── dist/                         # Compiled JavaScript (build output)
-├── docs/                         # Project documentation
-├── trinity/                      # Development methodology
-├── .env.example                  # Environment variable template
-├── Dockerfile                    # Docker container definition
-├── docker-compose.yml            # Multi-container setup
-├── fly.toml                      # Fly.io deployment config
-├── package.json                  # Dependencies and scripts
-├── tsconfig.json                 # TypeScript configuration
-└── README.md                     # Project overview
+├── backend/                    # Discord bot + REST API
+│   ├── src/
+│   │   ├── bot.ts             # Discord bot entry point
+│   │   ├── api/
+│   │   │   ├── server.ts      # Express server configuration
+│   │   │   ├── routes/        # API route handlers
+│   │   │   └── middleware/    # Authentication, CORS, error handling
+│   │   └── deploy-commands.js # Discord command registration
+│   ├── commands/              # Discord slash commands
+│   │   ├── task.ts
+│   │   ├── list.ts
+│   │   ├── note.ts
+│   │   ├── reminder.ts
+│   │   └── budget.ts
+│   ├── database/              # Sequelize ORM
+│   │   ├── index.ts           # Database initialization
+│   │   ├── models/            # Data models (Task, List, Note, etc.)
+│   │   └── schema.ts          # Database schema definitions
+│   ├── utils/
+│   │   ├── interactions/      # Button/modal/select menu handlers
+│   │   ├── scheduler.ts       # Cron job scheduler
+│   │   └── logger.ts          # Winston logger
+│   └── tests/                 # Backend unit tests
+├── frontend/                   # Next.js PWA
+│   ├── app/                   # App Router
+│   │   ├── dashboard/         # Dashboard pages
+│   │   ├── api/               # API routes (auth)
+│   │   └── layout.tsx
+│   ├── components/            # React components
+│   │   ├── ui/               # shadcn/ui components
+│   │   └── dashboard/        # Dashboard-specific components
+│   ├── hooks/                 # Custom hooks (useTasks, useLists, etc.)
+│   ├── lib/
+│   │   ├── api-client.ts     # API client with JWT handling
+│   │   └── utils.ts
+│   └── public/
+│       ├── manifest.json     # PWA manifest
+│       └── icons/            # PWA icons
+├── shared/                     # Shared TypeScript types
+│   ├── types/
+│   │   ├── task.ts
+│   │   ├── list.ts
+│   │   ├── note.ts
+│   │   ├── reminder.ts
+│   │   └── budget.ts
+│   ├── utils/
+│   │   └── logger.ts         # Shared Winston logger
+│   └── validation/
+│       └── env.ts            # Environment validation
+├── tests/                      # Integration/E2E tests
+├── docker-compose.yml          # Docker configuration
+├── .env.example                # Environment template
+└── package.json                # Monorepo workspace config
 ```
 
----
+## Entry Points
 
-## Deployment Architecture
+**Main Entry (Backend):** backend/src/bot.ts
+**API Server:** backend/src/api/server.ts
+**Frontend Entry:** frontend/app/page.tsx
 
-### Development Environment
+## Data Flow
 
-```
-┌─────────────────────────────────────┐
-│      Developer Machine               │
-├─────────────────────────────────────┤
-│                                      │
-│  ┌───────────────────────────────┐  │
-│  │  ts-node-dev (hot reload)     │  │
-│  │  - Bot running locally        │  │
-│  │  - API server on :3000        │  │
-│  └───────────────────────────────┘  │
-│                                      │
-│  ┌───────────────────────────────┐  │
-│  │  PostgreSQL (local)           │  │
-│  │  - Port 5432                  │  │
-│  └───────────────────────────────┘  │
-│                                      │
-└─────────────────────────────────────┘
-```
+### Discord Bot → Database
 
-### Docker Deployment (Raspberry Pi)
+1. User issues Discord slash command (e.g., `/task add`)
+2. Discord.js handles interaction
+3. Command handler in `backend/commands/` executes
+4. Sequelize ORM queries/updates PostgreSQL
+5. Response sent back to Discord user
 
-```
-┌─────────────────────────────────────┐
-│      Raspberry Pi (sunny-pi)         │
-├─────────────────────────────────────┤
-│                                      │
-│  ┌───────────────────────────────┐  │
-│  │  Docker Container: bwaincell  │  │
-│  │  - Bot process                │  │
-│  │  - API server :3000           │  │
-│  └───────────────┬───────────────┘  │
-│                  │                   │
-│  ┌───────────────▼───────────────┐  │
-│  │  Docker Container: postgres   │  │
-│  │  - Port 5433                  │  │
-│  └───────────────────────────────┘  │
-│                                      │
-└─────────────────────────────────────┘
-```
+### REST API → Database
 
-### Cloud Deployment (Fly.io)
+1. Client sends authenticated HTTP request (JWT)
+2. Express middleware validates JWT token
+3. Route handler in `backend/src/api/routes/` executes
+4. Sequelize ORM queries/updates PostgreSQL
+5. JSON response returned to client
 
-```
-┌─────────────────────────────────────┐
-│      Fly.io (Production)             │
-├─────────────────────────────────────┤
-│                                      │
-│  ┌───────────────────────────────┐  │
-│  │  Fly.io App                   │  │
-│  │  - Bot process                │  │
-│  │  - API server (HTTPS)         │  │
-│  │  - Health monitoring          │  │
-│  └───────────────┬───────────────┘  │
-│                  │                   │
-│                  ▼                   │
-│  ┌───────────────────────────────┐  │
-│  │  Managed PostgreSQL           │  │
-│  │  (Fly.io Postgres)            │  │
-│  └───────────────────────────────┘  │
-│                                      │
-└─────────────────────────────────────┘
+### PWA → REST API → Database
+
+1. User interacts with Next.js PWA
+2. React Query fetches data via API client
+3. API client includes JWT token in headers
+4. Express API processes request
+5. Data returned to PWA, cached by React Query
+
+## User Isolation
+
+All database tables include `user_id` (Discord user ID) and `guild_id` (Discord server ID) columns. Every query automatically filters by these columns to ensure users can only access their own data.
+
+**Example (Task Model):**
+
+```typescript
+const tasks = await Task.findAll({
+  where: {
+    user_id: userId,
+    guild_id: guildId,
+  },
+});
 ```
 
----
+## Authentication & Authorization
 
-## Technology Stack
+### Backend Authentication Flow
 
-| Layer          | Technology       | Version | Purpose                  |
-| -------------- | ---------------- | ------- | ------------------------ |
-| **Runtime**    | Node.js          | 18+     | JavaScript runtime       |
-| **Language**   | TypeScript       | 5.9.2   | Type-safe development    |
-| **Discord**    | Discord.js       | 14.14.1 | Discord bot framework    |
-| **API**        | Express          | 4.21.2  | REST API framework       |
-| **Database**   | PostgreSQL       | 8.x     | Relational database      |
-| **ORM**        | Sequelize        | 6.37.7  | Database abstraction     |
-| **Auth**       | Google OAuth 2.0 | -       | User authentication      |
-| **Tokens**     | JWT              | 9.0.2   | Session management       |
-| **Scheduler**  | node-cron        | 4.2.1   | Reminder scheduling      |
-| **Logger**     | Winston          | 3.17.0  | Application logging      |
-| **Validation** | Joi              | 18.0.1  | Input validation         |
-| **Testing**    | Jest             | 30.1.3  | Unit/integration testing |
-| **Linting**    | ESLint           | 8.50.0  | Code quality             |
-| **Formatting** | Prettier         | 3.0.0   | Code formatting          |
+1. User authenticates with Google OAuth (PWA frontend)
+2. Frontend receives Google ID token
+3. Frontend sends ID token to `/api/auth/google/verify`
+4. Backend verifies token with `google-auth-library`
+5. Backend maps Google email to Discord user ID (from env vars)
+6. Backend generates JWT access token (1 hour) + refresh token (7 days)
+7. Frontend stores tokens in secure storage
+8. All subsequent API requests include JWT in `Authorization: Bearer <token>` header
 
----
+### JWT Token Structure
+
+**Access Token (1 hour expiry):**
+
+```json
+{
+  "userId": "123456789",
+  "email": "user@gmail.com",
+  "guildId": "987654321",
+  "iat": 1736611200,
+  "exp": 1736614800
+}
+```
+
+**Refresh Token (7 days expiry):**
+
+```json
+{
+  "userId": "123456789",
+  "type": "refresh",
+  "iat": 1736611200,
+  "exp": 1737216000
+}
+```
+
+## Configuration
+
+**Environment Variables:** See `.env.example`
+
+### Key Configuration Files
+
+- **docker-compose.yml** - PostgreSQL + backend containerization
+- **backend/tsconfig.json** - TypeScript config for backend
+- **frontend/next.config.js** - Next.js config with PWA support
+- **shared/tsconfig.json** - Shared types TypeScript config
+- **package.json** - Monorepo workspace configuration
+
+## Build & Deployment
+
+### Development
+
+**Start all services:**
+
+```bash
+npm run dev  # Starts backend + frontend concurrently
+```
+
+**Backend only:**
+
+```bash
+npm run dev:backend  # Discord bot + API server on port 3000
+```
+
+**Frontend only:**
+
+```bash
+npm run dev:frontend  # Next.js dev server on port 3010
+```
+
+### Production
+
+**Build:**
+
+```bash
+npm run build  # Builds shared, backend, frontend
+```
+
+**Start:**
+
+```bash
+npm start --workspace=backend   # Production backend
+npm start --workspace=frontend  # Production frontend
+```
+
+### Deployment
+
+**Backend:** Raspberry Pi 4B (Docker) + PostgreSQL 15
+
+- Docker Compose with backend + PostgreSQL containers
+- Exposed on local network + Fly.io proxy
+- Auto-deployment via GitHub Actions
+
+**Frontend:** Vercel
+
+- Automatic deployment on push to main branch
+- Environment variables configured in Vercel dashboard
+- PWA assets served via CDN
+
+## Database Schema
+
+### Core Tables
+
+- **tasks** - Task management (text, due_date, completed, user_id, guild_id)
+- **lists** - List management (name, user_id, guild_id)
+- **list_items** - List items (item, list_id, checked)
+- **notes** - Note-taking (content, tags, user_id, guild_id)
+- **reminders** - Scheduled reminders (message, time, frequency, user_id, guild_id, channel_id)
+- **budgets** - Budget tracking (amount, category, type, description, user_id, guild_id)
+
+All tables include:
+
+- Primary key: `id` (auto-increment)
+- Timestamps: `createdAt`, `updatedAt`
+- User isolation: `user_id`, `guild_id`
+
+### Database Migrations
+
+Database schema is managed by Sequelize ORM. Migrations run automatically on backend startup using `sequelize.sync()`.
+
+For production, use explicit migrations:
+
+```bash
+npx sequelize-cli db:migrate
+```
 
 ## Performance Characteristics
 
-### Response Times
+### Response Times (Target)
 
-| Operation        | Target  | Notes              |
-| ---------------- | ------- | ------------------ |
-| Discord command  | < 500ms | Ephemeral response |
-| API GET request  | < 200ms | Single resource    |
-| API POST request | < 300ms | Database write     |
-| Database query   | < 50ms  | Indexed queries    |
+- Discord bot commands: < 3 seconds
+- REST API endpoints: < 500ms
+- PWA page load: < 2 seconds
+- Database queries: < 100ms
 
 ### Scalability
 
-- **Vertical Scaling:** Supports multi-core Node.js clustering
-- **Horizontal Scaling:** Stateless API (can run multiple instances)
-- **Database:** PostgreSQL connection pooling (Sequelize)
-- **Rate Limiting:** 100 requests/minute per IP
+- **Current:** Single-server deployment (Raspberry Pi 4B)
+- **Database:** PostgreSQL can handle 1000+ concurrent connections
+- **API:** Express can handle 1000+ req/s with clustering
+- **PWA:** Vercel serverless scales automatically
 
----
+## Security
 
-## Security Architecture
+### Authentication Security
 
-### Authentication Layers
+- Google OAuth 2.0 for user authentication
+- JWT tokens signed with 256-bit secret (HS256)
+- Refresh tokens stored in HTTP-only cookies (future enhancement)
+- Email whitelist for authorized users (environment variables)
 
-1. **Discord Bot:** Discord user ID validation
-2. **REST API:** Google OAuth 2.0 → JWT
-3. **Email Whitelist:** Environment variable configuration
+### API Security
 
-### Data Protection
+- CORS restricted to known origins
+- JWT validation on all protected routes
+- Input validation with Joi schemas
+- SQL injection prevention via Sequelize parameterized queries
 
-- **User Isolation:** All queries filtered by `user_id` AND `guild_id`
-- **SQL Injection:** Prevented by Sequelize ORM parameterization
-- **XSS Prevention:** Input sanitization (Joi validation)
-- **HTTPS:** Enforced in production (Fly.io)
-- **Token Security:** JWT signed with secure secret
-- **Environment Secrets:** Never committed to git (.gitignore)
+### Data Security
 
----
+- PostgreSQL user credentials in environment variables
+- Discord bot token never exposed to frontend
+- JWT secrets stored securely (not in version control)
+- User data isolated by user_id + guild_id
 
-## Monitoring & Observability
+## Monitoring & Logging
 
 ### Logging Strategy
 
-**Winston Logger Levels:**
+**Backend:** Winston structured logging
 
-- `error` - Errors and exceptions with stack traces
-- `warn` - Warnings and deprecations
-- `info` - General application events
-- `debug` - Detailed debugging (development only)
+- Log levels: error, warn, info, debug
+- Log format: JSON with timestamps
+- Log destinations: console (stdout/stderr)
 
-**Log Destinations:**
+**Frontend:** Browser console + error boundaries
 
-- Development: Console (colorized)
-- Production: stdout (captured by Fly.io)
+- Production: Minimal logging
+- Development: Verbose logging
 
 ### Health Monitoring
 
-- **Endpoint:** `GET /health`
-- **Response Time:** < 50ms
-- **Uptime Checks:** Fly.io automated monitoring
-- **Database Health:** Sequelize connection pooling
+**Health Check Endpoint:** `GET /health`
 
----
-
-## Error Handling
-
-### Strategy
-
-1. **Input Validation:** Joi schemas reject invalid requests (400 Bad Request)
-2. **Business Logic Errors:** Custom error classes with specific codes
-3. **Database Errors:** Sequelize error handling (500 Internal Server Error)
-4. **Global Error Handler:** Express middleware catches unhandled errors
-5. **Discord Errors:** Graceful error messages sent to users
-
-### Error Flow
-
-```
-Request → Validation → Business Logic → Database
-   ↓           ↓              ↓            ↓
-  400         400            500          500
-   │           │              │            │
-   └───────────┴──────────────┴────────────┘
-                    │
-                    ▼
-           Global Error Handler
-                    │
-                    ▼
-          Standardized JSON Response
-          { success: false, error: {...} }
+```json
+{
+  "status": "healthy",
+  "timestamp": "2026-01-11T12:00:00.000Z",
+  "environment": "production"
+}
 ```
 
+## Design Decisions
+
+### Why Monorepo?
+
+- Shared types between backend and frontend (DRY principle)
+- Atomic commits across frontend + backend changes
+- Simplified dependency management
+- Single CI/CD pipeline
+
+### Why Three Interfaces?
+
+- **Discord Bot:** Primary interface for users already in Discord servers
+- **REST API:** Enables integrations with external tools
+- **PWA:** Web/mobile access for users not on Discord
+
+### Why PostgreSQL?
+
+- Production-grade relational database
+- ACID compliance for data integrity
+- Better performance than SQLite for concurrent access
+- Native JSON support for flexible schema
+
+### Why Discord User ID for Auth?
+
+- Users already authenticated via Discord
+- No need for separate user registration
+- Seamless integration with Discord bot
+- Email → Discord ID mapping enforces authorization
+
+## Testing Strategy
+
+### Test Coverage
+
+- **Backend:** 35% coverage (target: 80%)
+- **Frontend:** 45% coverage (target: 80%)
+- **Critical paths:** 100% coverage (auth, database operations)
+
+### Test Types
+
+- **Unit Tests:** Jest + ts-jest
+- **Integration Tests:** Supertest for API routes
+- **E2E Tests:** (Future) Playwright for PWA
+
+### Running Tests
+
+```bash
+npm test                  # All tests
+npm run test:backend      # Backend only
+npm run test:frontend     # Frontend only
+npm run test:coverage     # With coverage report
+npm run test:watch        # Watch mode for TDD
+```
+
+## Known Limitations
+
+- Single guild support (all data filtered by same guild_id)
+- No real-time sync between Discord bot and PWA (polling only)
+- Email whitelist requires manual environment variable updates
+- No horizontal scaling (single server deployment)
+
+## Future Enhancements
+
+- WebSocket support for real-time updates
+- Multi-guild support per user
+- Admin dashboard for user management
+- API rate limiting
+- GraphQL API layer
+- Mobile app (React Native)
+
 ---
 
-## Future Architecture Considerations
-
-### Scalability Enhancements
-
-- **Caching Layer:** Redis for frequently accessed data
-- **Message Queue:** Bull/BullMQ for background job processing
-- **Database Sharding:** Partition by guild_id for large-scale deployment
-- **CDN:** Static asset delivery for PWA
-
-### Feature Additions
-
-- **WebSocket Support:** Real-time updates for PWA
-- **GraphQL API:** Flexible query interface
-- **Microservices:** Split bot and API into separate deployments
-- **Event Sourcing:** Audit trail for all data changes
-
----
-
-## Additional Resources
-
-- **Getting Started:** [docs/guides/getting-started.md](../guides/getting-started.md)
-- **API Reference:** [docs/api/README.md](../api/README.md)
-- **Discord Commands:** [docs/reference/discord-commands.md](../reference/discord-commands.md)
-- **Deployment Guide:** [docs/guides/deployment.md](../guides/deployment.md)
-- **Development Guide:** [docs/architecture/development.md](development.md)
-
----
-
-**Last Updated:** 2026-01-09
-**Version:** 1.0.0
+For API documentation, see [../api/](../api/).
+For getting started, see [../guides/getting-started.md](../guides/getting-started.md).

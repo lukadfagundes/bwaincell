@@ -7,52 +7,409 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
-### Changed
+## [2.0.0] - 2026-01-12
 
-- Configured custom subdomain bwaincell.sunny-stack.com for frontend deployment
+### Overview
 
-## [1.0.0] - 2026-01-10
+Major architecture overhaul migrating from Fly.io + SQLite to self-hosted Raspberry Pi 4B + PostgreSQL with unified monorepo structure. This release transforms Bwaincell from a simple backend API into a comprehensive productivity platform with three integrated interfaces.
+
+**Deployment:** Raspberry Pi 4B (Docker + PostgreSQL 15) | Vercel (Frontend PWA)
+**Live URLs:**
+
+- Frontend PWA: https://bwaincell.sunny-stack.com
+- Backend API: Self-hosted (Raspberry Pi 4B)
+
+### Breaking Changes
+
+#### Database Migration
+
+- **Migrated from SQLite to PostgreSQL 15**
+  - No longer using file-based database (`./data/bwaincell.sqlite`)
+  - Requires PostgreSQL server configuration
+  - See [docs/architecture/adr/0002-postgresql-migration.md](docs/architecture/adr/0002-postgresql-migration.md)
+  - Migration guide: [docs/guides/database-migrations.md](docs/guides/database-migrations.md)
+
+#### Deployment Architecture
+
+- **Migrated from Fly.io to self-hosted Raspberry Pi 4B**
+  - Docker Compose configuration for backend + PostgreSQL
+  - No longer uses Fly.io deployment (`fly.toml` removed)
+  - Custom systemd service management
+  - See [docs/guides/deployment.md](docs/guides/deployment.md)
+
+#### Repository Structure
+
+- **Unified monorepo with npm workspaces**
+  - Backend moved to `backend/` workspace
+  - Frontend moved to `frontend/` workspace
+  - Shared types in `shared/` workspace
+  - Requires `npm install` at root + `npm run build:shared`
 
 ### Added
 
-- **Discord Bot** with slash commands for task management, lists, reminders, budgets, notes, and schedules
-- **Task Management** - Create, complete, and manage tasks with due dates via Discord
-- **Smart Lists** - Organize items in multiple named lists with completion tracking
-- **Reminders** - Schedule one-time, daily, or weekly reminders with automatic Discord notifications
-- **Budget Tracking** - Track income and expenses with category-based organization
-- **Notes** - Create searchable notes with tag support
-- **Schedules** - Manage recurring schedules and events
-- **REST API** with Express backend providing CRUD operations for all features
-- **Google OAuth 2.0** authentication with JWT token-based session management
-- **Next.js Progressive Web App (PWA)** frontend for mobile and desktop access
-- **User Isolation** - Data segregated by Discord user ID and guild ID for multi-tenant support
-- **CORS Support** configured for PWA integration
-- **Health Monitoring** endpoint for uptime tracking
-- **npm Workspaces Monorepo** structure with backend, frontend, and shared packages
-- **PostgreSQL Database** with Sequelize ORM for data persistence
-- **Automatic Reminder Scheduler** using node-cron for recurring reminders
-- **Winston Logger** for structured logging with multiple log levels
-- **Docker Support** with multi-stage Dockerfile and docker-compose.yml
-- **Fly.io Deployment** configuration for production hosting
-- **GitHub Actions CI/CD** workflows for automated testing and deployment
-- **Comprehensive Test Suite** with Jest (80%+ coverage requirement)
-- **Input Validation** using Joi schemas on all API endpoints
-- **Rate Limiting** to prevent API abuse
-- **Email Whitelist** for access control via environment variables
-- **Refresh Token Support** for extended user sessions (7 days)
-- **Database Connection Pooling** for improved performance
-- **TypeScript Project References** for efficient monorepo builds
-- **ESLint and Prettier** for code quality and formatting
-- **Husky Pre-commit Hooks** for automated linting and validation
+#### Monorepo Architecture
 
-### Security
+- **npm Workspaces** structure with three packages:
+  - `backend/` - Discord bot + Express API
+  - `frontend/` - Next.js 14.2.35 PWA
+  - `shared/` - Shared TypeScript types and utilities
+- **TypeScript Project References** for efficient cross-package builds
+- **Centralized dependency management** at root level
+- **Workspace-aware npm scripts** for unified development workflow
 
-- Passwords hashed using bcrypt with cost factor of 12
-- JWT tokens with 1-hour expiry for access tokens
-- Sequelize ORM preventing SQL injection attacks
-- HTTPS enforcement on Fly.io deployment
-- No sensitive data logged in production mode
-- CORS configured for specific origins only
+#### Database & Infrastructure
 
-[unreleased]: https://github.com/yourusername/bwaincell/compare/v1.0.0...HEAD
-[1.0.0]: https://github.com/yourusername/bwaincell/releases/tag/v1.0.0
+- **PostgreSQL 15** production database with:
+  - Connection pooling (min: 2, max: 10)
+  - Automatic schema migrations via Sequelize
+  - Environment-based configuration (`DATABASE_URL`)
+  - Docker volume persistence
+- **Prisma 5.22.0** ORM for frontend (separate from backend Sequelize)
+- **Docker Compose** orchestration:
+  - Multi-container setup (backend + postgres)
+  - Volume mounts for data persistence
+  - Network isolation
+  - Health checks and restart policies
+- **Raspberry Pi 4B** self-hosting:
+  - Systemd service management
+  - Automatic startup on boot
+  - Resource monitoring
+  - Local network deployment
+
+#### Frontend PWA (Integrated)
+
+- **Next.js 14.2.35** Progressive Web App
+- **Prisma Client** with PostgreSQL connection
+- **Google OAuth 2.0** authentication flow
+- **next-pwa** integration:
+  - Service worker caching
+  - Offline support
+  - App installation prompts
+  - Background sync
+- **Radix UI** component library
+- **TanStack Query** for data fetching
+- **Tailwind CSS** styling
+- **Dark mode** support
+- **Responsive design** for mobile/desktop
+- **Custom subdomain:** bwaincell.sunny-stack.com
+
+#### New Features
+
+- **Schedule Management** (`/schedule`) - 6 subcommands:
+  - Create/list/view/edit/delete schedules
+  - View today's and this week's schedules
+- **Event Management** with countdown timers
+- **Tag-based note organization** with full-text search
+- **List consolidation** removed (simplified to 8 subcommands)
+- **Budget category analytics** and trend tracking
+
+#### Documentation Overhaul
+
+- **30+ comprehensive documentation files** in `docs/`:
+  - `docs/api/` - REST API reference with 39 endpoints
+  - `docs/architecture/` - System design, ADRs, database schema
+  - `docs/guides/` - Getting started, deployment, testing, CI/CD
+  - `docs/reference/` - Glossary, quick reference, environment vars
+- **Architecture Decision Records (ADRs)**:
+  - 0001-monorepo-architecture.md
+  - 0002-postgresql-migration.md
+  - 0003-oauth2-jwt-authentication.md
+  - 0004-discord-bot-rest-api.md
+- **Deployment runbooks** for Raspberry Pi + Vercel
+- **Testing documentation** with Jest configuration
+- **API documentation** with authentication flows
+- **Discord command reference** with all 46 subcommands
+
+#### Development Tools
+
+- **GitHub Actions CI/CD** workflows:
+  - Backend testing and Docker build
+  - Frontend testing and Vercel deployment
+  - Automated dependency updates
+- **ESLint** with strict TypeScript rules
+- **Prettier** code formatting
+- **Husky + lint-staged** pre-commit hooks
+- **Jest 30.1.3** with ts-jest for backend
+- **Supertest** for API integration testing
+- **Coverage badges** generation
+- **Docker development** with hot-reload support
+
+#### Testing Infrastructure
+
+- **38 test files** covering:
+  - Discord command handlers
+  - API endpoints
+  - Database models
+  - Utility functions
+  - Integration tests
+- **Backend coverage:** 35% (target: 80%)
+- **Frontend coverage:** 45% (target: 80%)
+- **Coverage thresholds** enforced in CI/CD
+- **Test setup files** with mock implementations
+
+### Changed
+
+#### Configuration
+
+- **Environment variables** restructured:
+  - `DATABASE_URL` replaces `DATABASE_PATH`
+  - PostgreSQL connection strings
+  - Added `NODE_ENV`, `LOG_LEVEL`, `TZ`
+  - Workspace-specific `.env` files
+- **Custom subdomain** configured: bwaincell.sunny-stack.com (from bwain-app.vercel.app)
+- **CORS origins** updated for new frontend domain
+- **Port configuration** separated (backend: 3000, frontend: 3010)
+
+#### Discord Bot
+
+- **7 slash commands** with **46 total subcommands**:
+  - `/task` - 5 subcommands
+  - `/list` - 7 subcommands (removed consolidate)
+  - `/note` - 8 subcommands
+  - `/remind` - 5 subcommands
+  - `/budget` - 6 subcommands
+  - `/schedule` - 6 subcommands (NEW)
+  - `/random` - 8 subcommands
+- **Improved interaction handlers** with button/modal support
+- **Enhanced error handling** with user-friendly messages
+- **Autocomplete support** for list and note commands
+
+#### REST API
+
+- **39 authenticated endpoints** (up from ~30 in v1.0.0)
+- **Schedule endpoints** added for event management
+- **Enhanced OAuth flow** with refresh token rotation
+- **Improved error responses** with consistent format
+- **Request validation** with Joi schemas on all endpoints
+- **Rate limiting** middleware for API protection
+
+#### Database Schema
+
+- **PostgreSQL schema** with proper constraints:
+  - Foreign keys with CASCADE deletes
+  - Indexes on frequently queried columns
+  - JSONB columns for flexible data (list items, tags)
+  - Timestamps (createdAt, updatedAt) on all tables
+- **User isolation** maintained via `userId` + `guildId`
+- **Auto-migrations** on server startup
+- **Connection pooling** for performance
+
+### Improved
+
+- **Winston 3.17.0** structured logging:
+  - JSON format for production
+  - Console output for development
+  - File rotation with daily logs
+  - Separate error log file
+  - Context-aware logging with metadata
+- **Error handling** across all layers:
+  - Try-catch blocks in all async functions
+  - Centralized error middleware
+  - User-friendly error messages
+  - Stack traces in development only
+- **Type safety** with shared TypeScript types
+- **Code organization** with workspace structure
+- **Development workflow** with parallel dev servers
+- **Build process** optimized for monorepo
+- **Deployment process** streamlined with Docker Compose
+
+### Removed
+
+- **Fly.io deployment** (`fly.toml` removed)
+- **SQLite database** (migrated to PostgreSQL)
+- **Standalone backend repo** (merged into monorepo)
+- **Trinity Method self-references** from user-facing documentation
+- **List consolidate subcommand** (simplified to 8 subcommands)
+
+### Security Enhancements
+
+- **PostgreSQL security**:
+  - Strong password requirements
+  - Network isolation via Docker
+  - SSL/TLS connections enforced (production)
+- **JWT token rotation** with refresh token blacklisting
+- **Environment variable validation** on startup
+- **Input sanitization** on all user inputs
+- **HTTPS enforcement** on frontend (Vercel)
+- **Secrets management** via Docker secrets
+
+### Performance
+
+- **PostgreSQL connection pooling** (min: 2, max: 10)
+- **Frontend code splitting** with Next.js App Router
+- **Service worker caching** for instant page loads
+- **Image optimization** with next/image
+- **Lazy loading** for heavy components
+- **Database indexes** on common queries
+- **Gzip compression** on API responses
+
+### Documentation Improvements
+
+- **Trinity Method references removed** from all user-facing docs
+- **BAS Quality Gates** renamed to "Quality Gates"
+- **License consistency** fixed (MIT in all files)
+- **ADR location** corrected in glossary
+- **API endpoint count** updated to 39
+- **Subcommand count** updated to 46
+- **Version info** updated throughout
+
+### Known Issues
+
+- Backend test coverage at 35% (target: 80%)
+- Frontend test coverage at 45% (target: 80%)
+- Some Discord commands lack comprehensive error handling
+- Database migrations manual (no automated rollback)
+- No automated backup system (manual `pg_dump` required)
+
+### Migration Guide
+
+See [docs/guides/database-migrations.md](docs/guides/database-migrations.md) for complete migration instructions from v1.0.0 (SQLite) to v2.0.0 (PostgreSQL).
+
+### Notes
+
+This release represents a complete architectural transformation from a simple Fly.io-hosted API to a self-hosted, production-grade monorepo platform. The migration to PostgreSQL, Raspberry Pi deployment, and unified monorepo structure provides a solid foundation for future development while maintaining all existing functionality.
+
+**Major Achievement:** Successfully integrated frontend PWA into monorepo, migrated to PostgreSQL, and deployed on self-hosted Raspberry Pi infrastructure while maintaining 100% feature parity with v1.0.0.
+
+## [1.0.0] - 2025-10-09
+
+### Overview
+
+Initial production release of Bwaincell - A personal productivity platform combining Discord bot functionality with a RESTful API for web/mobile integration.
+
+**Deployment:** Fly.io + SQLite backend | Vercel frontend PWA
+**Live URLs:**
+
+- API: https://bwaincell.fly.dev
+- PWA: https://bwain-app.vercel.app
+
+### Added
+
+#### Core Features
+
+- **Task Management** (`/task`) - Create, complete, edit, and delete tasks with optional due dates
+- **List Management** (`/list`) - Create multiple named lists with item completion tracking
+  - Add/remove items
+  - Toggle item completion
+  - Clear completed items
+  - View all lists with item counts
+- **Smart Reminders** (`/remind`) - Schedule notifications with Discord integration
+  - One-time reminders
+  - Daily recurring reminders
+  - Weekly recurring reminders with day selection
+  - Automatic notification system
+- **Budget Tracking** (`/budget`) - Personal finance management
+  - Track expenses by category
+  - Record income transactions
+  - Monthly summaries
+  - Category breakdowns and spending analytics
+- **Notes** (`/note`) - Tagged note-taking system
+  - Create notes with tags
+  - Search by keyword
+  - Filter by tags
+  - Edit existing notes
+- **Random Generators** (`/random`) - Discord-only utility commands
+  - Movie picker
+  - Dinner suggestions
+  - Date ideas
+  - Conversation starters
+  - Coin flip & dice roll
+
+#### Discord Bot
+
+- **Discord.js 14.14.1** integration with slash commands
+- **Multi-user support** with Discord user ID isolation
+- **Command deployment script** for server registration
+- **Interactive embeds and buttons** for rich user experience
+
+#### REST API
+
+- **Express 4.x** HTTP server
+- **Google OAuth 2.0** authentication
+- **JWT bearer tokens** for session management (1 hour access, 7 days refresh)
+- **CORS configuration** for PWA integration (localhost + Vercel)
+- **Health check endpoint** (`/health`) for monitoring
+- **39 API endpoints** covering all features:
+  - OAuth: `/api/auth/google/verify`, `/api/auth/refresh`, `/api/auth/logout`
+  - Tasks: CRUD operations with status filtering
+  - Lists: CRUD with item management
+  - Notes: CRUD with search and tag filtering
+  - Reminders: Create one-time/daily/weekly reminders
+  - Budget: Transaction management and summaries
+
+#### Database
+
+- **SQLite 3** with file-based persistence (`./data/bwaincell.sqlite`)
+- **Sequelize ORM** for data modeling
+- **User isolation** by Discord user ID and guild ID
+- **Migration support** for schema changes
+- **Connection pooling** for performance
+
+#### Authentication & Security
+
+- **Google OAuth 2.0** ID token verification
+- **JWT tokens** with `HS256` algorithm
+- **Email whitelist** via `ALLOWED_GOOGLE_EMAILS` environment variable
+- **Sequelize ORM** prevents SQL injection
+- **Input validation** on all API endpoints
+- **No sensitive data** in production logs
+- **HTTPS enforcement** on Fly.io
+
+#### Infrastructure
+
+- **TypeScript 5.9.2** with strict mode
+- **Node.js 18+** runtime
+- **node-cron 4.2.1** for automatic reminder scheduling
+- **Winston 3.17.0** structured logging
+- **Jest 30.1.3** testing framework
+- **Docker** multi-stage build with Alpine Linux
+- **Fly.io** production deployment configuration
+- **ESLint + Prettier** for code quality
+- **npm scripts** for development, testing, and deployment
+
+#### Development Tools
+
+- **Hot reload** development mode
+- **Test coverage** reporting
+- **Lint and format** automation
+- **Environment validation** with Joi schemas
+- **Error handling** middleware
+- **Timezone support** (configurable via `TIMEZONE` env var)
+
+### Technical Stack
+
+```
+Runtime: Node.js 18+
+Language: TypeScript 5.9.2
+Framework: Express.js 4.x
+Discord: Discord.js 14.14.1
+Database: SQLite 3 + Sequelize ORM
+Auth: Google OAuth 2.0 + JWT
+Scheduler: node-cron 4.2.1
+Logging: Winston 3.17.0
+Testing: Jest 30.1.3
+Deployment: Fly.io + Docker
+Frontend: Vercel PWA (separate repo)
+```
+
+### Browser Compatibility
+
+- ✅ Chrome/Edge (Windows, macOS)
+- ✅ Safari (macOS, iOS PWA)
+- ✅ Firefox (Windows, macOS)
+
+### Known Limitations
+
+- SQLite database (single-file, not suitable for high concurrency)
+- Deployed on Fly.io (later migrated to Raspberry Pi 4B in v1.1.0)
+- Frontend in separate repository (later unified in monorepo)
+- No PostgreSQL support (added in v1.1.0)
+- No workspace structure (added in v1.1.0)
+
+### Notes
+
+This version represents the initial production release built for personal use by the author and his wife. The system was designed as a dual-purpose productivity platform accessible via Discord bot commands and a companion Progressive Web App.
+
+[unreleased]: https://github.com/lukadfagundes/bwaincell/compare/v2.0.0...HEAD
+[2.0.0]: https://github.com/lukadfagundes/bwaincell/compare/v1.0.0...v2.0.0
+[1.0.0]: https://github.com/lukadfagundes/bwaincell/releases/tag/v1.0.0

@@ -1,546 +1,361 @@
-# Bwaincell Reference Documentation
+# Reference Documentation
 
-Quick reference for Discord commands, environment variables, and CLI scripts.
+Quick reference for CLI commands, environment variables, dependencies, glossary, and quick command lookup.
 
----
+## Available References
 
-## Discord Commands Reference
-
-Complete list of Discord slash commands available in Bwaincell.
-
-### Task Commands
-
-| Command                       | Description           | Parameters                                           |
-| ----------------------------- | --------------------- | ---------------------------------------------------- |
-| `/task add <text> [due_date]` | Create a new task     | `text` (required), `due_date` (optional, YYYY-MM-DD) |
-| `/task list`                  | View all active tasks | None                                                 |
-| `/task complete <task_id>`    | Mark task as complete | `task_id` (required, integer)                        |
-| `/task delete <task_id>`      | Delete a task         | `task_id` (required, integer)                        |
-
-**Examples:**
-
-```
-/task add Buy groceries 2026-01-15
-/task list
-/task complete 1
-/task delete 2
-```
+- **[Reference Documentation](README.md)** - CLI commands, environment variables, dependencies (this file)
+- **[Quick Reference](quick-reference.md)** - Fast lookup for common commands, Discord bot commands, API endpoints, environment variables, file locations, and troubleshooting quick fixes
+- **[Glossary](glossary.md)** - Technical terms, project-specific concepts, and acronyms (90+ terms)
 
 ---
 
-### List Commands
+## CLI Commands
 
-| Command                           | Description            | Parameters                                |
-| --------------------------------- | ---------------------- | ----------------------------------------- |
-| `/list create <name>`             | Create a new list      | `name` (required, string)                 |
-| `/list add <list_name> <item>`    | Add item to list       | `list_name` (required), `item` (required) |
-| `/list view <list_name>`          | View list items        | `list_name` (required)                    |
-| `/list toggle <list_name> <item>` | Toggle item completion | `list_name` (required), `item` (required) |
-| `/list remove <list_name> <item>` | Remove item from list  | `list_name` (required), `item` (required) |
-| `/list delete <list_name>`        | Delete entire list     | `list_name` (required)                    |
-| `/list all`                       | View all lists         | None                                      |
+### npm Scripts (Monorepo Root)
 
-**Examples:**
+**Development:**
 
-```
-/list create Groceries
-/list add Groceries Milk
-/list view Groceries
-/list toggle Groceries Milk
-/list remove Groceries Eggs
-/list delete Groceries
-/list all
-```
+- **`npm run dev`** - Start backend and frontend concurrently
+- **`npm run dev:backend`** - Start backend only (Discord bot + API on port 3000)
+- **`npm run dev:frontend`** - Start frontend only (Next.js on port 3010)
+- **`npm run dev:shared`** - Watch shared types for changes
 
----
+**Build:**
 
-### Reminder Commands
+- **`npm run build`** - Build all workspaces (shared → backend → frontend)
+- **`npm run build:shared`** - Build shared types package
+- **`npm run build:backend`** - Build backend only
+- **`npm run build:frontend`** - Build frontend only
+- **`npm run build:all`** - TypeScript build for all workspaces
 
-| Command                                                    | Description               | Parameters                                                                                            |
-| ---------------------------------------------------------- | ------------------------- | ----------------------------------------------------------------------------------------------------- |
-| `/reminder add <message> <time> <frequency> [day_of_week]` | Create reminder           | `message` (required), `time` (HH:MM), `frequency` (once/daily/weekly), `day_of_week` (0-6 for weekly) |
-| `/reminder list`                                           | View all active reminders | None                                                                                                  |
-| `/reminder delete <reminder_id>`                           | Delete a reminder         | `reminder_id` (required, integer)                                                                     |
+**Testing:**
 
-**Frequency Options:**
+- **`npm test`** - Run tests in all workspaces
+- **`npm run test:backend`** - Run backend tests
+- **`npm run test:frontend`** - Run frontend tests
+- **`npm run test:watch`** - Run tests in watch mode
+- **`npm run test:coverage`** - Generate coverage reports
 
-- `once` - One-time reminder
-- `daily` - Repeats every day
-- `weekly` - Repeats every week on specified day
+**Linting:**
 
-**Day of Week (for weekly reminders):**
+- **`npm run lint`** - Lint all workspaces
+- **`npm run lint:fix`** - Auto-fix linting errors
+- **`npm run lint:backend`** - Lint backend only
+- **`npm run lint:frontend`** - Lint frontend only
 
-- `0` = Sunday
-- `1` = Monday
-- `2` = Tuesday
-- `3` = Wednesday
-- `4` = Thursday
-- `5` = Friday
-- `6` = Saturday
+**Type Checking:**
 
-**Examples:**
+- **`npm run typecheck`** - TypeScript compilation check (no emit)
+- **`npm run typecheck:watch`** - Watch mode for type checking
 
-```
-/reminder add Take medication 09:00 daily
-/reminder add Team meeting 14:00 weekly 1
-/reminder add Doctor appointment 15:30 once
-/reminder list
-/reminder delete 1
-```
+**Cleanup:**
 
----
+- **`npm run clean`** - Remove build artifacts from all workspaces
+- **`npm run clean:backend`** - Clean backend only
+- **`npm run clean:frontend`** - Clean frontend only
+- **`npm run clean:shared`** - Clean shared types only
 
-### Budget Commands
+**Docker:**
 
-| Command                                                | Description           | Parameters                                                                                            |
-| ------------------------------------------------------ | --------------------- | ----------------------------------------------------------------------------------------------------- |
-| `/budget add <amount> <category> <type> [description]` | Add transaction       | `amount` (required, number), `category` (required), `type` (expense/income), `description` (optional) |
-| `/budget summary [month]`                              | View budget summary   | `month` (optional, YYYY-MM format)                                                                    |
-| `/budget list`                                         | View all transactions | None                                                                                                  |
-| `/budget delete <transaction_id>`                      | Delete transaction    | `transaction_id` (required, integer)                                                                  |
+- **`npm run docker:build`** - Build Docker containers
+- **`npm run docker:up`** - Start containers in detached mode
+- **`npm run docker:down`** - Stop and remove containers
+- **`npm run docker:logs`** - View logs from all containers
+- **`npm run docker:backend`** - View backend container logs
+- **`npm run docker:frontend`** - View frontend container logs
 
-**Transaction Types:**
+### Backend Scripts
 
-- `expense` - Money spent
-- `income` - Money received
+**Development:**
 
-**Examples:**
+- **`npm run dev --workspace=backend`** - Start Discord bot + API with hot reload
+- **`npm run start --workspace=backend`** - Start production backend
+- **`npm run deploy --workspace=backend`** - Deploy Discord slash commands
 
-```
-/budget add 50.00 groceries expense Weekly shopping
-/budget add 3000.00 salary income January paycheck
-/budget summary 2026-01
-/budget list
-/budget delete 1
-```
+**Build:**
 
----
+- **`npm run build --workspace=backend`** - Compile TypeScript to JavaScript
+- **`npm run clean --workspace=backend`** - Remove dist/ directory
+- **`npm run rebuild --workspace=backend`** - Clean + build
 
-### Note Commands
+**Testing:**
 
-| Command                      | Description             | Parameters                                                       |
-| ---------------------------- | ----------------------- | ---------------------------------------------------------------- |
-| `/note add <content> [tags]` | Create a note           | `content` (required, string), `tags` (optional, comma-separated) |
-| `/note list`                 | View all notes          | None                                                             |
-| `/note search <keyword>`     | Search notes by keyword | `keyword` (required, string)                                     |
-| `/note delete <note_id>`     | Delete a note           | `note_id` (required, integer)                                    |
+- **`npm run test --workspace=backend`** - Run backend tests
+- **`npm run test:watch --workspace=backend`** - Watch mode
+- **`npm run test:coverage --workspace=backend`** - Generate coverage
+- **`npm run test:coverage-report --workspace=backend`** - HTML coverage report
+- **`npm run coverage:threshold --workspace=backend`** - Enforce 80% coverage
 
-**Examples:**
+**Quality:**
 
-```
-/note add Meeting notes from Jan 9 work,meeting
-/note list
-/note search meeting
-/note delete 1
-```
+- **`npm run lint --workspace=backend`** - ESLint check
+- **`npm run lint:fix --workspace=backend`** - Auto-fix linting errors
+- **`npm run typecheck --workspace=backend`** - TypeScript compilation check
+- **`npm run format --workspace=backend`** - Format with Prettier
+- **`npm run format:check --workspace=backend`** - Check formatting
 
----
+**Utilities:**
 
-### Schedule Commands
+- **`npm run generate-assets --workspace=backend`** - Generate bot assets
 
-| Command                                                      | Description        | Parameters                                                                                                    |
-| ------------------------------------------------------------ | ------------------ | ------------------------------------------------------------------------------------------------------------- |
-| `/schedule add <title> <start_time> [end_time] [recurrence]` | Create schedule    | `title` (required), `start_time` (required, YYYY-MM-DD HH:MM), `end_time` (optional), `recurrence` (optional) |
-| `/schedule list`                                             | View all schedules | None                                                                                                          |
-| `/schedule delete <schedule_id>`                             | Delete schedule    | `schedule_id` (required, integer)                                                                             |
+### Frontend Scripts
 
-**Examples:**
+**Development:**
 
-```
-/schedule add Team meeting 2026-01-10 14:00 15:00 weekly
-/schedule list
-/schedule delete 1
-```
+- **`npm run dev --workspace=frontend`** - Start Next.js dev server (port 3010)
+- **`npm run build --workspace=frontend`** - Build production frontend
+- **`npm run start --workspace=frontend`** - Start production server
+- **`npm run lint --workspace=frontend`** - Next.js ESLint check
 
----
+**Database (Prisma):**
+
+- **`npm run postinstall --workspace=frontend`** - Generate Prisma client (auto)
 
 ## Environment Variables
 
-Complete list of environment variables required for Bwaincell configuration.
+### Required Variables
 
-### Discord Configuration (Required)
+**Discord Bot Configuration:**
 
-| Variable                   | Description                           | Example                                |
-| -------------------------- | ------------------------------------- | -------------------------------------- |
-| `BOT_TOKEN`                | Discord bot token                     | `MTIzNDU2Nzg5MDEyMzQ1Njc4OQ.GhIjKl...` |
-| `CLIENT_ID`                | Discord application client ID         | `1234567890123456789`                  |
-| `GUILD_ID`                 | Discord server (guild) ID for testing | `9876543210987654321`                  |
-| `DEFAULT_REMINDER_CHANNEL` | Channel ID for reminder announcements | `1111222233334444555`                  |
+- `BOT_TOKEN` - Discord bot token (Discord Developer Portal)
+- `CLIENT_ID` - Discord application client ID
+- `GUILD_ID` - Discord server ID for testing
+- `DEFAULT_REMINDER_CHANNEL` - Channel ID for reminder announcements
 
-**How to Get:**
+**Database Configuration:**
 
-1. **Bot Token:** [Discord Developer Portal](https://discord.com/developers/applications) → Your App → Bot → Token
-2. **Client ID:** Discord Developer Portal → Your App → General Information → Application ID
-3. **Guild ID:** Discord → Server Settings → Widget → Server ID
-4. **Channel ID:** Discord → Right-click channel → Copy ID (Enable Developer Mode first)
+- `DATABASE_URL` - PostgreSQL connection string
+  - Format: `postgresql://user:password@host:port/database`
+  - Example: `postgresql://bwaincell:password@localhost:5433/bwaincell`
+- `POSTGRES_USER` - PostgreSQL username
+- `POSTGRES_PASSWORD` - PostgreSQL password
+- `POSTGRES_DB` - PostgreSQL database name
 
----
+**API Configuration:**
 
-### Google OAuth Configuration (Required)
+- `API_PORT` - Express API port (default: 3000)
+- `PORT` - Alias for API_PORT
+- `JWT_SECRET` - JWT access token secret (generate with `openssl rand -base64 32`)
 
-| Variable                | Description                                 | Example                                         |
-| ----------------------- | ------------------------------------------- | ----------------------------------------------- |
-| `GOOGLE_CLIENT_ID`      | Google OAuth 2.0 client ID                  | `123456789012-abc...apps.googleusercontent.com` |
-| `GOOGLE_CLIENT_SECRET`  | Google OAuth 2.0 client secret              | `GOCSPX-abc123...`                              |
-| `ALLOWED_GOOGLE_EMAILS` | Comma-separated whitelist of allowed emails | `user1@gmail.com,user2@gmail.com`               |
+**Google OAuth Configuration:**
 
-**How to Get:**
+- `GOOGLE_CLIENT_ID` - Google OAuth client ID (.apps.googleusercontent.com)
+- `GOOGLE_CLIENT_SECRET` - Google OAuth client secret
+- `ALLOWED_GOOGLE_EMAILS` - Comma-separated list of authorized emails
 
-1. Go to [Google Cloud Console](https://console.cloud.google.com/)
-2. Create new project or select existing
-3. Enable Google+ API
-4. Create OAuth 2.0 credentials
-5. Add authorized redirect URIs
+**User Mapping (Email → Discord ID):**
 
----
+- `USER1_EMAIL` - First user's email
+- `USER1_DISCORD_ID` - First user's Discord user ID
+- `USER2_EMAIL` - Second user's email
+- `USER2_DISCORD_ID` - Second user's Discord user ID
 
-### JWT Configuration (Required)
+**Frontend Configuration (frontend/.env.local):**
 
-| Variable     | Description                       | Example                          |
-| ------------ | --------------------------------- | -------------------------------- |
-| `JWT_SECRET` | Secret key for signing JWT tokens | `your_secure_random_secret_here` |
+- `NEXTAUTH_URL` - NextAuth callback URL (e.g., `http://localhost:3010`)
+- `NEXTAUTH_SECRET` - NextAuth session secret
+- `NEXT_PUBLIC_API_URL` - Backend API URL (e.g., `http://localhost:3000`)
+- `NEXT_PUBLIC_GOOGLE_CLIENT_ID` - Google OAuth client ID (public)
 
-**Generate Secure Secret:**
+**Application Settings:**
+
+- `NODE_ENV` - Environment mode (`development` | `production` | `test`)
+- `TIMEZONE` - Timezone for DateTime operations (e.g., `America/Chicago`)
+- `DELETE_COMMAND_AFTER` - Milliseconds before deleting Discord responses (default: 5000)
+
+### Optional Variables
+
+- `DEPLOYMENT_MODE` - Deployment platform identifier (e.g., `pi`, `fly`)
+
+### Generate Secrets
 
 ```bash
+# Generate JWT_SECRET
+openssl rand -base64 32
+
+# Generate NEXTAUTH_SECRET
 openssl rand -base64 32
 ```
 
-**Important:** Never commit this to version control!
+## Dependencies
 
----
+### Production Dependencies (Root)
 
-### Database Configuration (Required)
+**Core Libraries:**
 
-| Variable            | Description                           | Example                                               |
-| ------------------- | ------------------------------------- | ----------------------------------------------------- |
-| `DATABASE_URL`      | PostgreSQL connection string          | `postgresql://user:password@localhost:5432/bwaincell` |
-| `POSTGRES_USER`     | PostgreSQL username (for Docker)      | `bwaincell`                                           |
-| `POSTGRES_PASSWORD` | PostgreSQL password (for Docker)      | `secure_password_here`                                |
-| `POSTGRES_DB`       | PostgreSQL database name (for Docker) | `bwaincell`                                           |
+- `discord.js` ^14.14.1 - Discord bot framework
+- `express` ^4.21.2 - REST API server
+- `sequelize` ^6.37.7 - PostgreSQL ORM
+- `pg` ^8.16.3 - PostgreSQL driver
+- `dotenv` ^17.2.2 - Environment variables
 
-**Connection String Format:**
+**Authentication:**
 
-```
-postgresql://[username]:[password]@[host]:[port]/[database]
-```
+- `google-auth-library` ^10.4.0 - Google OAuth verification
+- `googleapis` ^160.0.0 - Google APIs client
+- `jsonwebtoken` ^9.0.2 - JWT token generation/verification
 
-**Examples:**
+**Utilities:**
 
-- Local development: `postgresql://postgres:password@localhost:5432/bwaincell`
-- Docker Compose: `postgresql://bwaincell:password@postgres:5433/bwaincell`
-- Production: `postgresql://user:pass@prod-db.example.com:5432/bwaincell`
+- `winston` ^3.17.0 - Structured logging
+- `joi` ^18.0.1 - Input validation
+- `luxon` ^3.7.2 - DateTime operations
+- `node-cron` ^4.2.1 - Task scheduling
+- `module-alias` ^2.2.3 - Module path aliases
+- `cors` ^2.8.5 - CORS middleware
 
----
+**TypeScript:**
 
-### User Mapping (Required for API)
+- `@types/*` packages for type definitions
 
-Maps email addresses to Discord user IDs for API authentication.
+### Development Dependencies (Root)
 
-| Variable           | Description                 | Example              |
-| ------------------ | --------------------------- | -------------------- |
-| `USER1_EMAIL`      | First user's email address  | `user@gmail.com`     |
-| `USER1_DISCORD_ID` | First user's Discord ID     | `123456789012345678` |
-| `USER2_EMAIL`      | Second user's email address | `partner@gmail.com`  |
-| `USER2_DISCORD_ID` | Second user's Discord ID    | `987654321098765432` |
+**Testing:**
 
-**Add More Users:**
+- `jest` ^30.1.3 - Test framework
+- `ts-jest` ^29.4.4 - TypeScript Jest transformer
+- `supertest` ^7.1.4 - HTTP assertion library
+- `@testing-library/jest-dom` ^6.8.0 - DOM testing utilities
+- `c8` ^10.1.3 - Code coverage
 
-```env
-USER3_EMAIL=third@gmail.com
-USER3_DISCORD_ID=555666777888999000
-```
+**TypeScript:**
 
-**How to Get Discord User ID:**
+- `typescript` ^5.9.2 - TypeScript compiler
+- `ts-node` ^10.9.2 - TypeScript execution
+- `ts-node-dev` ^2.0.0 - TypeScript hot reload
+- `tsconfig-paths` ^4.2.0 - Path mapping support
 
-1. Enable Developer Mode in Discord (Settings → Advanced → Developer Mode)
-2. Right-click your username → Copy ID
+**Linting:**
 
----
+- `eslint` ^8.50.0 - JavaScript/TypeScript linter
+- `@typescript-eslint/eslint-plugin` ^8.44.1 - TypeScript ESLint rules
+- `@typescript-eslint/parser` ^8.44.1 - TypeScript parser
+- `eslint-config-prettier` ^10.1.8 - Prettier integration
+- `eslint-plugin-prettier` ^5.5.4 - Prettier plugin
 
-### API Configuration
+**Formatting:**
 
-| Variable   | Description                                   | Default                 |
-| ---------- | --------------------------------------------- | ----------------------- |
-| `API_PORT` | Express server port                           | `3000`                  |
-| `PORT`     | Alternative port variable (for compatibility) | `3000`                  |
-| `PWA_URL`  | PWA frontend URL for CORS                     | `http://localhost:3001` |
+- `prettier` ^3.0.0 - Code formatter
+- `markdownlint-cli` ^0.47.0 - Markdown linter
 
----
+**Build Tools:**
 
-### Application Settings
+- `concurrently` ^9.1.2 - Run multiple npm scripts
+- `dotenv-cli` ^11.0.0 - Load .env for scripts
+- `husky` ^9.1.7 - Git hooks
+- `lint-staged` ^16.2.3 - Pre-commit linting
 
-| Variable               | Description                                         | Default               |
-| ---------------------- | --------------------------------------------------- | --------------------- |
-| `TIMEZONE`             | Timezone for reminders and scheduled tasks          | `America/Los_Angeles` |
-| `DELETE_COMMAND_AFTER` | Milliseconds before auto-deleting Discord responses | `5000`                |
-| `NODE_ENV`             | Environment mode                                    | `development`         |
-| `DEPLOYMENT_MODE`      | Deployment platform identifier                      | `local`               |
+**Utilities:**
 
-**Valid Timezones:**
+- `glob` ^11.0.3 - File pattern matching
+- `coverage-badge-creator` ^1.0.21 - Coverage badges
 
-- `America/New_York`
-- `America/Chicago`
-- `America/Los_Angeles`
-- `UTC`
-- See [IANA timezone database](https://en.wikipedia.org/wiki/List_of_tz_database_time_zones)
+### Frontend Dependencies
 
----
+**Framework:**
 
-### Optional Configuration
+- `next` ^14.2.35 - React framework
+- `react` ^18.3.1 - UI library
+- `react-dom` ^18.3.1 - React DOM renderer
 
-| Variable              | Description                        | Example                                    |
-| --------------------- | ---------------------------------- | ------------------------------------------ |
-| `LOG_LEVEL`           | Winston log level                  | `info` (production), `debug` (development) |
-| `GOOGLE_CALENDAR_ID`  | Google Calendar ID for integration | `primary`                                  |
-| `GOOGLE_REDIRECT_URI` | OAuth redirect URI                 | `http://localhost:3000/oauth2callback`     |
+**Authentication:**
 
----
+- `next-auth` ^4.24.7 - Authentication for Next.js
+- `@auth/core` ^0.41.1 - Auth.js core
 
-## NPM Scripts
+**Data Fetching:**
 
-All available npm scripts for development, testing, and deployment.
+- `@tanstack/react-query` ^5.90.2 - Data fetching + caching
+- `@tanstack/react-query-devtools` ^5.90.2 - DevTools
 
-### Development Scripts
+**State Management:**
 
-| Script    | Command           | Description                              |
-| --------- | ----------------- | ---------------------------------------- |
-| `dev`     | `npm run dev`     | Start development server with hot reload |
-| `build`   | `npm run build`   | Compile TypeScript to JavaScript         |
-| `clean`   | `npm run clean`   | Remove compiled `dist/` directory        |
-| `rebuild` | `npm run rebuild` | Clean and rebuild (`clean` + `build`)    |
+- `zustand` ^5.0.8 - Lightweight state management
 
----
+**UI Components (Radix UI + shadcn/ui):**
 
-### Production Scripts
+- `@radix-ui/react-alert-dialog` ^1.1.15
+- `@radix-ui/react-avatar` ^1.1.10
+- `@radix-ui/react-checkbox` ^1.3.3
+- `@radix-ui/react-dialog` ^1.1.15
+- `@radix-ui/react-dropdown-menu` ^2.1.16
+- `@radix-ui/react-label` ^2.1.7
+- `@radix-ui/react-select` ^2.2.6
+- `@radix-ui/react-separator` ^1.1.7
+- `@radix-ui/react-slot` ^1.2.3
+- `@radix-ui/react-toast` ^1.2.15
 
-| Script        | Command               | Description                                      |
-| ------------- | --------------------- | ------------------------------------------------ |
-| `start`       | `npm start`           | Start production server (requires `build` first) |
-| `deploy`      | `npm run deploy`      | Deploy Discord slash commands                    |
-| `setup`       | `npm run setup`       | Build and deploy commands (`build` + `deploy`)   |
-| `start:fresh` | `npm run start:fresh` | Setup and start (`setup` + `start`)              |
+**Database:**
 
----
+- `@prisma/client` 5.22.0 - Prisma client
+- `prisma` 5.22.0 - Prisma CLI
 
-### Testing Scripts
+**Styling:**
 
-| Script                 | Command                        | Description                    |
-| ---------------------- | ------------------------------ | ------------------------------ |
-| `test`                 | `npm test`                     | Run all tests                  |
-| `test:watch`           | `npm run test:watch`           | Run tests in watch mode        |
-| `test:coverage`        | `npm run test:coverage`        | Generate coverage report       |
-| `test:coverage-report` | `npm run test:coverage-report` | Generate HTML coverage report  |
-| `coverage:threshold`   | `npm run coverage:threshold`   | Enforce 80% coverage threshold |
+- `tailwindcss` ^3.4.1 - CSS framework
+- `tailwindcss-animate` ^1.0.7 - Animation utilities
+- `autoprefixer` ^10.4.21 - CSS vendor prefixes
+- `postcss` ^8.5.6 - CSS transformer
+- `class-variance-authority` ^0.7.1 - Component variants
+- `clsx` ^2.1.1 - Class name utility
+- `tailwind-merge` ^3.3.1 - Merge Tailwind classes
 
-**Coverage Reports:**
+**Utilities:**
 
-- Text: Console output
-- HTML: `coverage/index.html`
+- `date-fns` ^4.1.0 - Date utilities
+- `lucide-react` ^0.545.0 - Icon library
+- `recharts` ^3.2.1 - Charting library
+- `react-day-picker` ^9.11.0 - Date picker component
 
----
+**PWA:**
 
-### Code Quality Scripts
+- `next-pwa` ^5.6.0 - PWA plugin for Next.js
 
-| Script         | Command                | Description                         |
-| -------------- | ---------------------- | ----------------------------------- |
-| `lint`         | `npm run lint`         | Check code style with ESLint        |
-| `lint:fix`     | `npm run lint:fix`     | Fix code style issues automatically |
-| `typecheck`    | `npm run typecheck`    | TypeScript type checking (no emit)  |
-| `format`       | `npm run format`       | Format code with Prettier           |
-| `format:check` | `npm run format:check` | Check code formatting (CI)          |
+## Version Requirements
 
----
+- **Node.js:** ≥ 18.0.0
+- **npm:** ≥ 9.0.0
+- **PostgreSQL:** ≥ 15.0
+- **TypeScript:** 5.9.2 (strict mode)
 
-### Utility Scripts
+## Security & Performance References
 
-| Script            | Command                   | Description                        |
-| ----------------- | ------------------------- | ---------------------------------- |
-| `generate-assets` | `npm run generate-assets` | Generate static assets             |
-| `prepare`         | `npm run prepare`         | Install Husky git hooks (auto-run) |
+### Security Best Practices
 
----
+**Quick Reference:**
 
-## Git Hooks (Husky + lint-staged)
+- **OWASP Top 10:** See [Security Best Practices](../guides/security-best-practices.md#owasp-top-10-mitigation)
+- **JWT Security:** Token storage, expiration, rotation - [Guide](../guides/security-best-practices.md#jwt-security)
+- **OAuth2 Security:** PKCE, state parameter - [Guide](../guides/security-best-practices.md#oauth2-security)
+- **Secrets Management:** Never commit .env files - [Guide](../guides/security-best-practices.md#secrets-management)
+- **Rate Limiting:** API protection - [Guide](../guides/security-best-practices.md#rate-limiting)
 
-Automated code quality checks on commit.
+### Performance Optimization
 
-### Pre-commit Hooks
+**Quick Reference:**
 
-**TypeScript Files (\*.ts):**
+- **Database Performance:** Indexes, connection pooling - [Guide](../guides/performance-optimization.md#database-performance)
+- **API Performance:** Response compression, caching - [Guide](../guides/performance-optimization.md#api-performance)
+- **Frontend Performance:** Code splitting, lazy loading - [Guide](../guides/performance-optimization.md#frontend-performance)
+- **Caching Strategies:** In-memory, Redis, HTTP caching - [Guide](../guides/performance-optimization.md#caching-strategies)
+- **Query Optimization:** N+1 queries, eager loading - [Guide](../guides/performance-optimization.md#query-optimization)
 
-1. ESLint with `--fix`
-2. Prettier formatting
+### Monitoring & Logging
 
-**Other Files (_.js, _.jsx, _.tsx, _.json, \*.md):**
+**Quick Reference:**
 
-1. Prettier formatting
+- **Winston Logger:** Configuration and usage - [Guide](../guides/monitoring-and-logging.md#winston-logger-configuration)
+- **Log Levels:** When to use error, warn, info, debug - [Guide](../guides/monitoring-and-logging.md#log-levels)
+- **Structured Logging:** JSON format best practices - [Guide](../guides/monitoring-and-logging.md#structured-logging)
+- **Application Monitoring:** Health checks, uptime - [Guide](../guides/monitoring-and-logging.md#application-monitoring)
+- **Debugging with Logs:** Log searching techniques - [Guide](../guides/monitoring-and-logging.md#debugging-with-logs)
 
-**Configuration:**
+## Related Documentation
 
-```json
-{
-  "lint-staged": {
-    "*.ts": ["eslint --fix", "prettier --write"],
-    "*.{js,jsx,tsx,json,md}": ["prettier --write"]
-  }
-}
-```
-
----
-
-## Docker Commands
-
-Useful Docker commands for deployment.
-
-### Docker Compose
-
-| Command                                | Description                  |
-| -------------------------------------- | ---------------------------- |
-| `docker-compose up -d`                 | Start services in background |
-| `docker-compose logs -f`               | View logs (follow mode)      |
-| `docker-compose logs -f bwaincell-bot` | View bot logs only           |
-| `docker-compose logs -f postgres`      | View database logs only      |
-| `docker-compose down`                  | Stop and remove containers   |
-| `docker-compose restart`               | Restart all services         |
-| `docker-compose ps`                    | List running containers      |
-| `docker-compose exec bwaincell-bot sh` | Access bot container shell   |
-
----
-
-### Docker (Standalone)
-
-| Command                                   | Description            |
-| ----------------------------------------- | ---------------------- |
-| `docker build -t bwaincell .`             | Build Docker image     |
-| `docker run -d --env-file .env bwaincell` | Run container          |
-| `docker logs bwaincell`                   | View container logs    |
-| `docker exec -it bwaincell sh`            | Access container shell |
-| `docker stop bwaincell`                   | Stop container         |
-| `docker rm bwaincell`                     | Remove container       |
-
----
-
-## Fly.io Commands
-
-Deployment commands for Fly.io hosting.
-
-| Command                     | Description                  |
-| --------------------------- | ---------------------------- |
-| `fly auth login`            | Login to Fly.io              |
-| `fly deploy`                | Deploy application           |
-| `fly logs`                  | View application logs        |
-| `fly open`                  | Open deployed app in browser |
-| `fly status`                | Check app status             |
-| `fly secrets set KEY=value` | Set environment variable     |
-| `fly secrets list`          | List all secrets             |
-| `fly ssh console`           | SSH into app instance        |
-| `fly scale count 2`         | Scale to 2 instances         |
-
-**Set Secrets:**
-
-```bash
-fly secrets set DISCORD_TOKEN=your_token
-fly secrets set GOOGLE_CLIENT_ID=your_client_id
-fly secrets set JWT_SECRET=your_secret
-fly secrets set DATABASE_URL=your_database_url
-```
-
----
-
-## Database Commands
-
-PostgreSQL database management commands.
-
-### Local PostgreSQL
-
-| Command                          | Description             |
-| -------------------------------- | ----------------------- |
-| `createdb bwaincell`             | Create database         |
-| `dropdb bwaincell`               | Delete database         |
-| `psql bwaincell`                 | Connect to database     |
-| `psql -l`                        | List all databases      |
-| `pg_isready`                     | Check PostgreSQL status |
-| `pg_dump bwaincell > backup.sql` | Backup database         |
-| `psql bwaincell < backup.sql`    | Restore database        |
-
----
-
-### Docker PostgreSQL
-
-| Command                                                                    | Description         |
-| -------------------------------------------------------------------------- | ------------------- |
-| `docker-compose exec postgres psql -U bwaincell`                           | Connect to database |
-| `docker-compose exec postgres pg_dump -U bwaincell bwaincell > backup.sql` | Backup              |
-| `docker-compose exec postgres psql -U bwaincell < backup.sql`              | Restore             |
-
----
-
-## Troubleshooting Quick Reference
-
-### Bot Not Responding
-
-```bash
-# Check bot is running
-docker-compose ps
-
-# View bot logs
-docker-compose logs -f bwaincell-bot
-
-# Verify commands are deployed
-npm run deploy
-
-# Check Discord token
-echo $DISCORD_TOKEN
-```
-
----
-
-### Database Connection Failed
-
-```bash
-# Check PostgreSQL is running
-pg_isready
-
-# Test connection
-psql $DATABASE_URL
-
-# Check Docker database
-docker-compose logs -f postgres
-
-# Verify database exists
-psql -l | grep bwaincell
-```
-
----
-
-### API Authentication Errors
-
-```bash
-# Verify Google OAuth credentials
-echo $GOOGLE_CLIENT_ID
-echo $GOOGLE_CLIENT_SECRET
-
-# Check email whitelist
-echo $ALLOWED_GOOGLE_EMAILS
-
-# Verify JWT secret is set
-echo $JWT_SECRET
-
-# Test health endpoint
-curl http://localhost:3000/health
-```
-
----
-
-## Additional Resources
-
-- **Getting Started:** [docs/guides/getting-started.md](../guides/getting-started.md)
-- **API Documentation:** [docs/api/README.md](../api/README.md)
-- **Architecture Overview:** [docs/architecture/overview.md](../architecture/overview.md)
-- **Deployment Guide:** [docs/guides/deployment.md](../guides/deployment.md)
-
----
-
-**Last Updated:** 2026-01-09
-**Version:** 1.0.0
+- [Getting Started Guide](../guides/getting-started.md)
+- [API Documentation](../api/)
+- [Architecture Overview](../architecture/overview.md)
+- [Security Best Practices](../guides/security-best-practices.md)
+- [Performance Optimization](../guides/performance-optimization.md)
+- [Monitoring and Logging](../guides/monitoring-and-logging.md)

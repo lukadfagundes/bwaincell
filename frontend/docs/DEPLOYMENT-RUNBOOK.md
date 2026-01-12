@@ -276,21 +276,7 @@ If a deployment causes issues, rollback immediately:
 
 ### Weekly Checks
 
-1. **Performance Audit:**
-
-   ```bash
-   # Run Lighthouse audit
-   # Chrome DevTools > Lighthouse > Generate Report
-   ```
-
-   - Target: All scores >90
-   - Performance: >90
-   - Accessibility: >90
-   - Best Practices: >90
-   - SEO: >90
-   - PWA: Installable
-
-2. **Bundle Size Analysis:**
+1. **Bundle Size Analysis:**
 
    ```bash
    npm run build
@@ -300,7 +286,7 @@ If a deployment causes issues, rollback immediately:
    - Monitor for unexpected growth
    - Keep initial bundle <200KB
 
-3. **Dependency Updates:**
+2. **Dependency Updates:**
    ```bash
    npm outdated
    # Review and update dependencies
@@ -383,8 +369,7 @@ If a deployment causes issues, rollback immediately:
 1. Verify manifest.json is accessible
 2. Ensure HTTPS is enabled
 3. Check service worker is registered
-4. Run Lighthouse PWA audit
-5. Review manifest icons (192px and 512px required)
+4. Review manifest icons (192px and 512px required)
 
 ### Performance Issues
 
@@ -434,7 +419,6 @@ Use this checklist for every production deployment:
 - [ ] Offline mode works
 - [ ] Install prompt appears (on supported browsers)
 - [ ] No console errors
-- [ ] Lighthouse scores >90
 - [ ] Backend API healthy
 - [ ] Rollback plan identified
 - [ ] Team notified of deployment
@@ -468,4 +452,4 @@ Keep a log of deployments:
 **End of Deployment Runbook**
 
 _Last updated: 2025-10-07_
-_Version: 1.0.0_
+_Version: 2.0.0_

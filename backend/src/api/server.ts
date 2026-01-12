@@ -31,8 +31,8 @@ export function createApiServer(): Application {
   // Safari-specific: Include both with and without trailing slash
   const corsOrigins = [
     process.env.PWA_URL || 'http://localhost:3001',
-    'https://bwain-app.vercel.app',
-    'https://bwain-app.vercel.app/', // Safari sends trailing slash
+    'https://bwaincell.sunny-stack.com',
+    'https://bwaincell.sunny-stack.com/', // Safari sends trailing slash
     'http://localhost:3000',
     'http://localhost:3001',
   ];
@@ -92,7 +92,7 @@ export function createApiServer(): Application {
       timestamp: new Date().toISOString(),
       uptime: process.uptime(),
       environment: process.env.NODE_ENV || 'development',
-      version: '1.0.0',
+      version: '2.0.0',
     });
   });
 
@@ -100,7 +100,7 @@ export function createApiServer(): Application {
   app.get('/api', (_req: Request, res: Response) => {
     res.json({
       name: 'Bwaincell API',
-      version: '1.0.0',
+      version: '2.0.0',
       description: 'REST API for Bwaincell Discord bot features',
       endpoints: {
         tasks: '/api/tasks',

@@ -172,11 +172,11 @@ npm run lint
 Use the Winston logger, not console.log:
 
 ```typescript
-import { logger } from '@shared/utils/logger';
+import { logger } from "@shared/utils/logger";
 
-logger.info('User logged in', { userId, email });
-logger.error('Database error', { error: error.message });
-logger.debug('Processing request', { endpoint, method });
+logger.info("User logged in", { userId, email });
+logger.error("Database error", { error: error.message });
+logger.debug("Processing request", { endpoint, method });
 ```
 
 ---
@@ -335,7 +335,6 @@ Releases follow semantic versioning (MAJOR.MINOR.PATCH):
 
 - **Issues**: [GitHub Issues](https://github.com/lukadfagundes/bwaincell/issues)
 - **Discussions**: Use GitHub Discussions for questions
-- **Documentation**: See `trinity/knowledge-base/`
 
 ---
 

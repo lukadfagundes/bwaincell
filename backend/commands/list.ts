@@ -7,9 +7,6 @@ import {
   StringSelectMenuBuilder,
   ChatInputCommandInteraction,
   AutocompleteInteraction,
-  TextChannel,
-  Message,
-  FetchMessagesOptions,
 } from 'discord.js';
 import { logger } from '../shared/utils/logger';
 import List, { ListItem } from '../database/models/List';
@@ -115,11 +112,6 @@ export default {
             .setRequired(true)
             .setAutocomplete(true)
         )
-    )
-    .addSubcommand((subcommand) =>
-      subcommand
-        .setName('consolidate')
-        .setDescription('Create a list from all messages in this channel')
     ),
 
   async autocomplete(interaction: AutocompleteInteraction): Promise<void> {
@@ -435,157 +427,6 @@ export default {
 
           await interaction.editReply({
             content: `Item "${item}" marked as ${status}.`,
-          });
-          break;
-        }
-
-        case 'consolidate': {
-          const channel = interaction.channel as TextChannel;
-
-          // Check permissions
-          if (!channel.permissionsFor(interaction.client.user!)?.has('ReadMessageHistory')) {
-            await interaction.editReply({
-              content: '❌ I need "Read Message History" permission to consolidate messages.',
-            });
-            return;
-          }
-
-          // Phase 1: Fetch all messages with pagination
-          const allMessages: Message[] = [];
-          let lastMessageId: string | undefined = undefined;
-          let fetchedCount = 0;
-
-          logger.info('Starting message consolidation', {
-            channelId: channel.id,
-            channelName: channel.name,
-            userId,
-            guildId,
-          });
-
-          let hasMore = true;
-          while (hasMore) {
-            const options: FetchMessagesOptions = { limit: 100 };
-            if (lastMessageId) {
-              options.before = lastMessageId;
-            }
-
-            const messages = await channel.messages.fetch(options);
-            if (messages.size === 0) {
-              hasMore = false;
-              break;
-            }
-
-            allMessages.push(...messages.values());
-            lastMessageId = messages.last()?.id;
-            fetchedCount += messages.size;
-
-            // Progress update every 500 messages
-            if (fetchedCount % 500 === 0) {
-              await interaction.editReply(`🔄 Fetching messages... ${fetchedCount} found so far`);
-            }
-
-            // Rate limit protection: 100ms delay between requests
-            await new Promise((resolve) => setTimeout(resolve, 100));
-          }
-
-          logger.info('Messages fetched', {
-            totalFetched: fetchedCount,
-            channelId: channel.id,
-          });
-
-          // Phase 2: Filter out bot messages
-          const userMessages = allMessages.filter((msg) => !msg.author.bot);
-
-          // Phase 3: Sort oldest to newest
-          userMessages.sort((a, b) => a.createdTimestamp - b.createdTimestamp);
-
-          // Phase 4: Determine list name (handle collision)
-          const channelName = channel.name;
-          let listName = channelName;
-
-          const existingList = await List.getList(guildId, listName);
-
-          if (existingList) {
-            listName = `${channelName} Consolidated List`;
-          }
-
-          // Phase 5: Create list
-          const newList = await List.createList(guildId, listName, userId);
-
-          if (!newList) {
-            await interaction.editReply({
-              content: `❌ Failed to create list. A list named "${listName}" may already exist.`,
-            });
-            return;
-          }
-
-          // Phase 6: Add messages as list items (first 1000 chars, include empty as placeholder)
-          let itemsCreated = 0;
-
-          for (const message of userMessages) {
-            const content = message.content.substring(0, 1000).trim();
-
-            // If empty, add placeholder text
-            const itemText = content.length === 0 ? '(empty message)' : content;
-
-            await List.addItem(guildId, listName, itemText);
-            itemsCreated++;
-          }
-
-          logger.info('List consolidation complete', {
-            listName,
-            itemsCreated,
-            totalMessages: fetchedCount,
-            userMessages: userMessages.length,
-            channelId: channel.id,
-          });
-
-          // Phase 7: Create success embed
-          const embed = new EmbedBuilder()
-            .setTitle(`📋 List: ${listName}`)
-            .setDescription(
-              `✅ Created list with **${itemsCreated}** items from **${fetchedCount}** total messages\n\n` +
-                `${userMessages.length} user messages found (${fetchedCount - userMessages.length} bot messages filtered)`
-            )
-            .setColor(0x00ff00)
-            .setTimestamp();
-
-          // Add preview of first 10 items
-          const updatedList = await List.getList(guildId, listName);
-
-          if (updatedList && updatedList.items && updatedList.items.length > 0) {
-            const previewItems = updatedList.items.slice(0, 10);
-            const itemList = previewItems
-              .map((item: ListItem, idx: number) => {
-                const preview = item.text.substring(0, 50);
-                return `${idx + 1}. ${preview}${item.text.length > 50 ? '...' : ''}`;
-              })
-              .join('\n');
-
-            embed.addFields({ name: 'Preview', value: itemList || 'No items' });
-
-            if (itemsCreated > 10) {
-              embed.setFooter({ text: `Showing 10 of ${itemsCreated} items` });
-            }
-          }
-
-          // Add action buttons
-          const row = new ActionRowBuilder<ButtonBuilder>().addComponents(
-            new ButtonBuilder()
-              .setCustomId(`list_view_${listName}`)
-              .setLabel('View Full List')
-              .setStyle(ButtonStyle.Primary)
-              .setEmoji('📋'),
-            new ButtonBuilder()
-              .setCustomId(`list_add_${listName}`)
-              .setLabel('Add Item')
-              .setStyle(ButtonStyle.Success)
-              .setEmoji('➕')
-          );
-
-          await interaction.editReply({
-            embeds: [embed],
-            components: [row],
           });
           break;
         }
