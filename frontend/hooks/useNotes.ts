@@ -4,13 +4,13 @@ import { useToast } from "@/hooks/use-toast";
 
 interface Note {
   id: number;
-  user_id: string;
-  guild_id: string;
+  userId: string;
+  guildId: string;
   title: string;
   content: string;
   tags: string[];
-  created_at: string;
-  updated_at: string;
+  createdAt: string;
+  updatedAt: string;
 }
 
 export function useNotes(searchQuery?: string) {

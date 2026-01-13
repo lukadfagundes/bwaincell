@@ -4,15 +4,15 @@ import { useToast } from "@/hooks/use-toast";
 
 interface Reminder {
   id: number;
-  user_id: string;
-  guild_id: string;
+  userId: string;
+  guildId: string;
   message: string;
   frequency: "once" | "daily" | "weekly";
   time: string;
-  day_of_week?: number;
-  next_trigger: string;
-  created_at?: string;
-  updated_at?: string;
+  dayOfWeek?: number;
+  nextTrigger: string;
+  createdAt?: string;
+  updatedAt?: string;
 }
 
 export function useReminders() {
