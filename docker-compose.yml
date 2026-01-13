@@ -97,7 +97,7 @@ services:
     environment:
       - NODE_ENV=production
       - DEPLOYMENT_MODE=pi
-      - TZ=America/Chicago  # Set your timezone (important for reminders)
+      - TZ=America/Los_Angeles  # Set your timezone (important for reminders)
 
     # Health check configuration (matches Dockerfile HEALTHCHECK)
     healthcheck:

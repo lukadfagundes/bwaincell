@@ -91,7 +91,7 @@ export function ReminderItem({ reminder, onDelete }: ReminderItemProps) {
             <Badge className={getTypeBadgeColor()}>{getTypeDisplay()}</Badge>
             <div className="flex items-center gap-1 text-xs text-muted-foreground">
               <Clock className="w-3 h-3" />
-              <span>at {reminder.time}</span>
+              <span>at {format(parseISO(reminder.nextTrigger), "h:mm a")}</span>
             </div>
           </div>
 
