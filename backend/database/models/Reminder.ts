@@ -125,11 +125,11 @@ class Reminder
 
     if (frequency === 'once') {
       // If no target date specified and time has already passed today, schedule for tomorrow
-      if (!targetDate && nextTrigger <= now) {
+      if (!targetDate && nextTrigger < now) {
         nextTrigger = nextTrigger.plus({ days: 1 });
       }
     } else if (frequency === 'daily') {
-      if (nextTrigger <= now) {
+      if (nextTrigger < now) {
         nextTrigger = nextTrigger.plus({ days: 1 });
       }
     } else if (frequency === 'weekly' && dayOfWeek !== null) {
@@ -144,7 +144,7 @@ class Reminder
       if (daysUntilNext === 0) {
         // If time hasn't passed yet today, keep it at 0 days (today)
         // If time has passed, schedule for next week (7 days)
-        if (nextTrigger <= now) {
+        if (nextTrigger < now) {
           daysUntilNext = 7;
         }
       }
