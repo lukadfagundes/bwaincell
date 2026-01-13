@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
 import { authOptions } from "../../auth/[...nextauth]/route";
 import { prisma } from "@/lib/db/prisma";
+import { BudgetType } from "@prisma/client";
 
 export const dynamic = "force-dynamic";
 export const runtime = "nodejs";
@@ -110,7 +111,7 @@ export async function POST(request: NextRequest) {
     const transaction = await prisma.budget.create({
       data: {
         amount,
-        type,
+        type: type as BudgetType,
         category,
         description: description || null,
         date: date ? new Date(date) : new Date(),

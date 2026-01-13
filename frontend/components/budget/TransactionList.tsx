@@ -96,7 +96,7 @@ export function TransactionList({
                           }`}
                         >
                           {transaction.type === "income" ? "+" : "-"}$
-                          {transaction.amount.toFixed(2)}
+                          {Number(transaction.amount).toFixed(2)}
                         </p>
                       </div>
                       <div className="flex items-center gap-2">

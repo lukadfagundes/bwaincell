@@ -61,7 +61,7 @@ model Note {
   id        Int      @id @default(autoincrement())
   title     String
   content   String   @db.Text
-  tags      String[] @default([])
+  tags      Json     @default("[]") @db.JsonB
   createdAt DateTime @default(now()) @map("created_at")
   updatedAt DateTime @updatedAt @map("updated_at")
   userId    String   @map("user_id")
@@ -71,34 +71,51 @@ model Note {
   @@index([guildId])
 }
 
+// Reminder frequency enum
+enum ReminderFrequency {
+  once
+  daily
+  weekly
+
+  @@map("enum_reminders_frequency")
+}
+
 // Reminder model
 model Reminder {
-  id          Int       @id @default(autoincrement())
-  message     String
-  time        String
-  frequency   String    // 'once' | 'daily' | 'weekly'
-  dayOfWeek   Int?      @map("day_of_week")
-  channelId   String    @map("channel_id")
-  userId      String    @map("user_id")
-  guildId     String    @map("guild_id")
-  active      Boolean   @default(true)
-  nextTrigger DateTime? @map("next_trigger")
+  id          Int                @id @default(autoincrement())
+  message     String             @db.Text
+  time        DateTime           @db.Time
+  frequency   ReminderFrequency  @default(once)
+  dayOfWeek   Int?               @map("day_of_week")
+  channelId   String             @map("channel_id")
+  userId      String             @map("user_id")
+  guildId     String             @map("guild_id")
+  active      Boolean            @default(true)
+  nextTrigger DateTime?          @map("next_trigger")
 
   @@map("reminders")
   @@index([guildId])
   @@index([active])
 }
 
+// Budget type enum
+enum BudgetType {
+  expense
+  income
+
+  @@map("enum_budgets_type")
+}
+
 // Budget model
 model Budget {
-  id          Int      @id @default(autoincrement())
-  type        String   // 'expense' | 'income'
+  id          Int        @id @default(autoincrement())
+  type        BudgetType
   category    String?
-  amount      Decimal  @db.Decimal(10, 2)
-  description String?  @db.Text
-  date        DateTime @default(now())
-  userId      String   @map("user_id")
-  guildId     String   @map("guild_id")
+  amount      Decimal    @db.Decimal(10, 2)
+  description String?    @db.Text
+  date        DateTime?
+  userId      String     @map("user_id")
+  guildId     String     @map("guild_id")
 
   @@map("budgets")
   @@index([guildId])

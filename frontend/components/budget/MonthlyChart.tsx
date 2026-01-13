@@ -16,7 +16,7 @@ interface Transaction {
   id: number;
   userId: string;
   guildId: string;
-  amount: number;
+  amount: number | { toNumber: () => number }; // Prisma Decimal or number
   type: "income" | "expense";
   category: string;
   description: string;
@@ -38,10 +38,14 @@ export function MonthlyChart({ transactions }: MonthlyChartProps) {
         income: 0,
         expense: 0,
       };
+      const amount =
+        typeof transaction.amount === "number"
+          ? transaction.amount
+          : Number(transaction.amount);
       if (transaction.type === "income") {
-        existing.income += transaction.amount;
+        existing.income += amount;
       } else {
-        existing.expense += transaction.amount;
+        existing.expense += amount;
       }
       categoryMap.set(transaction.category, existing);
     });
@@ -56,10 +60,18 @@ export function MonthlyChart({ transactions }: MonthlyChartProps) {
   const totals = useMemo(() => {
     const income = transactions
       .filter((t) => t.type === "income")
-      .reduce((sum, t) => sum + t.amount, 0);
+      .reduce(
+        (sum, t) =>
+          sum + (typeof t.amount === "number" ? t.amount : Number(t.amount)),
+        0,
+      );
     const expense = transactions
       .filter((t) => t.type === "expense")
-      .reduce((sum, t) => sum + t.amount, 0);
+      .reduce(
+        (sum, t) =>
+          sum + (typeof t.amount === "number" ? t.amount : Number(t.amount)),
+        0,
+      );
     return { income, expense, balance: income - expense };
   }, [transactions]);
 

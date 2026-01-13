@@ -17,13 +17,13 @@ import {
 
 interface Note {
   id: number;
-  user_id: string;
-  guild_id: string;
+  userId: string;
+  guildId: string;
   title: string;
   content: string;
   tags: string[];
-  created_at: string;
-  updated_at: string;
+  createdAt: string;
+  updatedAt: string;
 }
 
 interface NoteCardProps {
@@ -78,7 +78,7 @@ export function NoteCard({ note, onEdit, onDelete }: NoteCardProps) {
         )}
 
         <p className="text-xs text-muted-foreground">
-          {format(parseISO(note.created_at), "MMM d, yyyy")}
+          {format(parseISO(note.createdAt), "MMM d, yyyy")}
         </p>
       </Card>
 
@@ -89,7 +89,7 @@ export function NoteCard({ note, onEdit, onDelete }: NoteCardProps) {
             <DialogTitle>{note.title}</DialogTitle>
             <DialogDescription>
               Created{" "}
-              {format(parseISO(note.created_at), "MMM d, yyyy 'at' h:mm a")}
+              {format(parseISO(note.createdAt), "MMM d, yyyy 'at' h:mm a")}
             </DialogDescription>{" "}
           </DialogHeader>
           <div className="py-4">

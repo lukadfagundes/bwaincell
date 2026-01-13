@@ -24,11 +24,11 @@ interface ListItem {
 
 interface List {
   id: number;
-  user_id: string;
-  guild_id: string;
+  userId: string;
+  guildId: string;
   name: string;
   items: ListItem[];
-  created_at: string;
+  createdAt: string;
 }
 
 interface ListCardProps {

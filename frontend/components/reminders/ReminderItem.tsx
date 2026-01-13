@@ -16,15 +16,15 @@ import {
 
 interface Reminder {
   id: number;
-  user_id: string;
-  guild_id: string;
+  userId: string;
+  guildId: string;
   message: string;
   frequency: "once" | "daily" | "weekly";
   time: string;
-  day_of_week?: number;
-  next_trigger: string;
-  created_at?: string;
-  updated_at?: string;
+  dayOfWeek?: number;
+  nextTrigger: string;
+  createdAt?: string;
+  updatedAt?: string;
 }
 
 interface ReminderItemProps {
@@ -53,8 +53,8 @@ export function ReminderItem({ reminder, onDelete }: ReminderItemProps) {
   const getTypeDisplay = () => {
     if (reminder.frequency === "once") return "One-time";
     if (reminder.frequency === "daily") return "Daily";
-    if (reminder.frequency === "weekly" && reminder.day_of_week !== undefined) {
-      return `Weekly (${DAYS[reminder.day_of_week]})`;
+    if (reminder.frequency === "weekly" && reminder.dayOfWeek !== undefined) {
+      return `Weekly (${DAYS[reminder.dayOfWeek]})`;
     }
     return "Weekly";
   };
@@ -97,7 +97,7 @@ export function ReminderItem({ reminder, onDelete }: ReminderItemProps) {
 
           <p className="text-xs text-muted-foreground mt-2">
             Next:{" "}
-            {format(parseISO(reminder.next_trigger), "MMM d, yyyy 'at' h:mm a")}
+            {format(parseISO(reminder.nextTrigger), "MMM d, yyyy 'at' h:mm a")}
           </p>
         </div>
       </div>

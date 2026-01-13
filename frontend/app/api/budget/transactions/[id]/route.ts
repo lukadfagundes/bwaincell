@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
 import { authOptions } from "../../../auth/[...nextauth]/route";
 import { prisma } from "@/lib/db/prisma";
+import { BudgetType } from "@prisma/client";
 
 export const dynamic = "force-dynamic";
 export const runtime = "nodejs";
@@ -51,7 +52,7 @@ export async function PATCH(
     // Build update data object
     const updateData: {
       amount?: number;
-      type?: string;
+      type?: BudgetType;
       category?: string;
       description?: string | null;
       date?: Date;
@@ -74,7 +75,7 @@ export async function PATCH(
           { status: 400 },
         );
       }
-      updateData.type = type;
+      updateData.type = type as BudgetType;
     }
 
     if (category !== undefined) {

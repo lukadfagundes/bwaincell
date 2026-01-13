@@ -41,9 +41,18 @@ export async function GET(request: NextRequest) {
       orderBy: { nextTrigger: "asc" },
     });
 
+    // Convert time field from DateTime to string (HH:MM format)
+    const formattedReminders = reminders.map((reminder) => ({
+      ...reminder,
+      time:
+        reminder.time instanceof Date
+          ? reminder.time.toISOString().substring(11, 16)
+          : reminder.time.toString().substring(11, 16),
+    }));
+
     return NextResponse.json({
       success: true,
-      data: reminders,
+      data: formattedReminders,
     });
   } catch (error) {
     console.error("[API] GET /api/reminders error:", error);
