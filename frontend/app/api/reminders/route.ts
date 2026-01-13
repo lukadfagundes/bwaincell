@@ -44,10 +44,7 @@ export async function GET(request: NextRequest) {
     // Convert time field from DateTime to string (HH:MM format)
     const formattedReminders = reminders.map((reminder) => ({
       ...reminder,
-      time:
-        reminder.time instanceof Date
-          ? reminder.time.toISOString().substring(11, 16)
-          : reminder.time.toString().substring(11, 16),
+      time: reminder.time.toISOString().substring(11, 16),
     }));
 
     return NextResponse.json({
