@@ -87,7 +87,13 @@ export async function PATCH(
     }
 
     if (date !== undefined) {
-      updateData.date = new Date(date);
+      // Parse date as local timezone, not UTC
+      if (/^\d{4}-\d{2}-\d{2}$/.test(date)) {
+        // Append local midnight time to prevent UTC conversion
+        updateData.date = new Date(date + "T00:00:00");
+      } else {
+        updateData.date = new Date(date);
+      }
     }
 
     // Update transaction

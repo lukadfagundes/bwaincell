@@ -108,13 +108,28 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    // Parse date as local timezone, not UTC
+    // If date is YYYY-MM-DD format, append time to treat as local timezone
+    let transactionDate: Date;
+    if (date) {
+      // Check if date is YYYY-MM-DD format (no time component)
+      if (/^\d{4}-\d{2}-\d{2}$/.test(date)) {
+        // Append local midnight time to prevent UTC conversion
+        transactionDate = new Date(date + "T00:00:00");
+      } else {
+        transactionDate = new Date(date);
+      }
+    } else {
+      transactionDate = new Date();
+    }
+
     const transaction = await prisma.budget.create({
       data: {
         amount,
         type: type as BudgetType,
         category,
         description: description || null,
-        date: date ? new Date(date) : new Date(),
+        date: transactionDate,
         userId: user.discordId,
         guildId: user.guildId,
       },
