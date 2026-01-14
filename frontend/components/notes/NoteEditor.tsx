@@ -81,6 +81,14 @@ export function NoteEditor({
     e.preventDefault();
     if (!title.trim() || !content.trim()) return;
 
+    // Check if user has uncommitted tag input
+    if (tagInput.trim()) {
+      alert(
+        "Please press Enter or add a comma to add the tag, or clear the tag field before saving.",
+      );
+      return;
+    }
+
     onSave(
       {
         title: title.trim(),

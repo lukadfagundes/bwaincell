@@ -25,6 +25,7 @@ export function NoteGrid() {
   const [activeSearch, setActiveSearch] = useState("");
   const [isEditorOpen, setIsEditorOpen] = useState(false);
   const [editingNote, setEditingNote] = useState<Note | null>(null);
+  const [wasSaving, setWasSaving] = useState(false);
 
   const {
     notes,
@@ -35,6 +36,21 @@ export function NoteGrid() {
     isCreating,
     isUpdating,
   } = useNotes(activeSearch);
+
+  // Close dialog when save completes successfully
+  useEffect(() => {
+    const isSaving = isCreating || isUpdating;
+
+    // If we were saving and now we're not, close the dialog
+    if (wasSaving && !isSaving) {
+      setIsEditorOpen(false);
+      setEditingNote(null);
+      setWasSaving(false);
+    } else if (isSaving) {
+      // Mark that we're currently saving
+      setWasSaving(true);
+    }
+  }, [isCreating, isUpdating, wasSaving]);
 
   const handleSearchSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -63,13 +79,13 @@ export function NoteGrid() {
     data: { title: string; content: string; tags: string[] },
     noteId?: number,
   ) => {
+    // Don't close dialog immediately - wait for mutation to complete
+    // The dialog will close when isSaving becomes false
     if (noteId) {
       updateNote({ id: noteId, data });
     } else {
       createNote(data);
     }
-    setIsEditorOpen(false);
-    setEditingNote(null);
   };
 
   if (isLoading) {
