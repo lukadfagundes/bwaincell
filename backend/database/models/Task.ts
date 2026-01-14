@@ -95,7 +95,7 @@ class Task extends TaskBase<TaskAttributes, TaskCreationAttributes> implements T
   static async editTask(
     taskId: number,
     guildId: string,
-    newDescription: string,
+    newDescription?: string | null,
     newDueDate?: Date | null
   ): Promise<Task | null> {
     const task = await (this as any).findOne({
@@ -104,7 +104,9 @@ class Task extends TaskBase<TaskAttributes, TaskCreationAttributes> implements T
 
     if (!task) return null;
 
-    task.description = newDescription;
+    if (newDescription !== undefined && newDescription !== null) {
+      task.description = newDescription;
+    }
     if (newDueDate !== undefined) {
       task.due_date = newDueDate;
     }

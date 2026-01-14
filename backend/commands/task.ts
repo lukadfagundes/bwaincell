@@ -119,7 +119,7 @@ export default {
     .addSubcommand((subcommand) =>
       subcommand
         .setName('edit')
-        .setDescription('Edit task description')
+        .setDescription('Edit task description, date, and/or time')
         .addIntegerOption((option) =>
           option
             .setName('task_id')
@@ -128,7 +128,21 @@ export default {
             .setAutocomplete(true)
         )
         .addStringOption((option) =>
-          option.setName('new_text').setDescription('New task description').setRequired(true)
+          option.setName('new_text').setDescription('New task description').setRequired(false)
+        )
+        .addStringOption((option) =>
+          option
+            .setName('date')
+            .setDescription('New due date (MM-DD-YYYY)')
+            .setRequired(false)
+            .setMaxLength(10)
+        )
+        .addStringOption((option) =>
+          option
+            .setName('time')
+            .setDescription('New due time (hh:mm AM/PM)')
+            .setRequired(false)
+            .setMaxLength(10)
         )
     ),
 
@@ -246,9 +260,17 @@ export default {
             .slice(0, 25)
             .map((task) => {
               const status = task.completed ? '✅' : '⏳';
-              const dueInfo = task.due_date
-                ? ` 📅 Due: ${new Date(task.due_date).toLocaleDateString()}`
-                : '';
+              let dueInfo = '';
+              if (task.due_date) {
+                const dueDate = new Date(task.due_date);
+                const dateStr = dueDate.toLocaleDateString();
+                const timeStr = dueDate.toLocaleTimeString('en-US', {
+                  hour: 'numeric',
+                  minute: '2-digit',
+                  hour12: true,
+                });
+                dueInfo = ` 📅 ${dateStr} 🕐 ${timeStr}`;
+              }
               return `${status} **#${task.id}** - ${task.description}${dueInfo}`;
             })
             .join('\n');
@@ -295,16 +317,27 @@ export default {
                 .setCustomId('task_quick_action')
                 .setPlaceholder('Select a task for quick action')
                 .addOptions(
-                  tasks.map((task) => ({
-                    label: `#${task.id} - ${task.description.substring(0, 50)}`,
-                    description: task.completed
-                      ? 'Completed'
-                      : task.due_date
-                        ? `Due: ${new Date(task.due_date).toLocaleDateString()}`
-                        : 'No due date',
-                    value: `${task.id}`,
-                    emoji: task.completed ? '✅' : '⏳',
-                  }))
+                  tasks.map((task) => {
+                    let description = 'No due date';
+                    if (task.completed) {
+                      description = 'Completed';
+                    } else if (task.due_date) {
+                      const dueDate = new Date(task.due_date);
+                      const dateStr = dueDate.toLocaleDateString();
+                      const timeStr = dueDate.toLocaleTimeString('en-US', {
+                        hour: 'numeric',
+                        minute: '2-digit',
+                        hour12: true,
+                      });
+                      description = `Due: ${dateStr} ${timeStr}`;
+                    }
+                    return {
+                      label: `#${task.id} - ${task.description.substring(0, 50)}`,
+                      description,
+                      value: `${task.id}`,
+                      emoji: task.completed ? '✅' : '⏳',
+                    };
+                  })
                 )
             );
             components.push(selectRow);
@@ -390,8 +423,48 @@ export default {
 
         case 'edit': {
           const taskId = interaction.options.getInteger('task_id', true);
-          const newText = interaction.options.getString('new_text', true);
-          const task = await Task.editTask(taskId, guildId, newText);
+          const newText = interaction.options.getString('new_text');
+          const dateStr = interaction.options.getString('date');
+          const timeStr = interaction.options.getString('time');
+
+          // Require at least one field to update
+          if (!newText && !dateStr && !timeStr) {
+            await interaction.editReply({
+              content:
+                '❌ Please provide at least one field to update (description, date, or time).',
+            });
+            return;
+          }
+
+          // If date or time provided, both must be provided
+          if ((dateStr && !timeStr) || (!dateStr && timeStr)) {
+            await interaction.editReply({
+              content:
+                '❌ Please provide both date and time, or leave both empty to keep current date/time.',
+            });
+            return;
+          }
+
+          let dueDate: Date | null | undefined = undefined;
+
+          // If both date and time are provided, combine them
+          if (dateStr && timeStr) {
+            const combined = `${dateStr.trim()} ${timeStr.trim()}`;
+            const parsed = parseDateString(combined);
+            if (!parsed) {
+              await interaction.editReply({
+                content: `❌ Invalid date/time format.\n\nDate format: MM-DD-YYYY (e.g., 10-03-2025)\nTime format: hh:mm AM/PM (e.g., 2:30 PM)\n\nYou entered: "${combined}"`,
+              });
+              return;
+            }
+            dueDate = parsed;
+            logger.info('Task date parsed successfully', {
+              input: combined,
+              parsed: dueDate.toISOString(),
+            });
+          }
+
+          const task = await Task.editTask(taskId, guildId, newText, dueDate);
 
           if (!task) {
             await interaction.editReply({
@@ -406,6 +479,19 @@ export default {
             .setColor(0x0099ff)
             .setTimestamp()
             .addFields({ name: '📝 Status', value: 'Successfully updated!' });
+
+          if (task.due_date) {
+            const dueDate = new Date(task.due_date);
+            embed.addFields({
+              name: '📅 Due Date',
+              value: `${dueDate.toLocaleDateString()} at ${dueDate.toLocaleTimeString('en-US', {
+                hour: 'numeric',
+                minute: '2-digit',
+                hour12: true,
+              })}`,
+              inline: true,
+            });
+          }
 
           const editRow = new ActionRowBuilder<ButtonBuilder>().addComponents(
             new ButtonBuilder()
@@ -482,9 +568,17 @@ export default {
               ? task.description.substring(0, 47) + '...'
               : task.description;
           const status = task.completed ? '✅' : '⏳';
-          const dueInfo = task.due_date
-            ? ` (Due: ${new Date(task.due_date).toLocaleDateString()})`
-            : '';
+          let dueInfo = '';
+          if (task.due_date) {
+            const dueDate = new Date(task.due_date);
+            const dateStr = dueDate.toLocaleDateString();
+            const timeStr = dueDate.toLocaleTimeString('en-US', {
+              hour: 'numeric',
+              minute: '2-digit',
+              hour12: true,
+            });
+            dueInfo = ` (Due: ${dateStr} ${timeStr})`;
+          }
 
           return {
             name: `#${task.id} ${status} ${description}${dueInfo}`,

@@ -15,19 +15,33 @@ interface TaskCreateFormProps {
 export function TaskCreateForm({ onCreate, isCreating }: TaskCreateFormProps) {
   const [description, setDescription] = useState("");
   const [dueDate, setDueDate] = useState("");
+  const [dueTime, setDueTime] = useState("");
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
 
     if (!description.trim()) return;
 
+    // Combine date and time if both provided
+    let combinedDueDate: string | undefined = undefined;
+    if (dueDate) {
+      if (dueTime) {
+        const localDateTime = new Date(`${dueDate}T${dueTime}:00`);
+        combinedDueDate = localDateTime.toISOString();
+      } else {
+        const localDateTime = new Date(`${dueDate}T00:00:00`);
+        combinedDueDate = localDateTime.toISOString();
+      }
+    }
+
     onCreate({
       description: description.trim(),
-      dueDate: dueDate || undefined,
+      dueDate: combinedDueDate,
     });
 
     setDescription("");
     setDueDate("");
+    setDueTime("");
   };
 
   return (
@@ -52,6 +66,17 @@ export function TaskCreateForm({ onCreate, isCreating }: TaskCreateFormProps) {
               type="date"
               value={dueDate}
               onChange={(e) => setDueDate(e.target.value)}
+              disabled={isCreating}
+              className="border-[#f59e0b]/30 focus-visible:ring-[#f59e0b]"
+            />
+          </div>
+          <div className="grid gap-2">
+            <Label htmlFor="due-time">Due Time (Optional)</Label>
+            <Input
+              id="due-time"
+              type="time"
+              value={dueTime}
+              onChange={(e) => setDueTime(e.target.value)}
               disabled={isCreating}
               className="border-[#f59e0b]/30 focus-visible:ring-[#f59e0b]"
             />

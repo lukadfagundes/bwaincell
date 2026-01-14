@@ -4,7 +4,7 @@ import { useState } from "react";
 import { format, isPast, parseISO } from "date-fns";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Button } from "@/components/ui/button";
-import { Pencil, Trash2, Calendar } from "lucide-react";
+import { Pencil, Trash2, Calendar, Clock } from "lucide-react";
 import {
   Dialog,
   DialogContent,
@@ -37,14 +37,34 @@ export function TaskItem({ task, onUpdate, onDelete }: TaskItemProps) {
   const [isEditOpen, setIsEditOpen] = useState(false);
   const [isDeleteOpen, setIsDeleteOpen] = useState(false);
   const [description, setDescription] = useState(task.description);
-  const [dueDate, setDueDate] = useState(task.dueDate || "");
+
+  // Parse existing date and time from dueDate
+  const parsedDate = task.dueDate ? parseISO(task.dueDate) : null;
+  const [dueDate, setDueDate] = useState(
+    parsedDate ? format(parsedDate, "yyyy-MM-dd") : "",
+  );
+  const [dueTime, setDueTime] = useState(
+    parsedDate ? format(parsedDate, "HH:mm") : "",
+  );
 
   const handleToggleComplete = () => {
     onUpdate(task.id, { completed: !task.completed });
   };
 
   const handleEdit = () => {
-    onUpdate(task.id, { description, dueDate: dueDate || null });
+    // Combine date and time into ISO string (without Z to preserve local time)
+    let combinedDueDate: string | null = null;
+    if (dueDate) {
+      if (dueTime) {
+        // Create a local date/time (no timezone conversion)
+        const localDateTime = new Date(`${dueDate}T${dueTime}:00`);
+        combinedDueDate = localDateTime.toISOString();
+      } else {
+        const localDateTime = new Date(`${dueDate}T00:00:00`);
+        combinedDueDate = localDateTime.toISOString();
+      }
+    }
+    onUpdate(task.id, { description, dueDate: combinedDueDate });
     setIsEditOpen(false);
   };
 
@@ -72,20 +92,38 @@ export function TaskItem({ task, onUpdate, onDelete }: TaskItemProps) {
             {task.description}
           </p>
           {task.dueDate && (
-            <div className="flex items-center gap-1 mt-1">
-              <Calendar className="w-3 h-3" />
-              <p
-                className={`text-xs ${
-                  isOverdue
-                    ? "text-red-600 font-medium"
-                    : task.completed
-                      ? "text-muted-foreground/70"
-                      : "text-muted-foreground"
-                }`}
-              >
-                {format(parseISO(task.dueDate), "MMM d, yyyy")}
-                {isOverdue && " (Overdue)"}
-              </p>
+            <div className="flex items-center gap-3 mt-1">
+              <div className="flex items-center gap-1">
+                <Calendar className="w-3 h-3" />
+                <p
+                  className={`text-xs ${
+                    isOverdue
+                      ? "text-red-600 font-medium"
+                      : task.completed
+                        ? "text-muted-foreground/70"
+                        : "text-muted-foreground"
+                  }`}
+                >
+                  {format(parseISO(task.dueDate), "MMM d, yyyy")}
+                </p>
+              </div>
+              <div className="flex items-center gap-1">
+                <Clock className="w-3 h-3" />
+                <p
+                  className={`text-xs ${
+                    isOverdue
+                      ? "text-red-600 font-medium"
+                      : task.completed
+                        ? "text-muted-foreground/70"
+                        : "text-muted-foreground"
+                  }`}
+                >
+                  {format(parseISO(task.dueDate), "h:mm a")}
+                </p>
+              </div>
+              {isOverdue && (
+                <p className="text-xs text-red-600 font-medium">(Overdue)</p>
+              )}
             </div>
           )}
         </div>
@@ -136,6 +174,15 @@ export function TaskItem({ task, onUpdate, onDelete }: TaskItemProps) {
                 type="date"
                 value={dueDate}
                 onChange={(e) => setDueDate(e.target.value)}
+              />
+            </div>
+            <div className="grid gap-2">
+              <Label htmlFor="dueTime">Due Time</Label>
+              <Input
+                id="dueTime"
+                type="time"
+                value={dueTime}
+                onChange={(e) => setDueTime(e.target.value)}
               />
             </div>
           </div>
