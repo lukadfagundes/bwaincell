@@ -138,6 +138,15 @@ jobs:
             echo "⏳ Waiting for services to start..."
             sleep 20
 
+            # Deploy Discord slash commands from container
+            echo "🚀 Deploying Discord slash commands..."
+            if docker compose exec -T backend node dist/src/deploy-commands.js 2>&1 | tee deploy-commands.log; then
+              echo "✅ Discord commands deployed successfully"
+            else
+              echo "⚠️  Command deployment failed - commands may already be registered from previous deployment"
+              echo "This is non-critical and deployment will continue"
+            fi
+
             # Check service status
             echo "🔍 Checking service status..."
             docker compose ps
