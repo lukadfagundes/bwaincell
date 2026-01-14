@@ -108,7 +108,11 @@ export async function handleModalSubmit(
   // Note: Interaction already deferred by bot.js - no need to defer here
 
   const { Task, List, Reminder } = await getModels();
-  const channelId = interaction.channel?.id;
+
+  // Import config to get default reminder channel
+  const config = await import('../../../config/config');
+  // Use configured announcement channel, fall back to interaction channel if not set
+  const channelId = config.default.settings.defaultReminderChannel || interaction.channel?.id;
 
   try {
     // Add task modal

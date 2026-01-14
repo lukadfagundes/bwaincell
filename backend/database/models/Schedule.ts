@@ -1,6 +1,8 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import { Model, Optional, Sequelize, Op } from 'sequelize';
+import { DateTime } from 'luxon';
 import schemas from '../schema';
+import config from '../../config/config';
 
 // Define filter types
 type ScheduleFilter = 'upcoming' | 'past' | 'all';
@@ -76,8 +78,8 @@ class Schedule
     filter: ScheduleFilter = 'upcoming'
   ): Promise<Schedule[]> {
     const where: Record<string, unknown> = { guild_id: guildId };
-    const now = new Date();
-    const today = now.toISOString().split('T')[0];
+    // Get today's date in the configured timezone (not UTC)
+    const today = DateTime.now().setZone(config.settings.timezone).toFormat('yyyy-MM-dd');
 
     if (filter === 'upcoming') {
       where.date = { [Op.gte]: today };
@@ -138,7 +140,8 @@ class Schedule
   }
 
   static async getTodaysEvents(guildId: string): Promise<Schedule[]> {
-    const today = new Date().toISOString().split('T')[0];
+    // Get today's date in the configured timezone (not UTC)
+    const today = DateTime.now().setZone(config.settings.timezone).toFormat('yyyy-MM-dd');
 
     return await (this as any).findAll({
       where: {
@@ -150,15 +153,15 @@ class Schedule
   }
 
   static async getUpcomingEvents(guildId: string, days: number = 7): Promise<Schedule[]> {
-    const now = new Date();
-    const future = new Date();
-    future.setDate(future.getDate() + days);
+    // Get date range in the configured timezone (not UTC)
+    const now = DateTime.now().setZone(config.settings.timezone);
+    const future = now.plus({ days });
 
     return await (this as any).findAll({
       where: {
         guild_id: guildId,
         date: {
-          [Op.between]: [now.toISOString().split('T')[0], future.toISOString().split('T')[0]],
+          [Op.between]: [now.toFormat('yyyy-MM-dd'), future.toFormat('yyyy-MM-dd')],
         },
       },
       order: [

@@ -75,7 +75,7 @@ export default {
         .addStringOption((option) =>
           option
             .setName('date')
-            .setDescription('Date (YYYY-MM-DD, or "tomorrow"). Defaults to today/tomorrow.')
+            .setDescription('Date (MM-DD-YYYY, or "tomorrow"). Defaults to today/tomorrow.')
             .setRequired(false)
         )
     )
@@ -185,17 +185,17 @@ export default {
                 .plus({ days: 1 })
                 .toJSDate();
             } else {
-              // Try parsing YYYY-MM-DD format
-              const dateMatch = dateInput.match(/^(\d{4})-(\d{1,2})-(\d{1,2})$/);
+              // Try parsing MM-DD-YYYY format
+              const dateMatch = dateInput.match(/^(\d{1,2})-(\d{1,2})-(\d{4})$/);
               if (dateMatch) {
-                const [, year, month, day] = dateMatch;
+                const [, month, day, year] = dateMatch;
                 targetDate = DateTime.fromObject(
                   { year: parseInt(year), month: parseInt(month), day: parseInt(day) },
                   { zone: config.settings.timezone }
                 ).toJSDate();
               } else {
                 await interaction.editReply({
-                  content: '❌ Invalid date format. Use YYYY-MM-DD or "tomorrow".',
+                  content: '❌ Invalid date format. Use MM-DD-YYYY or "tomorrow".',
                 });
                 return;
               }

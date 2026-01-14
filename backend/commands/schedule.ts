@@ -1,13 +1,20 @@
-import { SlashCommandBuilder, EmbedBuilder, ChatInputCommandInteraction } from 'discord.js';
+import {
+  SlashCommandBuilder,
+  EmbedBuilder,
+  ChatInputCommandInteraction,
+  AutocompleteInteraction,
+} from 'discord.js';
+import { DateTime } from 'luxon';
 import { logger } from '../shared/utils/logger';
 import Schedule from '../database/models/Schedule';
+import config from '../config/config';
 
 interface ScheduleEvent {
   id: number;
   user_id: string;
   guild_id: string;
   event: string;
-  date: string; // DATEONLY format (YYYY-MM-DD)
+  date: string; // DATEONLY format (MM-DD-YYYY)
   time: string; // HH:MM format
   description?: string | null;
   created_at: Date;
@@ -16,6 +23,57 @@ interface ScheduleEvent {
 interface CountdownResult {
   event: Schedule;
   timeLeft: string;
+}
+
+// Convert 12-hour time format to 24-hour format
+function parseTimeToMilitaryFormat(timeStr: string): string | null {
+  const time = timeStr.trim();
+
+  // Check for 12-hour format (e.g., "2:30 PM", "2:30PM", "2:30 pm")
+  const twelveHourMatch = time.match(/^(\d{1,2}):(\d{2})\s*(AM|PM|am|pm)$/i);
+  if (twelveHourMatch) {
+    let hours = parseInt(twelveHourMatch[1]);
+    const minutes = twelveHourMatch[2];
+    const period = twelveHourMatch[3].toUpperCase();
+
+    if (hours < 1 || hours > 12) return null;
+    if (parseInt(minutes) < 0 || parseInt(minutes) > 59) return null;
+
+    if (period === 'PM' && hours !== 12) {
+      hours += 12;
+    } else if (period === 'AM' && hours === 12) {
+      hours = 0;
+    }
+
+    return `${hours.toString().padStart(2, '0')}:${minutes}`;
+  }
+
+  return null;
+}
+
+// Convert 24-hour time format to 12-hour format for display
+function formatTimeTo12Hour(time24: string): string {
+  const [hoursStr, minutes] = time24.split(':');
+  let hours = parseInt(hoursStr);
+  const period = hours >= 12 ? 'PM' : 'AM';
+
+  if (hours === 0) {
+    hours = 12;
+  } else if (hours > 12) {
+    hours -= 12;
+  }
+
+  return `${hours}:${minutes} ${period}`;
+}
+
+// Convert YYYY-MM-DD format to MM-DD-YYYY for display
+function formatDateForDisplay(dateStr: string): string {
+  const match = dateStr.match(/^(\d{4})-(\d{1,2})-(\d{1,2})$/);
+  if (match) {
+    const [, year, month, day] = match;
+    return `${month.padStart(2, '0')}-${day.padStart(2, '0')}-${year}`;
+  }
+  return dateStr; // Return as-is if format is unexpected
 }
 
 export default {
@@ -30,10 +88,13 @@ export default {
           option.setName('event').setDescription('Event name').setRequired(true)
         )
         .addStringOption((option) =>
-          option.setName('date').setDescription('Date (YYYY-MM-DD)').setRequired(true)
+          option.setName('date').setDescription('Date (MM-DD-YYYY)').setRequired(true)
         )
         .addStringOption((option) =>
-          option.setName('time').setDescription('Time (HH:MM in 24-hour format)').setRequired(true)
+          option
+            .setName('time')
+            .setDescription('Time (12-hour format, e.g., 2:30 PM)')
+            .setRequired(true)
         )
         .addStringOption((option) =>
           option.setName('description').setDescription('Event description').setRequired(false)
@@ -68,7 +129,11 @@ export default {
         .setName('countdown')
         .setDescription('Show countdown to an event')
         .addStringOption((option) =>
-          option.setName('event').setDescription('Event name (partial match)').setRequired(true)
+          option
+            .setName('event')
+            .setDescription('Event name (partial match)')
+            .setRequired(true)
+            .setAutocomplete(true)
         )
     )
     .addSubcommand((subcommand) =>
@@ -96,25 +161,51 @@ export default {
       switch (subcommand) {
         case 'add': {
           const event = interaction.options.getString('event', true);
-          const dateStr = interaction.options.getString('date', true);
+          const dateInput = interaction.options.getString('date', true);
           const timeStr = interaction.options.getString('time', true);
           const description = interaction.options.getString('description');
 
-          if (!dateStr.match(/^\d{4}-\d{2}-\d{2}$/)) {
+          // Parse MM-DD-YYYY format
+          const dateMatch = dateInput.match(/^(\d{1,2})-(\d{1,2})-(\d{4})$/);
+          if (!dateMatch) {
             await interaction.editReply({
-              content: 'Invalid date format. Use YYYY-MM-DD.',
+              content: '❌ Invalid date format. Use MM-DD-YYYY (e.g., 01-20-2026).',
             });
             return;
           }
 
-          if (!timeStr.match(/^\d{1,2}:\d{2}$/)) {
+          const [, month, day, year] = dateMatch;
+
+          // Validate date components
+          const monthNum = parseInt(month);
+          const dayNum = parseInt(day);
+
+          if (monthNum < 1 || monthNum > 12) {
             await interaction.editReply({
-              content: 'Invalid time format. Use HH:MM (24-hour format).',
+              content: '❌ Invalid month. Must be between 1 and 12.',
             });
             return;
           }
 
-          const eventDate = new Date(`${dateStr} ${timeStr}`);
+          if (dayNum < 1 || dayNum > 31) {
+            await interaction.editReply({
+              content: '❌ Invalid day. Must be between 1 and 31.',
+            });
+            return;
+          }
+
+          // Convert to YYYY-MM-DD for database storage (for proper sorting)
+          const dateStr = `${year}-${month.padStart(2, '0')}-${day.padStart(2, '0')}`;
+
+          const time24 = parseTimeToMilitaryFormat(timeStr);
+          if (!time24) {
+            await interaction.editReply({
+              content: '❌ Invalid time format. Use 12-hour format (e.g., 2:30 PM).',
+            });
+            return;
+          }
+
+          const eventDate = new Date(`${dateStr} ${time24}`);
           if (isNaN(eventDate.getTime())) {
             await interaction.editReply({
               content: 'Invalid date or time.',
@@ -122,13 +213,13 @@ export default {
             return;
           }
 
-          await Schedule.addEvent(guildId, event, dateStr, timeStr, description, userId);
+          await Schedule.addEvent(guildId, event, dateStr, time24, description, userId);
 
           const embed = new EmbedBuilder()
             .setTitle('Event Scheduled')
             .setDescription(`📅 **${event}**`)
             .addFields(
-              { name: 'Date', value: dateStr, inline: true },
+              { name: 'Date', value: dateInput, inline: true },
               { name: 'Time', value: timeStr, inline: true }
             )
             .setColor(0x00ff00)
@@ -162,7 +253,7 @@ export default {
             .slice(0, 10)
             .map((event) => {
               const desc = event.description ? `\n   📝 ${event.description}` : '';
-              return `**#${event.id}** - ${event.event}\n   📅 ${event.date} at ${event.time}${desc}`;
+              return `**#${event.id}** - ${event.event}\n   📅 ${formatDateForDisplay(event.date)} at ${formatTimeTo12Hour(event.time)}${desc}`;
             })
             .join('\n\n');
 
@@ -208,8 +299,8 @@ export default {
             .setTitle('⏳ Countdown')
             .setDescription(`**${result.event.event}**`)
             .addFields(
-              { name: 'Date', value: result.event.date, inline: true },
-              { name: 'Time', value: result.event.time, inline: true },
+              { name: 'Date', value: formatDateForDisplay(result.event.date), inline: true },
+              { name: 'Time', value: formatTimeTo12Hour(result.event.time), inline: true },
               { name: 'Time Remaining', value: result.timeLeft }
             )
             .setColor(0x9932cc)
@@ -241,7 +332,7 @@ export default {
           const eventList = events
             .map((event) => {
               const desc = event.description ? `\n   📝 ${event.description}` : '';
-              return `⏰ **${event.time}** - ${event.event}${desc}`;
+              return `⏰ **${formatTimeTo12Hour(event.time)}** - ${event.event}${desc}`;
             })
             .join('\n\n');
 
@@ -277,10 +368,13 @@ export default {
 
           const eventList = Object.entries(eventsByDate)
             .map(([date, dayEvents]) => {
-              const dateObj = new Date(date);
-              const dayName = dateObj.toLocaleDateString('en-US', { weekday: 'long' });
-              const eventDetails = dayEvents.map((e) => `  • ${e.time} - ${e.event}`).join('\n');
-              return `**${dayName}, ${date}**\n${eventDetails}`;
+              // Parse date in configured timezone to get correct day of week
+              const dateObj = DateTime.fromISO(date, { zone: config.settings.timezone });
+              const dayName = dateObj.toFormat('EEEE'); // Full weekday name
+              const eventDetails = dayEvents
+                .map((e) => `  • ${formatTimeTo12Hour(e.time)} - ${e.event}`)
+                .join('\n');
+              return `**${dayName}, ${formatDateForDisplay(date)}**\n${eventDetails}`;
             })
             .join('\n\n');
 
@@ -313,6 +407,44 @@ export default {
       } else {
         await interaction.editReply(replyMessage);
       }
+    }
+  },
+
+  async autocomplete(interaction: AutocompleteInteraction): Promise<void> {
+    const focused = interaction.options.getFocused(true);
+    const guildId = interaction.guild?.id;
+
+    if (!guildId) {
+      await interaction.respond([]);
+      return;
+    }
+
+    try {
+      if (focused.name === 'event') {
+        // Get all upcoming events for autocomplete
+        const events = await Schedule.getEvents(guildId, 'upcoming');
+
+        // Create choices with event names
+        const choices = events
+          .slice(0, 25) // Discord limits to 25 choices
+          .map((event) => ({
+            name: `${event.event} (${formatDateForDisplay(event.date)} at ${formatTimeTo12Hour(event.time)})`,
+            value: event.event,
+          }));
+
+        // Filter based on what user typed
+        const filtered = choices.filter((choice) =>
+          choice.value.toLowerCase().includes(focused.value.toLowerCase())
+        );
+
+        await interaction.respond(filtered);
+      }
+    } catch (error) {
+      logger.error('Error in schedule autocomplete', {
+        error: error instanceof Error ? error.message : 'Unknown error',
+        guildId,
+      });
+      await interaction.respond([]);
     }
   },
 };

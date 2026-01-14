@@ -89,16 +89,15 @@ export async function handleListButton(interaction: ButtonInteraction<CacheType>
       if (!list.items || list.items.length === 0) {
         embed.setDescription('This list is empty. Add some items to get started!');
       } else {
-        const itemList = list.items
+        const itemsList = list.items
           .map((item) => {
-            const checkbox = item.completed ? '☑️' : '⬜';
-            return `${checkbox} ${item.text}`;
+            const status = item.completed ? '✅' : '☐';
+            return `${status} ${item.text}`;
           })
           .join('\n');
-        embed.setDescription(itemList);
-        embed.setFooter({
-          text: `${list.items.filter((i) => i.completed).length}/${list.items.length} completed`,
-        });
+        embed.setDescription(itemsList);
+        const completed = list.items.filter((i) => i.completed).length;
+        embed.setFooter({ text: `${completed}/${list.items.length} completed` });
       }
 
       const row = new ActionRowBuilder<ButtonBuilder>().addComponents(
@@ -108,7 +107,15 @@ export async function handleListButton(interaction: ButtonInteraction<CacheType>
           .setStyle(ButtonStyle.Primary)
           .setEmoji('➕'),
         new ButtonBuilder()
-          .setCustomId(`list_clear_${listName}`)
+          .setCustomId(`list_mark_complete_${listName}`)
+          .setLabel('Mark Complete')
+          .setStyle(ButtonStyle.Success)
+          .setEmoji('✅')
+          .setDisabled(
+            !list.items || list.items.length === 0 || list.items.every((item) => item.completed)
+          ),
+        new ButtonBuilder()
+          .setCustomId(`list_clear_completed_${listName}`)
           .setLabel('Clear Completed')
           .setStyle(ButtonStyle.Secondary)
           .setEmoji('🧹')
@@ -187,6 +194,154 @@ export async function handleListButton(interaction: ButtonInteraction<CacheType>
           content: `Select an item from "${listName}" to mark as complete:`,
           components: [selectMenu],
           flags: 64,
+        });
+      }
+      return;
+    }
+
+    // Toggle individual item completion
+    if (customId.startsWith('list_toggle_item_')) {
+      // Parse: list_toggle_item_{listName}_{itemIndex}
+      const parts = customId.replace('list_toggle_item_', '').split('_');
+      const itemIndex = parseInt(parts[parts.length - 1], 10);
+      const listName = parts.slice(0, -1).join('_');
+
+      const list = await List.findOne({
+        where: { user_id: userId, guild_id: guildId, name: listName },
+      });
+
+      if (!list || !list.items || !list.items[itemIndex]) {
+        if (interaction.deferred) {
+          await interaction.editReply({
+            content: `❌ List "${listName}" or item not found.`,
+          });
+        } else {
+          await interaction.reply({
+            content: `❌ List "${listName}" or item not found.`,
+            flags: 64,
+          });
+        }
+        return;
+      }
+
+      // Toggle the item
+      const item = list.items[itemIndex];
+      const itemText = item.text;
+      const wasCompleted = item.completed;
+
+      // Use the existing toggleItem method
+      await List.toggleItem(guildId, listName, itemText);
+
+      // Refresh the list display
+      const updatedList = await List.findOne({
+        where: { user_id: userId, guild_id: guildId, name: listName },
+      });
+
+      if (!updatedList) {
+        if (interaction.deferred) {
+          await interaction.editReply({
+            content: `❌ Error refreshing list.`,
+          });
+        } else {
+          await interaction.reply({
+            content: `❌ Error refreshing list.`,
+            flags: 64,
+          });
+        }
+        return;
+      }
+
+      // Rebuild the embed and components
+      const embed = new EmbedBuilder()
+        .setTitle(`📝 ${updatedList.name}`)
+        .setColor(0x0099ff)
+        .setTimestamp();
+
+      const itemsList = updatedList.items
+        .map((item) => {
+          const status = item.completed ? '✅' : '☐';
+          return `${status} ${item.text}`;
+        })
+        .join('\n');
+
+      embed.setDescription(itemsList);
+      const completed = updatedList.items.filter((i) => i.completed).length;
+      embed.setFooter({ text: `${completed}/${updatedList.items.length} completed` });
+
+      // Rebuild button components
+      const components: ActionRowBuilder<ButtonBuilder>[] = [];
+      const MAX_ITEMS_FOR_BUTTONS = 20;
+
+      if (updatedList.items.length > 0 && updatedList.items.length <= MAX_ITEMS_FOR_BUTTONS) {
+        const itemsPerRow = 5;
+        for (let i = 0; i < updatedList.items.length; i += itemsPerRow) {
+          const rowItems = updatedList.items.slice(
+            i,
+            Math.min(i + itemsPerRow, updatedList.items.length)
+          );
+          const row = new ActionRowBuilder<ButtonBuilder>();
+
+          rowItems.forEach((item, index) => {
+            const globalIndex = i + index;
+            const buttonStyle = item.completed ? ButtonStyle.Success : ButtonStyle.Secondary;
+
+            row.addComponents(
+              new ButtonBuilder()
+                .setCustomId(`list_toggle_item_${listName}_${globalIndex}`)
+                .setLabel(`${globalIndex + 1}`)
+                .setStyle(buttonStyle)
+            );
+          });
+
+          components.push(row);
+        }
+      }
+
+      // Add action buttons row
+      const actionRow = new ActionRowBuilder<ButtonBuilder>().addComponents(
+        new ButtonBuilder()
+          .setCustomId(`list_add_${listName}`)
+          .setLabel('Add Item')
+          .setStyle(ButtonStyle.Primary)
+          .setEmoji('➕')
+      );
+
+      if (updatedList.items.length > MAX_ITEMS_FOR_BUTTONS) {
+        actionRow.addComponents(
+          new ButtonBuilder()
+            .setCustomId(`list_mark_complete_${listName}`)
+            .setLabel('Mark Complete')
+            .setStyle(ButtonStyle.Success)
+            .setEmoji('✅')
+            .setDisabled(
+              updatedList.items.length === 0 || updatedList.items.every((item) => item.completed)
+            )
+        );
+      }
+
+      actionRow.addComponents(
+        new ButtonBuilder()
+          .setCustomId(`list_clear_completed_${listName}`)
+          .setLabel('Clear Completed')
+          .setStyle(ButtonStyle.Secondary)
+          .setEmoji('🧹')
+          .setDisabled(!updatedList.items || !updatedList.items.some((i) => i.completed))
+      );
+
+      components.push(actionRow);
+
+      // Update the message
+      if (interaction.deferred) {
+        await interaction.editReply({
+          content: `${wasCompleted ? '☐' : '✅'} "${itemText}" marked as ${wasCompleted ? 'incomplete' : 'complete'}`,
+          embeds: [embed],
+          components,
+        });
+      } else {
+        await interaction.update({
+          content: `${wasCompleted ? '☐' : '✅'} "${itemText}" marked as ${wasCompleted ? 'incomplete' : 'complete'}`,
+          embeds: [embed],
+          components,
         });
       }
       return;

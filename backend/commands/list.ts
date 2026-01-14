@@ -259,9 +259,9 @@ export default {
             embed.setDescription('This list is empty.');
           } else {
             const itemsList = list.items
-              .map((item: ListItem, index: number) => {
-                const status = item.completed ? '✅' : '⬜';
-                return `${status} ${index + 1}. ${item.text}`;
+              .map((item: ListItem) => {
+                const status = item.completed ? '✅' : '☐';
+                return `${status} ${item.text}`;
               })
               .join('\n');
 

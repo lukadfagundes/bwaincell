@@ -265,7 +265,8 @@ export default {
               const sign = entry.type === 'income' ? '+' : '-';
               const date = new Date(entry.date).toLocaleDateString();
               const desc = entry.description ? ` - ${entry.description}` : '';
-              return `${emoji} ${date} | **${sign}$${entry.amount.toFixed(2)}** | ${entry.category}${desc}`;
+              const amount = Number(entry.amount);
+              return `${emoji} ${date} | **${sign}$${amount.toFixed(2)}** | ${entry.category}${desc}`;
             })
             .join('\n');
 

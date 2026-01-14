@@ -110,7 +110,11 @@ class Scheduler {
 
       // Delete the reminder after execution since it's one-time
       if (Reminder && Reminder.deleteReminder) {
-        await Reminder.deleteReminder(reminder.id, reminder.user_id, reminder.guild_id);
+        await Reminder.deleteReminder(reminder.id, reminder.guild_id);
+        logger.info('One-time reminder deleted after execution', {
+          reminderId: reminder.id,
+          message: reminder.message,
+        });
       }
 
       // Remove from jobs map
@@ -172,18 +176,36 @@ class Scheduler {
 
   private async executeReminder(reminder: any, Reminder: any): Promise<void> {
     try {
+      logger.info('Attempting to execute reminder', {
+        reminderId: reminder.id,
+        channelId: reminder.channel_id,
+        userId: reminder.user_id,
+        message: reminder.message,
+      });
+
       const channel = await this.client.channels.fetch(reminder.channel_id);
+
+      logger.info('Channel fetched', {
+        reminderId: reminder.id,
+        channelId: reminder.channel_id,
+        channelType: channel?.type,
+        isTextChannel: channel instanceof TextChannel,
+      });
+
       if (channel && channel instanceof TextChannel) {
         await channel.send(`<@${reminder.user_id}> ⏰ Reminder: **${reminder.message}**`);
         logger.info('Reminder executed successfully', {
           reminderId: reminder.id,
           userId: reminder.user_id,
           message: reminder.message,
+          channelId: reminder.channel_id,
         });
       } else {
         logger.warn('Reminder channel not found or not a text channel', {
           reminderId: reminder.id,
           channelId: reminder.channel_id,
+          channelType: channel?.type,
+          channelExists: !!channel,
         });
       }
 
@@ -193,7 +215,9 @@ class Scheduler {
     } catch (error) {
       logger.error('Failed to execute reminder', {
         reminderId: reminder.id,
+        channelId: reminder.channel_id,
         error: error instanceof Error ? error.message : 'Unknown error',
+        stack: error instanceof Error ? error.stack : undefined,
       });
     }
   }

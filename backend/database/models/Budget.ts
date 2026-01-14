@@ -128,11 +128,11 @@ class Budget extends BudgetBase<BudgetAttributes, BudgetCreationAttributes> {
 
     const income = entries
       .filter((e: Budget) => e.type === 'income')
-      .reduce((sum: number, e: Budget) => sum + e.amount, 0);
+      .reduce((sum: number, e: Budget) => sum + Number(e.amount), 0);
 
     const expenses = entries
       .filter((e: Budget) => e.type === 'expense')
-      .reduce((sum: number, e: Budget) => sum + e.amount, 0);
+      .reduce((sum: number, e: Budget) => sum + Number(e.amount), 0);
 
     const categories: Record<string, number> = {};
     entries
@@ -142,7 +142,7 @@ class Budget extends BudgetBase<BudgetAttributes, BudgetCreationAttributes> {
           if (!categories[e.category]) {
             categories[e.category] = 0;
           }
-          categories[e.category] += e.amount;
+          categories[e.category] += Number(e.amount);
         }
       });
 
@@ -207,11 +207,11 @@ class Budget extends BudgetBase<BudgetAttributes, BudgetCreationAttributes> {
 
       const income = entries
         .filter((e: Budget) => e.type === 'income')
-        .reduce((sum: number, e: Budget) => sum + e.amount, 0);
+        .reduce((sum: number, e: Budget) => sum + Number(e.amount), 0);
 
       const expenses = entries
         .filter((e: Budget) => e.type === 'expense')
-        .reduce((sum: number, e: Budget) => sum + e.amount, 0);
+        .reduce((sum: number, e: Budget) => sum + Number(e.amount), 0);
 
       results.push({
         month: month.toLocaleString('default', { month: 'short', year: 'numeric' }),
