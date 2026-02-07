@@ -29,9 +29,11 @@ Thumbs.db
 *.swp
 *.swo
 
-# Build
+# Artifacts
 dist/
 build/
+coverage/
+
 # Workspace dist directories
 backend/dist/
 frontend/.next/
@@ -47,10 +49,9 @@ tmp/
 temp/
 *.tmp
 
-temp/
-
 # Trinity Method SDK
 .claude/
-trinity/
+trinity/*
+!trinity/work-orders/
 *CLAUDE.md
 TRINITY.md

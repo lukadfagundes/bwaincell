@@ -7,7 +7,7 @@
 
 ## Overview
 
-Bwaincell provides 7 slash commands for managing tasks, lists, notes, reminders, budgets, schedules, and random utilities. All commands use Discord's modern slash command interface with autocomplete, interactive buttons, and embeds.
+Bwaincell provides 8 slash commands for managing tasks, lists, notes, reminders, budgets, schedules, GitHub issues, and random utilities. All commands use Discord's modern slash command interface with autocomplete, interactive buttons, and embeds.
 
 **Command Prefix:** `/` (Discord slash commands)
 **Guild Isolation:** All data is isolated per Discord server (guild)
@@ -23,7 +23,8 @@ Bwaincell provides 7 slash commands for managing tasks, lists, notes, reminders,
 4. [Reminder System](#4-reminder-system---remind)
 5. [Budget Tracking](#5-budget-tracking---budget)
 6. [Schedule Management](#6-schedule-management---schedule)
-7. [Random Utilities](#7-random-utilities---random)
+7. [GitHub Issues](#7-github-issues---issues)
+8. [Random Utilities](#8-random-utilities---random)
 
 ---
 
@@ -1321,7 +1322,109 @@ Show this week's events.
 
 ---
 
-## 7. Random Utilities - `/random`
+## 7. GitHub Issues - `/issues`
+
+Submit bug reports, feature requests, and suggestions directly to the GitHub repository from Discord. Issues are created with full context including Discord user information and timestamps.
+
+### Command
+
+#### `/issues`
+
+Create a GitHub issue with title, description, and optional type classification.
+
+**Options:**
+
+- `title` (required, string, max 100 chars) - Brief summary of the issue
+- `description` (required, string, max 2000 chars) - Detailed description of the issue
+- `type` (optional, choice) - Issue classification
+  - `Bug Report` - Report a bug or error
+  - `Feature Request` - Suggest a new feature
+  - `Question` - Ask a question
+  - `Documentation` - Request documentation improvements
+
+**Example:**
+
+```
+/issues title:"Add dark mode" description:"It would be great to have a dark theme option" type:"Feature Request"
+```
+
+**Response:**
+
+- ✅ Success embed with issue number and GitHub link
+- 🔗 Clickable "View on GitHub" button
+- ➕ "Submit Another Issue" button for quick follow-up
+
+**Issue Format:**
+
+Issues are created in GitHub with the following structure:
+
+```markdown
+## Description
+
+[User's description]
+
+---
+
+**Submitted by:** username (Discord ID: 123456789)
+**Guild ID:** 987654321
+**Issue Type:** feature
+**Timestamp:** 2026-02-07T20:00:00.000Z
+```
+
+**Labels:**
+
+Issues are automatically labeled based on type:
+
+- `Bug Report` → `bug` label
+- `Feature Request` → `enhancement` label
+- `Question` → `question` label
+- `Documentation` → `documentation` label
+
+**Error Handling:**
+
+The command gracefully handles various error scenarios:
+
+- **GitHub Not Configured:** Displays setup message for administrator
+- **Invalid Token:** Shows authentication error (logged privately)
+- **Rate Limit:** Informs user when to retry with specific timing
+- **Permission Denied:** Indicates token lacks required permissions
+- **Repository Not Found:** Suggests checking configuration
+
+**Requirements:**
+
+- GitHub personal access token with `repo` scope
+- Repository owner and name configured in environment variables
+- Command only works in Discord servers (not DMs)
+
+**Configuration:**
+
+Add to `.env` file:
+
+```bash
+GITHUB_TOKEN=ghp_your_token_here
+GITHUB_REPO_OWNER=your-username
+GITHUB_REPO_NAME=Bwaincell
+```
+
+**Technical Implementation:**
+
+- GitHub API integration via `@octokit/rest`
+- Singleton service pattern with initialization validation
+- Comprehensive error handling for API failures
+- Discord interaction deferred to prevent timeouts
+- Metadata preserved in issue body (user, guild, timestamp)
+
+**Notes:**
+
+- Issues include full attribution (Discord username and ID)
+- Guild ID included for multi-server deployments
+- Issue URLs are immediately clickable in Discord
+- Failed submissions show user-friendly error messages
+- All errors logged to Winston (not exposed to users)
+
+---
+
+## 8. Random Utilities - `/random`
 
 Generate random selections, numbers, and entertainment suggestions.
 
