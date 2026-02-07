@@ -7,6 +7,34 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- **`/issues` Discord Command** - Submit bug reports, feature requests, and suggestions directly to GitHub from Discord
+  - Options: `title` (required), `description` (required), `type` (optional: bug/feature/question/documentation)
+  - Auto-labels issues based on type selection
+  - Includes Discord user metadata (username, user ID, guild ID) in issue body
+  - Interactive buttons: "View on GitHub" link and "Submit Another Issue"
+- **GitHub Service** (`backend/utils/githubService.ts`) - Octokit API wrapper for GitHub issue creation
+  - Singleton pattern with initialization validation
+  - Comprehensive error handling (401, 403, 404, 429 status codes)
+  - Graceful degradation when GitHub credentials not configured
+- **GitHub Environment Variables** - New configuration options for GitHub integration
+  - `GITHUB_TOKEN` - Personal access token with `repo` scope
+  - `GITHUB_REPO_OWNER` - Repository owner username
+  - `GITHUB_REPO_NAME` - Repository name
+- **Backend Test Infrastructure**
+  - New test setup file (`backend/tests/setup.ts`)
+  - Unit tests for `/issues` command (30 tests)
+  - Unit tests for GitHubService (15 tests)
+  - Jest configuration for `@octokit/rest` ESM compatibility
+
+### Changed
+
+- **Discord Bot** - Now provides **8 slash commands** with **47 total subcommands** (was 7 commands, 46 subcommands)
+- **Documentation** - Updated `docs/api/discord-commands.md` with complete `/issues` command reference
+- **Dependencies** - Added `@octokit/rest@22.0.1` for GitHub API integration
+- **Environment Validation** - Extended Joi schema to validate GitHub configuration variables
+
 ## [2.0.0] - 2026-01-12
 
 ### Overview
