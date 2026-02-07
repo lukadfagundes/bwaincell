@@ -46,6 +46,13 @@ const envSchema = Joi.object({
     .optional()
     .default(3000)
     .description('Port for health check endpoint'),
+
+  // GitHub API configuration (for /issues command)
+  GITHUB_TOKEN: Joi.string().optional().description('GitHub personal access token with repo scope'),
+
+  GITHUB_REPO_OWNER: Joi.string().optional().description('GitHub repository owner username'),
+
+  GITHUB_REPO_NAME: Joi.string().optional().description('GitHub repository name'),
 }).unknown(); // Allow other env vars
 
 /**
@@ -60,6 +67,9 @@ export interface ValidatedEnvironment {
   LOG_LEVEL: string;
   GOOGLE_APPLICATION_CREDENTIALS?: string;
   HEALTH_CHECK_PORT: number;
+  GITHUB_TOKEN?: string;
+  GITHUB_REPO_OWNER?: string;
+  GITHUB_REPO_NAME?: string;
 }
 
 /**
