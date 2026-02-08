@@ -80,10 +80,18 @@ const schemas = {
       allowNull: false,
     },
     frequency: {
-      type: DataTypes.ENUM('once', 'daily', 'weekly'),
+      type: DataTypes.ENUM('once', 'daily', 'weekly', 'monthly', 'yearly'),
       defaultValue: 'once',
     },
     day_of_week: {
+      type: DataTypes.INTEGER,
+      allowNull: true,
+    },
+    day_of_month: {
+      type: DataTypes.INTEGER,
+      allowNull: true,
+    },
+    month: {
       type: DataTypes.INTEGER,
       allowNull: true,
     },
