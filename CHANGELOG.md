@@ -14,6 +14,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - Auto-labels issues based on type selection
   - Includes Discord user metadata (username, user ID, guild ID) in issue body
   - Interactive buttons: "View on GitHub" link and "Submit Another Issue"
+- **`/make-it-a-quote` Discord Command** - Generate dramatic quote images from Discord messages
+  - Slash command with `message_id` as required parameter
+  - Usage: Right-click message → Copy Message ID → `/make-it-a-quote <message_id>` → generate quote
+  - Features:
+    - **Dramatic spotlight design** with radial gradient glow effect
+    - **Guild-specific avatars** (uses server profile picture, not default Discord avatar)
+    - **Grayscale circular avatar** on the left with extended white spotlight
+    - **Smooth gradient transition** from spotlight to pure black background
+    - White quote text on right side with italic username attribution
+    - 1200x630 canvas (16:9 aspect ratio, optimized for social sharing)
+  - Comprehensive error handling for invalid message IDs, missing channels, and API errors
+  - All 22 tests passing with 100% coverage
 - **GitHub Service** (`backend/utils/githubService.ts`) - Octokit API wrapper for GitHub issue creation
   - Singleton pattern with initialization validation
   - Comprehensive error handling (401, 403, 404, 429 status codes)
@@ -25,13 +37,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Backend Test Infrastructure**
   - New test setup file (`backend/tests/setup.ts`)
   - Unit tests for `/issues` command (30 tests)
+  - Unit tests for `/make-it-a-quote` command (22 tests)
+  - Unit tests for ImageService (13 tests)
   - Unit tests for GitHubService (15 tests)
   - Jest configuration for `@octokit/rest` ESM compatibility
 
 ### Changed
 
-- **Discord Bot** - Now provides **8 slash commands** with **47 total subcommands** (was 7 commands, 46 subcommands)
-- **Documentation** - Updated `docs/api/discord-commands.md` with complete `/issues` command reference
+- **Discord Bot** - Now provides **9 slash commands** (was 8 in development)
+  - Added `/issues` and `/make-it-a-quote` to production command list
+- **Documentation** - Updated `docs/api/discord-commands.md` with complete command references
 - **Dependencies** - Added `@octokit/rest@22.0.1` for GitHub API integration
 - **Environment Validation** - Extended Joi schema to validate GitHub configuration variables
 
