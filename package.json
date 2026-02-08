@@ -58,6 +58,7 @@
   "dependencies": {
     "@google-cloud/local-auth": "^3.0.1",
     "@napi-rs/canvas": "^0.1.80",
+    "@octokit/rest": "^20.1.1",
     "@types/cors": "^2.8.19",
     "@types/express": "^4.17.23",
     "@types/luxon": "^3.7.1",
