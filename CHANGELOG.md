@@ -9,6 +9,29 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- **`/remind monthly` Discord Subcommand** - Create monthly recurring reminders (Issue #23)
+  - Options: `message` (required), `day` (1-31, required), `time` (12-hour format, required)
+  - Usage: `/remind monthly message:"Pay rent" day:1 time:"9:00 AM"`
+  - Handles edge cases: day 31 in 30-day months, day 31 in February
+  - Automatic adjustment to last day of month when requested day doesn't exist
+  - Timezone-aware scheduling using Luxon DateTime
+- **`/remind yearly` Discord Subcommand** - Create yearly recurring reminders (Issue #23)
+  - Options: `message` (required), `month` (1-12 with names, required), `day` (1-31, required), `time` (12-hour format, required)
+  - Usage: `/remind yearly message:"Mom's birthday" month:March day:15 time:"8:00 AM"`
+  - Handles leap year edge cases: Feb 29 in leap years, Feb 28 in non-leap years
+  - Automatic adjustment for invalid dates (e.g., Feb 31 → Feb 28/29)
+  - Perfect for birthdays, anniversaries, annual renewals, tax deadlines
+- **Monthly/Yearly Reminder Display** - Enhanced list and autocomplete formatting
+  - `/remind list` now shows monthly reminders with 📆 emoji: "Monthly (15th)"
+  - `/remind list` now shows yearly reminders with 🎂 emoji: "Yearly (Mar 15)"
+  - Autocomplete includes monthly/yearly formatting for easy selection
+  - Ordinal day suffixes (1st, 2nd, 3rd, 15th, etc.)
+- **Comprehensive Test Suite** - 41 new tests for monthly/yearly functionality
+  - 15 unit tests for Reminder model date calculations
+  - 11 unit tests for command structure validation
+  - 15 unit tests for scheduler cron expression generation
+  - Edge case coverage: Feb 31, leap years, month boundaries, timezone handling
+  - **Total test count: 78 tests (was 37 tests)**
 - **`/issues` Discord Command** - Submit bug reports, feature requests, and suggestions directly to GitHub from Discord
   - Options: `title` (required), `description` (required), `type` (optional: bug/feature/question/documentation)
   - Auto-labels issues based on type selection
@@ -44,6 +67,20 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+- **Reminder Database Schema** - Extended to support monthly/yearly frequencies
+  - Added `day_of_month` field (1-31) for monthly/yearly reminders
+  - Added `month` field (1-12) for yearly reminders
+  - Extended `frequency` ENUM: `'once' | 'daily' | 'weekly' | 'monthly' | 'yearly'`
+- **Reminder Model** - Enhanced date calculation logic
+  - `calculateNextTrigger()` now handles monthly/yearly with edge cases
+  - Invalid date detection using Luxon date rollover check
+  - Automatic fallback to month-end for invalid days (e.g., Feb 31 → Feb 28/29)
+- **Scheduler Service** - Added cron expression generation for monthly/yearly
+  - Monthly cron format: `${minutes} ${hours} ${dayOfMonth} * *`
+  - Yearly cron format: `${minutes} ${hours} ${dayOfMonth} ${month} *`
+- **Discord Bot** - Now provides **8 slash commands** with **49 total subcommands** (was 7 commands, 47 subcommands)
+  - `/remind` command expanded from 5 to 7 subcommands
+- **Documentation** - Updated `docs/api/discord-commands.md` with complete `/issues` command reference
 - **Discord Bot** - Now provides **9 slash commands** (was 8 in development)
   - Added `/issues` and `/make-it-a-quote` to production command list
 - **Documentation** - Updated `docs/api/discord-commands.md` with complete command references

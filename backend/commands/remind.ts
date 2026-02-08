@@ -55,6 +55,21 @@ function formatTimeTo12Hour(time24: string): string {
   return `${hours}:${minutes} ${period}`;
 }
 
+// Add day suffix for ordinal numbers (1st, 2nd, 3rd, etc.)
+function getDaySuffix(day: number): string {
+  if (day >= 11 && day <= 13) return 'th';
+  switch (day % 10) {
+    case 1:
+      return 'st';
+    case 2:
+      return 'nd';
+    case 3:
+      return 'rd';
+    default:
+      return 'th';
+  }
+}
+
 export default {
   data: new SlashCommandBuilder()
     .setName('remind')
@@ -114,6 +129,70 @@ export default {
               { name: 'Friday', value: '5' },
               { name: 'Saturday', value: '6' }
             )
+        )
+        .addStringOption((option) =>
+          option
+            .setName('time')
+            .setDescription('Time (12-hour format, e.g., 2:30 PM)')
+            .setRequired(true)
+        )
+    )
+    .addSubcommand((subcommand) =>
+      subcommand
+        .setName('monthly')
+        .setDescription('Set a monthly recurring reminder')
+        .addStringOption((option) =>
+          option.setName('message').setDescription('Reminder message').setRequired(true)
+        )
+        .addIntegerOption((option) =>
+          option
+            .setName('day')
+            .setDescription('Day of month (1-31)')
+            .setRequired(true)
+            .setMinValue(1)
+            .setMaxValue(31)
+        )
+        .addStringOption((option) =>
+          option
+            .setName('time')
+            .setDescription('Time (12-hour format, e.g., 2:30 PM)')
+            .setRequired(true)
+        )
+    )
+    .addSubcommand((subcommand) =>
+      subcommand
+        .setName('yearly')
+        .setDescription('Set a yearly recurring reminder')
+        .addStringOption((option) =>
+          option.setName('message').setDescription('Reminder message').setRequired(true)
+        )
+        .addIntegerOption((option) =>
+          option
+            .setName('month')
+            .setDescription('Month')
+            .setRequired(true)
+            .addChoices(
+              { name: 'January', value: 1 },
+              { name: 'February', value: 2 },
+              { name: 'March', value: 3 },
+              { name: 'April', value: 4 },
+              { name: 'May', value: 5 },
+              { name: 'June', value: 6 },
+              { name: 'July', value: 7 },
+              { name: 'August', value: 8 },
+              { name: 'September', value: 9 },
+              { name: 'October', value: 10 },
+              { name: 'November', value: 11 },
+              { name: 'December', value: 12 }
+            )
+        )
+        .addIntegerOption((option) =>
+          option
+            .setName('day')
+            .setDescription('Day of month (1-31)')
+            .setRequired(true)
+            .setMinValue(1)
+            .setMaxValue(31)
         )
         .addStringOption((option) =>
           option
@@ -407,6 +486,175 @@ export default {
           break;
         }
 
+        case 'monthly': {
+          const message = interaction.options.getString('message', true);
+          const dayOfMonth = interaction.options.getInteger('day', true);
+          const timeInput = interaction.options.getString('time', true);
+
+          const time = parseTimeToMilitaryFormat(timeInput);
+          if (!time) {
+            await interaction.editReply({
+              content: '❌ Invalid time format. Use 12-hour format (e.g., 2:30 PM).',
+            });
+            return;
+          }
+
+          const reminder = await Reminder.createReminder(
+            guildId,
+            channelId,
+            message,
+            time,
+            'monthly',
+            null, // day_of_week (not used)
+            userId,
+            null, // targetDate (not used)
+            dayOfMonth // day of month
+          );
+
+          // Add reminder to scheduler
+          const scheduler = getScheduler();
+          if (scheduler) {
+            await scheduler.addReminder(reminder.id);
+          }
+
+          const embed = new EmbedBuilder()
+            .setTitle('⏰ Monthly Reminder Set')
+            .setDescription(`I'll remind you monthly: **"${message}"**`)
+            .addFields(
+              {
+                name: '📆 Schedule',
+                value: `Every ${dayOfMonth}${getDaySuffix(dayOfMonth)} at ${formatTimeTo12Hour(time)}`,
+                inline: true,
+              },
+              { name: '🔄 Frequency', value: 'Monthly', inline: true },
+              {
+                name: '⏱️ Next Trigger',
+                value: reminder.next_trigger
+                  ? DateTime.fromJSDate(reminder.next_trigger)
+                      .setZone(config.settings.timezone)
+                      .toLocaleString(DateTime.DATETIME_FULL)
+                  : 'N/A',
+              }
+            )
+            .setColor(0x00ff00)
+            .setTimestamp();
+
+          const row = new ActionRowBuilder<ButtonBuilder>().addComponents(
+            new ButtonBuilder()
+              .setCustomId(`reminder_delete_${reminder.id}`)
+              .setLabel('Cancel Reminder')
+              .setStyle(ButtonStyle.Danger)
+              .setEmoji('🗑️'),
+            new ButtonBuilder()
+              .setCustomId('reminder_list')
+              .setLabel('View All Reminders')
+              .setStyle(ButtonStyle.Primary)
+              .setEmoji('📋'),
+            new ButtonBuilder()
+              .setCustomId('reminder_add_another')
+              .setLabel('Add Another')
+              .setStyle(ButtonStyle.Secondary)
+              .setEmoji('➕')
+          );
+
+          await interaction.editReply({ embeds: [embed], components: [row] });
+          break;
+        }
+
+        case 'yearly': {
+          const message = interaction.options.getString('message', true);
+          const month = interaction.options.getInteger('month', true);
+          const dayOfMonth = interaction.options.getInteger('day', true);
+          const timeInput = interaction.options.getString('time', true);
+
+          const time = parseTimeToMilitaryFormat(timeInput);
+          if (!time) {
+            await interaction.editReply({
+              content: '❌ Invalid time format. Use 12-hour format (e.g., 2:30 PM).',
+            });
+            return;
+          }
+
+          const reminder = await Reminder.createReminder(
+            guildId,
+            channelId,
+            message,
+            time,
+            'yearly',
+            null, // day_of_week (not used)
+            userId,
+            null, // targetDate (not used)
+            dayOfMonth, // day of month
+            month // month
+          );
+
+          // Add reminder to scheduler
+          const scheduler = getScheduler();
+          if (scheduler) {
+            await scheduler.addReminder(reminder.id);
+          }
+
+          const monthNames = [
+            '',
+            'January',
+            'February',
+            'March',
+            'April',
+            'May',
+            'June',
+            'July',
+            'August',
+            'September',
+            'October',
+            'November',
+            'December',
+          ];
+
+          const embed = new EmbedBuilder()
+            .setTitle('🎂 Yearly Reminder Set')
+            .setDescription(`I'll remind you yearly: **"${message}"**`)
+            .addFields(
+              {
+                name: '📅 Date',
+                value: `Every ${monthNames[month]} ${dayOfMonth}${getDaySuffix(dayOfMonth)}`,
+                inline: true,
+              },
+              { name: '🕐 Time', value: formatTimeTo12Hour(time), inline: true },
+              { name: '🔄 Frequency', value: 'Yearly', inline: true },
+              {
+                name: '⏱️ Next Trigger',
+                value: reminder.next_trigger
+                  ? DateTime.fromJSDate(reminder.next_trigger)
+                      .setZone(config.settings.timezone)
+                      .toLocaleString(DateTime.DATETIME_FULL)
+                  : 'N/A',
+              }
+            )
+            .setColor(0x00ff00)
+            .setTimestamp();
+
+          const row = new ActionRowBuilder<ButtonBuilder>().addComponents(
+            new ButtonBuilder()
+              .setCustomId(`reminder_delete_${reminder.id}`)
+              .setLabel('Cancel Reminder')
+              .setStyle(ButtonStyle.Danger)
+              .setEmoji('🗑️'),
+            new ButtonBuilder()
+              .setCustomId('reminder_list')
+              .setLabel('View All Reminders')
+              .setStyle(ButtonStyle.Primary)
+              .setEmoji('📋'),
+            new ButtonBuilder()
+              .setCustomId('reminder_add_another')
+              .setLabel('Add Another')
+              .setStyle(ButtonStyle.Secondary)
+              .setEmoji('➕')
+          );
+
+          await interaction.editReply({ embeds: [embed], components: [row] });
+          break;
+        }
+
         case 'list': {
           const reminders = await Reminder.getUserReminders(guildId);
 
@@ -449,6 +697,21 @@ export default {
             .slice(0, 25)
             .map((reminder) => {
               const dayNames = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+              const monthNames = [
+                '',
+                'Jan',
+                'Feb',
+                'Mar',
+                'Apr',
+                'May',
+                'Jun',
+                'Jul',
+                'Aug',
+                'Sep',
+                'Oct',
+                'Nov',
+                'Dec',
+              ];
               let frequency = reminder.frequency;
               let emoji = '⏰';
 
@@ -463,6 +726,22 @@ export default {
               ) {
                 emoji = '📆';
                 displayFrequency = `Weekly (${dayNames[reminder.day_of_week]})`;
+              } else if (
+                frequency === 'monthly' &&
+                reminder.day_of_month !== null &&
+                reminder.day_of_month !== undefined
+              ) {
+                emoji = '📆';
+                displayFrequency = `Monthly (${reminder.day_of_month}${getDaySuffix(reminder.day_of_month)})`;
+              } else if (
+                frequency === 'yearly' &&
+                reminder.month !== null &&
+                reminder.month !== undefined &&
+                reminder.day_of_month !== null &&
+                reminder.day_of_month !== undefined
+              ) {
+                emoji = '🎂';
+                displayFrequency = `Yearly (${monthNames[reminder.month]} ${reminder.day_of_month})`;
               } else if (frequency === 'once') {
                 emoji = '⏰';
                 displayFrequency = 'One-time';
@@ -618,6 +897,21 @@ export default {
         const reminders = await Reminder.getUserReminders(guildId);
 
         const dayNames = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+        const monthNames = [
+          '',
+          'Jan',
+          'Feb',
+          'Mar',
+          'Apr',
+          'May',
+          'Jun',
+          'Jul',
+          'Aug',
+          'Sep',
+          'Oct',
+          'Nov',
+          'Dec',
+        ];
         const choices = reminders.slice(0, 25).map((reminder) => {
           const message =
             reminder.message.length > 30
@@ -631,6 +925,20 @@ export default {
             reminder.day_of_week !== undefined
           ) {
             displayFrequency = `Weekly (${dayNames[reminder.day_of_week]})`;
+          } else if (
+            reminder.frequency === 'monthly' &&
+            reminder.day_of_month !== null &&
+            reminder.day_of_month !== undefined
+          ) {
+            displayFrequency = `Monthly (${reminder.day_of_month})`;
+          } else if (
+            reminder.frequency === 'yearly' &&
+            reminder.month !== null &&
+            reminder.month !== undefined &&
+            reminder.day_of_month !== null &&
+            reminder.day_of_month !== undefined
+          ) {
+            displayFrequency = `Yearly (${monthNames[reminder.month]} ${reminder.day_of_month})`;
           }
 
           return {
