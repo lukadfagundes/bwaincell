@@ -9,6 +9,22 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- **AI-Powered Date Suggestions** - `/random date` command now uses Google Gemini 2.5 Flash for creative, location-aware date ideas (Issue #18)
+  - Features:
+    - **Location-aware suggestions** based on ZIP code (configured via `LOCATION_ZIP_CODE` environment variable)
+    - **Cost estimates**: Budget-friendly, Moderate, or Splurge
+    - **Time-of-day recommendations**: Morning, Afternoon, Evening, or Night
+    - **Enhanced Discord embeds** with cost and time fields inline
+    - **Robust fallback mechanism**: Gracefully falls back to static date ideas on API errors (zero user-facing failures)
+  - Configuration:
+    - `GEMINI_API_KEY` - Get yours at https://ai.google.dev/
+    - `LOCATION_ZIP_CODE` - Your ZIP code for location-aware suggestions (e.g., 90210)
+  - Technical:
+    - `GeminiService` utility class for API integration with comprehensive error handling
+    - JSON response parsing with markdown cleanup support
+    - 10 new comprehensive unit tests (100% coverage of new code)
+    - Model: `gemini-2.5-flash` (stable model as of 2026)
+  - Example output: "Sunset Hike at Runyon Canyon - Trek up to the Hollywood sign for breathtaking city views at golden hour... 💰 Budget-friendly 🕐 Evening ✨ Powered by AI"
 - **`/remind monthly` Discord Subcommand** - Create monthly recurring reminders (Issue #23)
   - Options: `message` (required), `day` (1-31, required), `time` (12-hour format, required)
   - Usage: `/remind monthly message:"Pay rent" day:1 time:"9:00 AM"`
@@ -26,12 +42,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - `/remind list` now shows yearly reminders with 🎂 emoji: "Yearly (Mar 15)"
   - Autocomplete includes monthly/yearly formatting for easy selection
   - Ordinal day suffixes (1st, 2nd, 3rd, 15th, etc.)
-- **Comprehensive Test Suite** - 41 new tests for monthly/yearly functionality
+- **Comprehensive Test Suite** - 51 new tests for monthly/yearly reminders and AI date suggestions
   - 15 unit tests for Reminder model date calculations
   - 11 unit tests for command structure validation
   - 15 unit tests for scheduler cron expression generation
-  - Edge case coverage: Feb 31, leap years, month boundaries, timezone handling
-  - **Total test count: 78 tests (was 37 tests)**
+  - 10 unit tests for GeminiService (API integration, error handling, response parsing)
+  - Edge case coverage: Feb 31, leap years, month boundaries, timezone handling, AI API failures
+  - **Total test count: 123 tests (was 113 tests before WO-007, was 37 tests before WO-006)**
 - **`/issues` Discord Command** - Submit bug reports, feature requests, and suggestions directly to GitHub from Discord
   - Options: `title` (required), `description` (required), `type` (optional: bug/feature/question/documentation)
   - Auto-labels issues based on type selection

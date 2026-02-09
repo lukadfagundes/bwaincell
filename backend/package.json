@@ -39,6 +39,7 @@
   "license": "ISC",
   "dependencies": {
     "@google-cloud/local-auth": "^3.0.1",
+    "@google/generative-ai": "^0.24.1",
     "@napi-rs/canvas": "^0.1.80",
     "@octokit/rest": "^20.1.1",
     "@types/cors": "^2.8.19",
