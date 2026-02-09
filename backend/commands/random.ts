@@ -7,6 +7,7 @@ import {
   ChatInputCommandInteraction,
 } from 'discord.js';
 import { logger } from '../shared/utils/logger';
+import { GeminiService } from '../utils/geminiService';
 
 // Import recipe data (will need to type this properly later)
 const { dinnerOptions, movieData } = require('../utils/recipeData');
@@ -200,11 +201,47 @@ export default {
         }
 
         case 'date': {
-          const date = dateIdeas[Math.floor(Math.random() * dateIdeas.length)];
+          let dateIdea: string;
+          let description: string = 'Make it special by adding your personal touch!';
+          let footerText: string = '💡 Tip';
+
+          // Try to use AI-powered suggestions
+          try {
+            const zipCode = process.env.LOCATION_ZIP_CODE || '90210';
+            const geminiResponse = await GeminiService.generateDateIdea(zipCode);
+
+            dateIdea = geminiResponse.activity;
+            description = geminiResponse.description;
+            footerText = '✨ Powered by AI';
+
+            // Add cost and time fields if available
+            if (geminiResponse.estimatedCost) {
+              embed.addFields({
+                name: '💰 Cost',
+                value: geminiResponse.estimatedCost,
+                inline: true,
+              });
+            }
+
+            if (geminiResponse.timeOfDay) {
+              embed.addFields({
+                name: '🕐 Time',
+                value: geminiResponse.timeOfDay,
+                inline: true,
+              });
+            }
+
+            logger.info('Generated AI date idea', { zipCode, activity: dateIdea });
+          } catch (error) {
+            // Fallback to static date ideas on any error
+            logger.warn('Gemini API unavailable, using fallback', { error });
+            dateIdea = dateIdeas[Math.floor(Math.random() * dateIdeas.length)];
+          }
+
           embed
             .setTitle('💑 Random Date Idea')
-            .setDescription(`**${date}**`)
-            .addFields({ name: '💡 Tip', value: 'Make it special by adding your personal touch!' });
+            .setDescription(`**${dateIdea}**\n\n${description}`)
+            .setFooter({ text: footerText });
 
           const row = new ActionRowBuilder<ButtonBuilder>().addComponents(
             new ButtonBuilder()
