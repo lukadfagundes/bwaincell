@@ -78,6 +78,7 @@ describe('GeminiService', () => {
         description: 'Stroll along the beach at golden hour',
         estimatedCost: 'Budget-friendly',
         timeOfDay: 'Evening',
+        url: 'https://example.com/sunset-walk',
       };
 
       mockGenerateContent.mockResolvedValueOnce({
@@ -179,6 +180,7 @@ ${JSON.stringify(expectedResponse)}
       expect(result.description).toBe('Cozy coffee date');
       expect(result.estimatedCost).toBeUndefined();
       expect(result.timeOfDay).toBeUndefined();
+      expect(result.url).toBeUndefined();
     });
 
     it('should throw on invalid JSON', async () => {

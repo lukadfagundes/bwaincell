@@ -9,6 +9,7 @@ export interface DateIdeaResponse {
   description: string;
   estimatedCost?: string;
   timeOfDay?: string;
+  url?: string;
 }
 
 /**
@@ -80,13 +81,15 @@ Requirements:
 - Provide a brief description (2-3 sentences)
 - Estimate cost range (Budget-friendly, Moderate, Splurge)
 - Suggest time of day (Morning, Afternoon, Evening, Night)
+- Include a URL link to the event page or venue website
 
 Format your response as JSON:
 {
   "activity": "Activity Name",
   "description": "Brief description incorporating the local event",
   "estimatedCost": "Budget-friendly|Moderate|Splurge",
-  "timeOfDay": "Morning|Afternoon|Evening|Night"
+  "timeOfDay": "Morning|Afternoon|Evening|Night",
+  "url": "https://example.com/event-page"
 }`;
   }
 
@@ -120,6 +123,7 @@ Format your response as JSON:
         description: parsed.description,
         estimatedCost: parsed.estimatedCost || undefined,
         timeOfDay: parsed.timeOfDay || undefined,
+        url: parsed.url || undefined,
       };
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : 'Unknown parse error';

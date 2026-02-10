@@ -9,22 +9,43 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
-- **AI-Powered Date Suggestions** - `/random date` command now uses Google Gemini 2.5 Flash for creative, location-aware date ideas (Issue #18)
+- **AI-Powered Date Suggestions** - `/random date` command now uses Google Gemini 2.5 Flash with **Google Search grounding** for real-time, event-aware date ideas (Issue #18, #19)
   - Features:
+    - **Real-time local event integration** - Gemini searches the web for actual events happening tonight or this weekend near your location and builds date ideas around them
+    - **Event links** - Includes a clickable URL to the event page or venue website when available
     - **Location-aware suggestions** based on ZIP code (configured via `LOCATION_ZIP_CODE` environment variable)
     - **Cost estimates**: Budget-friendly, Moderate, or Splurge
     - **Time-of-day recommendations**: Morning, Afternoon, Evening, or Night
-    - **Enhanced Discord embeds** with cost and time fields inline
+    - **Enhanced Discord embeds** with cost, time, and event link fields
     - **Robust fallback mechanism**: Gracefully falls back to static date ideas on API errors (zero user-facing failures)
   - Configuration:
     - `GEMINI_API_KEY` - Get yours at https://ai.google.dev/
     - `LOCATION_ZIP_CODE` - Your ZIP code for location-aware suggestions (e.g., 90210)
   - Technical:
-    - `GeminiService` utility class for API integration with comprehensive error handling
+    - `GeminiService` utility class with `@google/genai` SDK and Google Search grounding
     - JSON response parsing with markdown cleanup support
-    - 10 new comprehensive unit tests (100% coverage of new code)
-    - Model: `gemini-2.5-flash` (stable model as of 2026)
-  - Example output: "Sunset Hike at Runyon Canyon - Trek up to the Hollywood sign for breathtaking city views at golden hour... 💰 Budget-friendly 🕐 Evening ✨ Powered by AI"
+    - 11 unit tests covering API integration, error handling, response parsing, and URL field
+    - Model: `gemini-2.5-flash` with `googleSearch` tool enabled
+  - Example output: "Reclaim Your Heartbeats: Emo Night Rendezvous - Ignite a spark of nostalgic romance at The Shanty's Broken Hearts Ball Vol. 2 this Friday... 💰 Moderate 🕐 Night 🔗 More Info ✨ Powered by AI"
+- **`/events` Discord Command** - AI-powered local event discovery with Google Search grounding (Issue #19)
+  - Discovers real local events using Gemini 2.5 Flash with real-time web search
+  - Configurable weekly scheduled announcements (day and time)
+  - Discord embed formatting with event details, dates, times, locations, and links
+  - Features:
+    - **Real-time event discovery** - Gemini searches the web for festivals, concerts, markets, community events, and more
+    - **Robust time parsing** - Handles varied AI time formats (ranges like "6:00 PM - 9:30 PM", date ranges, vague descriptions)
+    - **Scheduled announcements** - Set a day and time for weekly event digests via `/events day:<day> time:<time>`
+    - **Database persistence** - Schedule preferences stored in `event_configs` table per guild
+    - **Caching** - Results cached with configurable TTL to avoid redundant API calls
+    - **Mock provider** - Development/testing mode with sample data
+  - Configuration:
+    - `EVENTS_AI_SERVICE` - Provider selection (`gemini` or `mock`)
+    - `EVENTS_MAX_RESULTS` - Maximum events to return (default: 10)
+    - `EVENTS_CACHE_TTL` - Cache duration in seconds (default: 3600)
+  - Technical:
+    - `EventsService` with provider pattern (GeminiEventProvider, MockEventProvider)
+    - 30 unit tests covering discovery, parsing, caching, formatting, error handling, and mock provider
+    - Scheduler integration for automated weekly announcements
 - **`/remind monthly` Discord Subcommand** - Create monthly recurring reminders (Issue #23)
   - Options: `message` (required), `day` (1-31, required), `time` (12-hour format, required)
   - Usage: `/remind monthly message:"Pay rent" day:1 time:"9:00 AM"`
@@ -84,6 +105,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+- **Gemini SDK Migration** - Migrated from deprecated `@google/generative-ai` to `@google/genai@1.40.0` (Issue #19)
+  - Enables Google Search grounding (`googleSearch` tool) for real-time web data access
+  - New SDK API surface: centralized `GoogleGenAI` client with `models.generateContent()` and flat response shape
+  - Both `GeminiService` and `EventsService` updated to new SDK
 - **Reminder Database Schema** - Extended to support monthly/yearly frequencies
   - Added `day_of_month` field (1-31) for monthly/yearly reminders
   - Added `month` field (1-12) for yearly reminders
@@ -98,11 +123,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Discord Bot** - Now provides **8 slash commands** with **49 total subcommands** (was 7 commands, 47 subcommands)
   - `/remind` command expanded from 5 to 7 subcommands
 - **Documentation** - Updated `docs/api/discord-commands.md` with complete `/issues` command reference
-- **Discord Bot** - Now provides **9 slash commands** (was 8 in development)
+- **Discord Bot** - Now provides **10 slash commands** (was 9)
+  - Added `/events` command for AI-powered local event discovery
   - Added `/issues` and `/make-it-a-quote` to production command list
 - **Documentation** - Updated `docs/api/discord-commands.md` with complete command references
-- **Dependencies** - Added `@octokit/rest@22.0.1` for GitHub API integration
-- **Environment Validation** - Extended Joi schema to validate GitHub configuration variables
+- **Dependencies**
+  - Added `@octokit/rest@22.0.1` for GitHub API integration
+  - Replaced deprecated `@google/generative-ai@0.24.1` with `@google/genai@1.40.0`
+  - Added `luxon` for timezone-aware date handling in events
+- **Environment Validation** - Extended Joi schema to validate GitHub and events configuration variables
 
 ## [2.0.0] - 2026-01-12
 

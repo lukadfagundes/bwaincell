@@ -208,6 +208,75 @@ describe('EventsService', () => {
       expect(events[0].title).toBe('Valid Event');
     });
 
+    test('should extract start time from time range format', async () => {
+      mockGenerateContent.mockResolvedValueOnce({
+        text: JSON.stringify([
+          {
+            title: 'Range Time Event',
+            description: 'Has a time range',
+            date: '2026-02-21',
+            time: '6:00 PM - 9:30 PM',
+            location: 'Location',
+          },
+        ]),
+      });
+
+      const events = await service.discoverLocalEvents(
+        'Los Angeles, CA',
+        mockStartDate,
+        mockEndDate
+      );
+
+      expect(events).toHaveLength(1);
+      expect(events[0].title).toBe('Range Time Event');
+    });
+
+    test('should extract start date from date range format', async () => {
+      mockGenerateContent.mockResolvedValueOnce({
+        text: JSON.stringify([
+          {
+            title: 'Multi-Day Event',
+            description: 'Spans multiple days',
+            date: '2026-02-16 to 2026-02-23',
+            time: '10:00 AM',
+            location: 'Location',
+          },
+        ]),
+      });
+
+      const events = await service.discoverLocalEvents(
+        'Los Angeles, CA',
+        mockStartDate,
+        mockEndDate
+      );
+
+      expect(events).toHaveLength(1);
+      expect(events[0].title).toBe('Multi-Day Event');
+    });
+
+    test('should handle non-parseable time with default', async () => {
+      mockGenerateContent.mockResolvedValueOnce({
+        text: JSON.stringify([
+          {
+            title: 'Vague Time Event',
+            description: 'No real time',
+            date: '2026-02-21',
+            time: 'Time not specified, recurring weekly on Tuesday',
+            location: 'Location',
+          },
+        ]),
+      });
+
+      const events = await service.discoverLocalEvents(
+        'Los Angeles, CA',
+        mockStartDate,
+        mockEndDate
+      );
+
+      expect(events).toHaveLength(1);
+      expect(events[0].startDate).toBeInstanceOf(Date);
+    });
+
     test('should set default time if not provided', async () => {
       mockGenerateContent.mockResolvedValueOnce({
         text: JSON.stringify([

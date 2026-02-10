@@ -136,12 +136,14 @@ Provide 5-10 of the most interesting events. If you cannot find reliable informa
 
       for (const raw of rawEvents) {
         try {
+          // Extract start date and time from varied AI formats
+          const dateStr = this.extractStartDate(raw.date);
+          const timeStr = this.extractStartTime(raw.time);
+
           // Parse date and time
-          const eventDateTime = DateTime.fromFormat(
-            `${raw.date} ${raw.time || '12:00 PM'}`,
-            'yyyy-MM-dd h:mm a',
-            { zone: 'America/Los_Angeles' }
-          );
+          const eventDateTime = DateTime.fromFormat(`${dateStr} ${timeStr}`, 'yyyy-MM-dd h:mm a', {
+            zone: 'America/Los_Angeles',
+          });
 
           if (!eventDateTime.isValid) {
             logger.warn('Invalid date format in event', { raw });
@@ -178,6 +180,31 @@ Provide 5-10 of the most interesting events. If you cannot find reliable informa
 
       throw error;
     }
+  }
+
+  /**
+   * Extract start date from varied AI date formats
+   * Handles: "2026-02-16", "2026-02-16 to 2026-02-23", etc.
+   * Returns first YYYY-MM-DD found, or the original string
+   */
+  private extractStartDate(dateInput: string): string {
+    const match = dateInput.match(/(\d{4}-\d{2}-\d{2})/);
+    return match ? match[1] : dateInput;
+  }
+
+  /**
+   * Extract start time from varied AI time formats
+   * Handles: "6:00 PM", "6:00 PM - 9:30 PM", "10:00 AM - 2:00 PM", "Time not specified", etc.
+   * Falls back to 12:00 PM if no valid time found
+   */
+  private extractStartTime(timeInput?: string): string {
+    if (!timeInput) return '12:00 PM';
+
+    // Match first occurrence of time pattern like "6:00 PM" or "10:00 AM"
+    const match = timeInput.match(/(\d{1,2}:\d{2}\s*[AaPp][Mm])/);
+    if (match) return match[1].trim();
+
+    return '12:00 PM';
   }
 }
 

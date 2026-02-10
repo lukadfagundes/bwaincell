@@ -231,6 +231,14 @@ export default {
               });
             }
 
+            if (geminiResponse.url) {
+              embed.addFields({
+                name: '🔗 Event Link',
+                value: `[More Info](${geminiResponse.url})`,
+                inline: false,
+              });
+            }
+
             logger.info('Generated AI date idea', { zipCode, activity: dateIdea });
           } catch (error) {
             // Fallback to static date ideas on any error
