@@ -168,6 +168,16 @@ class Scheduler {
         return `${minutes} ${hours} * * *`;
       case 'weekly':
         return `${minutes} ${hours} * * ${reminder.day_of_week}`;
+      case 'monthly':
+        if (reminder.day_of_month) {
+          return `${minutes} ${hours} ${reminder.day_of_month} * *`;
+        }
+        return null;
+      case 'yearly':
+        if (reminder.month && reminder.day_of_month) {
+          return `${minutes} ${hours} ${reminder.day_of_month} ${reminder.month} *`;
+        }
+        return null;
       case 'once':
         return null; // Handle differently
       default:
