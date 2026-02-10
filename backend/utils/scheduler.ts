@@ -26,10 +26,11 @@ class Scheduler {
 
   async initialize(): Promise<void> {
     try {
-      // Dynamically import Reminder to avoid initialization issues
-      const { Reminder } = await import('../database');
+      // Dynamically import models to avoid initialization issues
+      const { Reminder, EventConfig } = await import('../database');
 
       await this.loadReminders(Reminder);
+      await this.loadEventConfigs(EventConfig);
       logger.info('Scheduler initialized successfully');
     } catch (error) {
       logger.error('Scheduler initialization failed', {
@@ -219,6 +220,158 @@ class Scheduler {
         error: error instanceof Error ? error.message : 'Unknown error',
         stack: error instanceof Error ? error.stack : undefined,
       });
+    }
+  }
+
+  // ============================================================================
+  // Event Announcement Scheduling
+  // ============================================================================
+
+  private async loadEventConfigs(EventConfig: any): Promise<void> {
+    if (!EventConfig || !EventConfig.getEnabledConfigs) {
+      logger.warn('EventConfig model not properly initialized, skipping event scheduler setup');
+      return;
+    }
+
+    try {
+      const configs = await EventConfig.getEnabledConfigs();
+      for (const config of configs) {
+        this.scheduleEventAnnouncement(config);
+      }
+      logger.info('Event announcements scheduled', { count: configs.length });
+    } catch (error) {
+      logger.error('Failed to load event configurations', {
+        error: error instanceof Error ? error.message : 'Unknown error',
+      });
+    }
+  }
+
+  private scheduleEventAnnouncement(config: any): void {
+    try {
+      // Dynamically import to avoid circular dependencies
+      const { buildCronExpression } = require('./dateHelpers');
+
+      const cronExpression = buildCronExpression(
+        config.schedule_minute,
+        config.schedule_hour,
+        config.schedule_day
+      );
+
+      const task = cron.schedule(
+        cronExpression,
+        async () => {
+          await this.executeEventAnnouncement(config.guild_id);
+        },
+        {
+          timezone: config.timezone,
+        }
+      );
+
+      this.jobs.set(`events_${config.guild_id}`, {
+        id: `events_${config.guild_id}`,
+        task,
+      });
+
+      logger.info('Event announcement scheduled', {
+        guildId: config.guild_id,
+        cronExpression,
+        timezone: config.timezone,
+        location: config.location,
+      });
+    } catch (error) {
+      logger.error('Failed to schedule event announcement', {
+        guildId: config.guild_id,
+        error: error instanceof Error ? error.message : 'Unknown error',
+      });
+    }
+  }
+
+  private async executeEventAnnouncement(guildId: string): Promise<void> {
+    try {
+      // Dynamically import to avoid circular dependencies
+      const { EventConfig } = await import('../database');
+      const eventsService = (await import('./eventsService')).default;
+      const { getEventWindow } = await import('./dateHelpers');
+
+      logger.info('Executing event announcement', { guildId });
+
+      // Fetch current configuration
+      const config = await EventConfig.getGuildConfig(guildId);
+
+      if (!config || !config.is_enabled) {
+        logger.warn('Event config not found or disabled', { guildId });
+        return;
+      }
+
+      // Calculate event window
+      const { start, end } = getEventWindow(config.timezone);
+
+      // Discover events
+      const events = await eventsService.discoverLocalEvents(config.location, start, end);
+
+      // Format embed
+      const embed = await eventsService.formatEventsForDiscord(events, config.location);
+
+      // Fetch channel and send
+      const channel = await this.client.channels.fetch(config.announcement_channel_id);
+
+      if (channel && 'send' in channel) {
+        await channel.send({ embeds: [embed] });
+
+        // Update last announcement timestamp
+        await EventConfig.updateLastAnnouncement(guildId);
+
+        logger.info('Event announcement sent successfully', {
+          guildId,
+          location: config.location,
+          eventCount: events.length,
+          channelId: config.announcement_channel_id,
+        });
+      } else {
+        logger.warn('Event announcement channel not found or invalid', {
+          guildId,
+          channelId: config.announcement_channel_id,
+        });
+      }
+    } catch (error) {
+      logger.error('Failed to execute event announcement', {
+        guildId,
+        error: error instanceof Error ? error.message : 'Unknown error',
+        stack: error instanceof Error ? error.stack : undefined,
+      });
+    }
+  }
+
+  // Public method to add a new event config to the scheduler
+  async addEventConfig(guildId: string): Promise<void> {
+    try {
+      const { EventConfig } = await import('../database');
+      const config = await EventConfig.getGuildConfig(guildId);
+
+      if (config && config.is_enabled) {
+        // Remove existing job if present
+        this.removeEventConfig(guildId);
+
+        // Schedule new job
+        this.scheduleEventAnnouncement(config);
+      }
+    } catch (error) {
+      logger.error('Failed to add event config to scheduler', {
+        guildId,
+        error: error instanceof Error ? error.message : 'Unknown error',
+      });
+    }
+  }
+
+  // Public method to remove an event config from scheduler
+  removeEventConfig(guildId: string): void {
+    const jobId = `events_${guildId}`;
+    const job = this.jobs.get(jobId);
+
+    if (job) {
+      job.task.stop();
+      this.jobs.delete(jobId);
+      logger.info('Event config removed from scheduler', { guildId });
     }
   }
 

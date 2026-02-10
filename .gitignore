@@ -52,6 +52,5 @@ temp/
 # Trinity Method SDK
 .claude/
 trinity/*
-!trinity/work-orders/
 *CLAUDE.md
 TRINITY.md

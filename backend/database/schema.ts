@@ -290,6 +290,67 @@ const schemas = {
       defaultValue: DataTypes.NOW,
     },
   },
+
+  eventConfig: {
+    id: {
+      type: DataTypes.INTEGER,
+      primaryKey: true,
+      autoIncrement: true,
+    },
+    guild_id: {
+      type: DataTypes.STRING,
+      allowNull: false,
+      unique: true, // One configuration per guild
+    },
+    user_id: {
+      type: DataTypes.STRING,
+      allowNull: false, // Admin who configured it
+    },
+    location: {
+      type: DataTypes.STRING,
+      allowNull: false, // e.g., "Los Angeles, CA"
+    },
+    announcement_channel_id: {
+      type: DataTypes.STRING,
+      allowNull: false,
+    },
+    schedule_day: {
+      type: DataTypes.INTEGER,
+      defaultValue: 1, // Monday
+      allowNull: false,
+    },
+    schedule_hour: {
+      type: DataTypes.INTEGER,
+      defaultValue: 12, // Noon
+      allowNull: false,
+    },
+    schedule_minute: {
+      type: DataTypes.INTEGER,
+      defaultValue: 0,
+      allowNull: false,
+    },
+    timezone: {
+      type: DataTypes.STRING,
+      defaultValue: 'America/Los_Angeles',
+      allowNull: false,
+    },
+    is_enabled: {
+      type: DataTypes.BOOLEAN,
+      defaultValue: true,
+    },
+    last_announcement: {
+      type: DataTypes.DATE,
+      allowNull: true,
+    },
+    created_at: {
+      type: DataTypes.DATE,
+      defaultValue: DataTypes.NOW,
+    },
+    updated_at: {
+      type: DataTypes.DATE,
+      defaultValue: DataTypes.NOW,
+    },
+  },
 };
 
 export default schemas;
