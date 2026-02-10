@@ -1,5 +1,6 @@
 # Dependencies
 node_modules/
+
 # Workspace node_modules
 backend/node_modules/
 frontend/node_modules/
@@ -52,6 +53,5 @@ temp/
 # Trinity Method SDK
 .claude/
 trinity/*
-!trinity/work-orders/
 *CLAUDE.md
 TRINITY.md

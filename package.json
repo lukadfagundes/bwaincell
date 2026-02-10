@@ -57,6 +57,7 @@
   "license": "MIT",
   "dependencies": {
     "@google-cloud/local-auth": "^3.0.1",
+    "@google/genai": "^1.40.0",
     "@napi-rs/canvas": "^0.1.80",
     "@octokit/rest": "^20.1.1",
     "@types/cors": "^2.8.19",

@@ -7,11 +7,17 @@ jest.mock('../../../shared/utils/logger', () => ({
   },
 }));
 
-// Mock the GoogleGenerativeAI SDK
-jest.mock('@google/generative-ai');
+// Mock the Google GenAI SDK
+const mockGenerateContent = jest.fn();
+
+jest.mock('@google/genai', () => ({
+  GoogleGenAI: jest.fn().mockImplementation(() => ({
+    models: { generateContent: mockGenerateContent },
+  })),
+}));
 
 import { GeminiService } from '../../../utils/geminiService';
-import { GoogleGenerativeAI } from '@google/generative-ai';
+import { GoogleGenAI } from '@google/genai';
 import { logger } from '../../../shared/utils/logger';
 
 describe('GeminiService', () => {
@@ -33,29 +39,18 @@ describe('GeminiService', () => {
     it('should initialize with valid API key', async () => {
       process.env.GEMINI_API_KEY = 'test-api-key';
 
-      const mockGenerateContent = jest.fn().mockResolvedValue({
-        response: {
-          text: () =>
-            JSON.stringify({
-              activity: 'Test Activity',
-              description: 'Test description',
-              estimatedCost: 'Moderate',
-              timeOfDay: 'Evening',
-            }),
-        },
+      mockGenerateContent.mockResolvedValueOnce({
+        text: JSON.stringify({
+          activity: 'Test Activity',
+          description: 'Test description',
+          estimatedCost: 'Moderate',
+          timeOfDay: 'Evening',
+        }),
       });
-
-      const mockGetGenerativeModel = jest.fn().mockReturnValue({
-        generateContent: mockGenerateContent,
-      });
-
-      (GoogleGenerativeAI as jest.Mock).mockImplementation(() => ({
-        getGenerativeModel: mockGetGenerativeModel,
-      }));
 
       const result = await GeminiService.generateDateIdea('90210');
 
-      expect(GoogleGenerativeAI).toHaveBeenCalledWith('test-api-key');
+      expect(GoogleGenAI).toHaveBeenCalledWith({ apiKey: 'test-api-key' });
       expect(result.activity).toBe('Test Activity');
     });
 
@@ -78,43 +73,45 @@ describe('GeminiService', () => {
     });
 
     it('should generate valid DateIdeaResponse with all fields', async () => {
-      const mockResponse = {
+      const expectedResponse = {
         activity: 'Sunset Beach Walk',
         description: 'Stroll along the beach at golden hour',
         estimatedCost: 'Budget-friendly',
         timeOfDay: 'Evening',
+        url: 'https://example.com/sunset-walk',
       };
 
-      const mockGenerateContent = jest.fn().mockResolvedValue({
-        response: {
-          text: () => JSON.stringify(mockResponse),
-        },
+      mockGenerateContent.mockResolvedValueOnce({
+        text: JSON.stringify(expectedResponse),
       });
-
-      const mockGetGenerativeModel = jest.fn().mockReturnValue({
-        generateContent: mockGenerateContent,
-      });
-
-      (GoogleGenerativeAI as jest.Mock).mockImplementation(() => ({
-        getGenerativeModel: mockGetGenerativeModel,
-      }));
 
       const result = await GeminiService.generateDateIdea('90210');
 
-      expect(result).toEqual(mockResponse);
-      expect(mockGetGenerativeModel).toHaveBeenCalledWith({ model: 'gemini-2.5-flash' });
+      expect(result).toEqual(expectedResponse);
+    });
+
+    it('should pass googleSearch tool in config', async () => {
+      mockGenerateContent.mockResolvedValueOnce({
+        text: JSON.stringify({
+          activity: 'Test',
+          description: 'Test',
+        }),
+      });
+
+      await GeminiService.generateDateIdea('90210');
+
+      expect(mockGenerateContent).toHaveBeenCalledWith(
+        expect.objectContaining({
+          model: 'gemini-2.5-flash',
+          config: expect.objectContaining({
+            tools: [{ googleSearch: {} }],
+          }),
+        })
+      );
     });
 
     it('should handle API errors gracefully', async () => {
-      const mockGenerateContent = jest.fn().mockRejectedValue(new Error('API Error'));
-
-      const mockGetGenerativeModel = jest.fn().mockReturnValue({
-        generateContent: mockGenerateContent,
-      });
-
-      (GoogleGenerativeAI as jest.Mock).mockImplementation(() => ({
-        getGenerativeModel: mockGetGenerativeModel,
-      }));
+      mockGenerateContent.mockRejectedValueOnce(new Error('API Error'));
 
       await expect(GeminiService.generateDateIdea('90210')).rejects.toThrow('API Error');
 
@@ -131,34 +128,24 @@ describe('GeminiService', () => {
     });
 
     it('should parse clean JSON correctly', async () => {
-      const mockResponse = {
+      const expectedResponse = {
         activity: 'Museum Visit',
         description: 'Explore local art and history',
         estimatedCost: 'Moderate',
         timeOfDay: 'Afternoon',
       };
 
-      const mockGenerateContent = jest.fn().mockResolvedValue({
-        response: {
-          text: () => JSON.stringify(mockResponse),
-        },
+      mockGenerateContent.mockResolvedValueOnce({
+        text: JSON.stringify(expectedResponse),
       });
-
-      const mockGetGenerativeModel = jest.fn().mockReturnValue({
-        generateContent: mockGenerateContent,
-      });
-
-      (GoogleGenerativeAI as jest.Mock).mockImplementation(() => ({
-        getGenerativeModel: mockGetGenerativeModel,
-      }));
 
       const result = await GeminiService.generateDateIdea('90210');
 
-      expect(result).toEqual(mockResponse);
+      expect(result).toEqual(expectedResponse);
     });
 
     it('should handle markdown-wrapped JSON', async () => {
-      const mockResponse = {
+      const expectedResponse = {
         activity: 'Wine Tasting',
         description: 'Visit a local vineyard',
         estimatedCost: 'Splurge',
@@ -166,48 +153,26 @@ describe('GeminiService', () => {
       };
 
       const markdownWrapped = `\`\`\`json
-${JSON.stringify(mockResponse)}
+${JSON.stringify(expectedResponse)}
 \`\`\``;
 
-      const mockGenerateContent = jest.fn().mockResolvedValue({
-        response: {
-          text: () => markdownWrapped,
-        },
+      mockGenerateContent.mockResolvedValueOnce({
+        text: markdownWrapped,
       });
-
-      const mockGetGenerativeModel = jest.fn().mockReturnValue({
-        generateContent: mockGenerateContent,
-      });
-
-      (GoogleGenerativeAI as jest.Mock).mockImplementation(() => ({
-        getGenerativeModel: mockGetGenerativeModel,
-      }));
 
       const result = await GeminiService.generateDateIdea('90210');
 
-      expect(result).toEqual(mockResponse);
+      expect(result).toEqual(expectedResponse);
     });
 
     it('should handle optional fields being undefined', async () => {
-      const mockResponse = {
-        activity: 'Coffee Shop',
-        description: 'Cozy coffee date',
-        // estimatedCost and timeOfDay omitted
-      };
-
-      const mockGenerateContent = jest.fn().mockResolvedValue({
-        response: {
-          text: () => JSON.stringify(mockResponse),
-        },
+      mockGenerateContent.mockResolvedValueOnce({
+        text: JSON.stringify({
+          activity: 'Coffee Shop',
+          description: 'Cozy coffee date',
+          // estimatedCost and timeOfDay omitted
+        }),
       });
-
-      const mockGetGenerativeModel = jest.fn().mockReturnValue({
-        generateContent: mockGenerateContent,
-      });
-
-      (GoogleGenerativeAI as jest.Mock).mockImplementation(() => ({
-        getGenerativeModel: mockGetGenerativeModel,
-      }));
 
       const result = await GeminiService.generateDateIdea('90210');
 
@@ -215,22 +180,13 @@ ${JSON.stringify(mockResponse)}
       expect(result.description).toBe('Cozy coffee date');
       expect(result.estimatedCost).toBeUndefined();
       expect(result.timeOfDay).toBeUndefined();
+      expect(result.url).toBeUndefined();
     });
 
     it('should throw on invalid JSON', async () => {
-      const mockGenerateContent = jest.fn().mockResolvedValue({
-        response: {
-          text: () => 'This is not JSON',
-        },
+      mockGenerateContent.mockResolvedValueOnce({
+        text: 'This is not JSON',
       });
-
-      const mockGetGenerativeModel = jest.fn().mockReturnValue({
-        generateContent: mockGenerateContent,
-      });
-
-      (GoogleGenerativeAI as jest.Mock).mockImplementation(() => ({
-        getGenerativeModel: mockGetGenerativeModel,
-      }));
 
       await expect(GeminiService.generateDateIdea('90210')).rejects.toThrow(
         'Invalid response format'
@@ -246,24 +202,12 @@ ${JSON.stringify(mockResponse)}
     });
 
     it('should throw on missing required fields', async () => {
-      const mockResponse = {
-        // Missing activity
-        description: 'Test description',
-      };
-
-      const mockGenerateContent = jest.fn().mockResolvedValue({
-        response: {
-          text: () => JSON.stringify(mockResponse),
-        },
+      mockGenerateContent.mockResolvedValueOnce({
+        text: JSON.stringify({
+          // Missing activity
+          description: 'Test description',
+        }),
       });
-
-      const mockGetGenerativeModel = jest.fn().mockReturnValue({
-        generateContent: mockGenerateContent,
-      });
-
-      (GoogleGenerativeAI as jest.Mock).mockImplementation(() => ({
-        getGenerativeModel: mockGetGenerativeModel,
-      }));
 
       await expect(GeminiService.generateDateIdea('90210')).rejects.toThrow(
         'Invalid response format'
@@ -275,27 +219,20 @@ ${JSON.stringify(mockResponse)}
     it('should include ZIP code in prompt', async () => {
       process.env.GEMINI_API_KEY = 'test-api-key';
 
-      const mockGenerateContent = jest.fn().mockResolvedValue({
-        response: {
-          text: () =>
-            JSON.stringify({
-              activity: 'Test',
-              description: 'Test',
-            }),
-        },
+      mockGenerateContent.mockResolvedValueOnce({
+        text: JSON.stringify({
+          activity: 'Test',
+          description: 'Test',
+        }),
       });
-
-      const mockGetGenerativeModel = jest.fn().mockReturnValue({
-        generateContent: mockGenerateContent,
-      });
-
-      (GoogleGenerativeAI as jest.Mock).mockImplementation(() => ({
-        getGenerativeModel: mockGetGenerativeModel,
-      }));
 
       await GeminiService.generateDateIdea('90210');
 
-      expect(mockGenerateContent).toHaveBeenCalledWith(expect.stringContaining('90210'));
+      expect(mockGenerateContent).toHaveBeenCalledWith(
+        expect.objectContaining({
+          contents: expect.stringContaining('90210'),
+        })
+      );
     });
   });
 });
