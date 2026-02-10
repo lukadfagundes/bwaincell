@@ -15,15 +15,12 @@ jest.mock('../../../shared/utils/logger', () => ({
   })),
 }));
 
-// Mock Google Generative AI
+// Mock Google GenAI SDK
 const mockGenerateContent = jest.fn();
-const mockGetGenerativeModel = jest.fn(() => ({
-  generateContent: mockGenerateContent,
-}));
 
-jest.mock('@google/generative-ai', () => ({
-  GoogleGenerativeAI: jest.fn().mockImplementation(() => ({
-    getGenerativeModel: mockGetGenerativeModel,
+jest.mock('@google/genai', () => ({
+  GoogleGenAI: jest.fn().mockImplementation(() => ({
+    models: { generateContent: mockGenerateContent },
   })),
 }));
 
@@ -49,24 +46,19 @@ describe('EventsService', () => {
 
   describe('AI Event Discovery', () => {
     test('should discover events with valid location and date range', async () => {
-      const mockResponse = {
-        response: {
-          text: () =>
-            JSON.stringify([
-              {
-                title: 'Weekend Farmers Market',
-                description: 'Fresh produce and artisan goods',
-                date: '2026-02-21',
-                time: '9:00 AM',
-                location: 'Downtown Plaza',
-                url: 'https://example.com/market',
-                source: 'City Events',
-              },
-            ]),
-        },
-      };
-
-      mockGenerateContent.mockResolvedValueOnce(mockResponse);
+      mockGenerateContent.mockResolvedValueOnce({
+        text: JSON.stringify([
+          {
+            title: 'Weekend Farmers Market',
+            description: 'Fresh produce and artisan goods',
+            date: '2026-02-21',
+            time: '9:00 AM',
+            location: 'Downtown Plaza',
+            url: 'https://example.com/market',
+            source: 'City Events',
+          },
+        ]),
+      });
 
       const events = await service.discoverLocalEvents(
         'Los Angeles, CA',
@@ -82,14 +74,27 @@ describe('EventsService', () => {
       expect(events[0].source).toBe('City Events');
     });
 
-    test('should handle empty results from AI', async () => {
-      const mockResponse = {
-        response: {
-          text: () => JSON.stringify([]),
-        },
-      };
+    test('should pass googleSearch tool in config', async () => {
+      mockGenerateContent.mockResolvedValueOnce({
+        text: JSON.stringify([]),
+      });
 
-      mockGenerateContent.mockResolvedValueOnce(mockResponse);
+      await service.discoverLocalEvents('Los Angeles, CA', mockStartDate, mockEndDate);
+
+      expect(mockGenerateContent).toHaveBeenCalledWith(
+        expect.objectContaining({
+          model: 'gemini-2.5-flash',
+          config: expect.objectContaining({
+            tools: [{ googleSearch: {} }],
+          }),
+        })
+      );
+    });
+
+    test('should handle empty results from AI', async () => {
+      mockGenerateContent.mockResolvedValueOnce({
+        text: JSON.stringify([]),
+      });
 
       const events = await service.discoverLocalEvents('Remote Island', mockStartDate, mockEndDate);
 
@@ -97,14 +102,9 @@ describe('EventsService', () => {
     });
 
     test('should parse AI response with markdown code blocks', async () => {
-      const mockResponse = {
-        response: {
-          text: () =>
-            '```json\n[{"title":"Test Event","description":"Test","date":"2026-02-21","time":"10:00 AM","location":"Test Location"}]\n```',
-        },
-      };
-
-      mockGenerateContent.mockResolvedValueOnce(mockResponse);
+      mockGenerateContent.mockResolvedValueOnce({
+        text: '```json\n[{"title":"Test Event","description":"Test","date":"2026-02-21","time":"10:00 AM","location":"Test Location"}]\n```',
+      });
 
       const events = await service.discoverLocalEvents(
         'Los Angeles, CA',
@@ -117,22 +117,17 @@ describe('EventsService', () => {
     });
 
     test('should validate event data structure', async () => {
-      const mockResponse = {
-        response: {
-          text: () =>
-            JSON.stringify([
-              {
-                title: 'Valid Event',
-                description: 'Valid description',
-                date: '2026-02-21',
-                time: '10:00 AM',
-                location: 'Valid Location',
-              },
-            ]),
-        },
-      };
-
-      mockGenerateContent.mockResolvedValueOnce(mockResponse);
+      mockGenerateContent.mockResolvedValueOnce({
+        text: JSON.stringify([
+          {
+            title: 'Valid Event',
+            description: 'Valid description',
+            date: '2026-02-21',
+            time: '10:00 AM',
+            location: 'Valid Location',
+          },
+        ]),
+      });
 
       const events = await service.discoverLocalEvents(
         'Los Angeles, CA',
@@ -156,13 +151,9 @@ describe('EventsService', () => {
         location: 'Location',
       }));
 
-      const mockResponse = {
-        response: {
-          text: () => JSON.stringify(mockEvents),
-        },
-      };
-
-      mockGenerateContent.mockResolvedValueOnce(mockResponse);
+      mockGenerateContent.mockResolvedValueOnce({
+        text: JSON.stringify(mockEvents),
+      });
 
       const events = await service.discoverLocalEvents(
         'Los Angeles, CA',
@@ -174,13 +165,9 @@ describe('EventsService', () => {
     });
 
     test('should handle malformed AI responses', async () => {
-      const mockResponse = {
-        response: {
-          text: () => 'This is not valid JSON',
-        },
-      };
-
-      mockGenerateContent.mockResolvedValueOnce(mockResponse);
+      mockGenerateContent.mockResolvedValueOnce({
+        text: 'This is not valid JSON',
+      });
 
       const events = await service.discoverLocalEvents(
         'Los Angeles, CA',
@@ -192,29 +179,24 @@ describe('EventsService', () => {
     });
 
     test('should skip events with invalid date formats', async () => {
-      const mockResponse = {
-        response: {
-          text: () =>
-            JSON.stringify([
-              {
-                title: 'Valid Event',
-                description: 'Valid',
-                date: '2026-02-21',
-                time: '10:00 AM',
-                location: 'Location',
-              },
-              {
-                title: 'Invalid Event',
-                description: 'Invalid date',
-                date: 'invalid-date',
-                time: 'invalid-time',
-                location: 'Location',
-              },
-            ]),
-        },
-      };
-
-      mockGenerateContent.mockResolvedValueOnce(mockResponse);
+      mockGenerateContent.mockResolvedValueOnce({
+        text: JSON.stringify([
+          {
+            title: 'Valid Event',
+            description: 'Valid',
+            date: '2026-02-21',
+            time: '10:00 AM',
+            location: 'Location',
+          },
+          {
+            title: 'Invalid Event',
+            description: 'Invalid date',
+            date: 'invalid-date',
+            time: 'invalid-time',
+            location: 'Location',
+          },
+        ]),
+      });
 
       const events = await service.discoverLocalEvents(
         'Los Angeles, CA',
@@ -227,21 +209,16 @@ describe('EventsService', () => {
     });
 
     test('should set default time if not provided', async () => {
-      const mockResponse = {
-        response: {
-          text: () =>
-            JSON.stringify([
-              {
-                title: 'Event Without Time',
-                description: 'No time specified',
-                date: '2026-02-21',
-                location: 'Location',
-              },
-            ]),
-        },
-      };
-
-      mockGenerateContent.mockResolvedValueOnce(mockResponse);
+      mockGenerateContent.mockResolvedValueOnce({
+        text: JSON.stringify([
+          {
+            title: 'Event Without Time',
+            description: 'No time specified',
+            date: '2026-02-21',
+            location: 'Location',
+          },
+        ]),
+      });
 
       const events = await service.discoverLocalEvents(
         'Los Angeles, CA',
@@ -305,22 +282,17 @@ describe('EventsService', () => {
 
   describe('Caching', () => {
     test('should cache successful API responses', async () => {
-      const mockResponse = {
-        response: {
-          text: () =>
-            JSON.stringify([
-              {
-                title: 'Cached Event',
-                description: 'This will be cached',
-                date: '2026-02-21',
-                time: '10:00 AM',
-                location: 'Location',
-              },
-            ]),
-        },
-      };
-
-      mockGenerateContent.mockResolvedValueOnce(mockResponse);
+      mockGenerateContent.mockResolvedValueOnce({
+        text: JSON.stringify([
+          {
+            title: 'Cached Event',
+            description: 'This will be cached',
+            date: '2026-02-21',
+            time: '10:00 AM',
+            location: 'Location',
+          },
+        ]),
+      });
 
       // First call - should hit API
       await service.discoverLocalEvents('Los Angeles, CA', mockStartDate, mockEndDate);
@@ -332,22 +304,17 @@ describe('EventsService', () => {
     });
 
     test('should return cached results within TTL', async () => {
-      const mockResponse = {
-        response: {
-          text: () =>
-            JSON.stringify([
-              {
-                title: 'Cached Event',
-                description: 'Cached',
-                date: '2026-02-21',
-                time: '10:00 AM',
-                location: 'Location',
-              },
-            ]),
-        },
-      };
-
-      mockGenerateContent.mockResolvedValueOnce(mockResponse);
+      mockGenerateContent.mockResolvedValueOnce({
+        text: JSON.stringify([
+          {
+            title: 'Cached Event',
+            description: 'Cached',
+            date: '2026-02-21',
+            time: '10:00 AM',
+            location: 'Location',
+          },
+        ]),
+      });
 
       const events1 = await service.discoverLocalEvents(
         'Los Angeles, CA',
@@ -366,12 +333,9 @@ describe('EventsService', () => {
 
     test('should not cache error responses', async () => {
       mockGenerateContent.mockRejectedValueOnce(new Error('API Error')).mockResolvedValueOnce({
-        response: {
-          text: () =>
-            JSON.stringify([
-              { title: 'Event', date: '2026-02-21', time: '10:00 AM', location: 'Location' },
-            ]),
-        },
+        text: JSON.stringify([
+          { title: 'Event', date: '2026-02-21', time: '10:00 AM', location: 'Location' },
+        ]),
       });
 
       // First call fails
@@ -390,16 +354,11 @@ describe('EventsService', () => {
     });
 
     test('should generate correct cache keys for different locations', async () => {
-      const mockResponse = {
-        response: {
-          text: () =>
-            JSON.stringify([
-              { title: 'Event', date: '2026-02-21', time: '10:00 AM', location: 'Location' },
-            ]),
-        },
-      };
-
-      mockGenerateContent.mockResolvedValue(mockResponse);
+      mockGenerateContent.mockResolvedValue({
+        text: JSON.stringify([
+          { title: 'Event', date: '2026-02-21', time: '10:00 AM', location: 'Location' },
+        ]),
+      });
 
       await service.discoverLocalEvents('Los Angeles, CA', mockStartDate, mockEndDate);
       await service.discoverLocalEvents('New York, NY', mockStartDate, mockEndDate);
@@ -409,16 +368,11 @@ describe('EventsService', () => {
     });
 
     test('should clear cache on demand', async () => {
-      const mockResponse = {
-        response: {
-          text: () =>
-            JSON.stringify([
-              { title: 'Event', date: '2026-02-21', time: '10:00 AM', location: 'Location' },
-            ]),
-        },
-      };
-
-      mockGenerateContent.mockResolvedValue(mockResponse);
+      mockGenerateContent.mockResolvedValue({
+        text: JSON.stringify([
+          { title: 'Event', date: '2026-02-21', time: '10:00 AM', location: 'Location' },
+        ]),
+      });
 
       await service.discoverLocalEvents('Los Angeles, CA', mockStartDate, mockEndDate);
       service.clearCache();
@@ -431,23 +385,18 @@ describe('EventsService', () => {
 
   describe('Discord Formatting', () => {
     test('should format events into Discord embed', async () => {
-      const mockResponse = {
-        response: {
-          text: () =>
-            JSON.stringify([
-              {
-                title: 'Test Event',
-                description: 'Test Description',
-                date: '2026-02-21',
-                time: '10:00 AM',
-                location: 'Test Location',
-                url: 'https://example.com/event',
-              },
-            ]),
-        },
-      };
-
-      mockGenerateContent.mockResolvedValueOnce(mockResponse);
+      mockGenerateContent.mockResolvedValueOnce({
+        text: JSON.stringify([
+          {
+            title: 'Test Event',
+            description: 'Test Description',
+            date: '2026-02-21',
+            time: '10:00 AM',
+            location: 'Test Location',
+            url: 'https://example.com/event',
+          },
+        ]),
+      });
 
       const events = await service.discoverLocalEvents(
         'Los Angeles, CA',

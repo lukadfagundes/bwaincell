@@ -6,7 +6,7 @@
 import { EmbedBuilder } from 'discord.js';
 import { DateTime } from 'luxon';
 import { createLogger } from '../shared/utils/logger';
-import { GoogleGenerativeAI } from '@google/generative-ai';
+import { GoogleGenAI } from '@google/genai';
 
 const logger = createLogger('EventsService');
 
@@ -43,7 +43,7 @@ interface CachedEvents {
  * Uses Google Gemini API to discover and structure local events
  */
 class GeminiEventProvider implements EventDiscoveryProvider {
-  private genAI: GoogleGenerativeAI | null = null;
+  private genAI: GoogleGenAI | null = null;
 
   constructor() {
     const apiKey = process.env.GEMINI_API_KEY;
@@ -54,7 +54,7 @@ class GeminiEventProvider implements EventDiscoveryProvider {
     }
 
     try {
-      this.genAI = new GoogleGenerativeAI(apiKey);
+      this.genAI = new GoogleGenAI({ apiKey });
       logger.info('Gemini event provider initialized');
     } catch (error) {
       logger.warn('Failed to initialize Gemini client', {
@@ -109,10 +109,13 @@ Provide 5-10 of the most interesting events. If you cannot find reliable informa
         dateRange: `${startStr} to ${endStr}`,
       });
 
-      // Use gemini-2.5-flash (current stable model)
-      const model = this.genAI.getGenerativeModel({ model: 'gemini-2.5-flash' });
-      const result = await model.generateContent(prompt);
-      const responseText = result.response.text();
+      // Use gemini-2.5-flash with Google Search grounding for real-time event data
+      const response = await this.genAI.models.generateContent({
+        model: 'gemini-2.5-flash',
+        contents: prompt,
+        config: { tools: [{ googleSearch: {} }] },
+      });
+      const responseText = response.text ?? '';
 
       // Remove markdown code blocks if present (```json ... ```)
       const cleaned = responseText

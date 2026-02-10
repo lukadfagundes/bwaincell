@@ -1,4 +1,4 @@
-import { GoogleGenerativeAI } from '@google/generative-ai';
+import { GoogleGenAI } from '@google/genai';
 import { logger } from '../shared/utils/logger';
 
 /**
@@ -15,7 +15,7 @@ export interface DateIdeaResponse {
  * Service for generating AI-powered date suggestions using Google Gemini Flash 2.5
  */
 export class GeminiService {
-  private static genAI: GoogleGenerativeAI | null = null;
+  private static genAI: GoogleGenAI | null = null;
 
   /**
    * Initialize the Gemini API client with API key from environment
@@ -27,7 +27,7 @@ export class GeminiService {
       logger.warn('GEMINI_API_KEY not configured - date suggestions will use fallback');
       return;
     }
-    this.genAI = new GoogleGenerativeAI(apiKey);
+    this.genAI = new GoogleGenAI({ apiKey });
   }
 
   /**
@@ -44,12 +44,14 @@ export class GeminiService {
     }
 
     try {
-      // Use gemini-2.5-flash (current stable model as of 2026)
-      // Note: Gemini 1.5 retired, Gemini 2.0 retiring March 31, 2026
-      const model = this.genAI.getGenerativeModel({ model: 'gemini-2.5-flash' });
+      // Use gemini-2.5-flash with Google Search grounding for real-time local event data
       const prompt = this.buildPrompt(zipCode);
-      const result = await model.generateContent(prompt);
-      const text = result.response.text();
+      const response = await this.genAI.models.generateContent({
+        model: 'gemini-2.5-flash',
+        contents: prompt,
+        config: { tools: [{ googleSearch: {} }] },
+      });
+      const text = response.text ?? '';
 
       return this.parseResponse(text);
     } catch (error) {
@@ -69,19 +71,20 @@ export class GeminiService {
    * @private
    */
   private static buildPrompt(zipCode: string): string {
-    return `You are a creative date planner. Generate ONE unique date idea for couples in the ${zipCode} area.
+    return `You are a creative date planner. Search for local events and activities happening tonight or this weekend near zip code ${zipCode}, then generate ONE unique date idea for couples that incorporates what's actually going on locally.
 
 Requirements:
-- Include specific local venues, restaurants, or activities when possible
+- Search for real local events, shows, markets, festivals, or activities near ${zipCode}
+- Build a date idea around a real local event or activity you find
+- Include the specific venue name and event details
 - Provide a brief description (2-3 sentences)
 - Estimate cost range (Budget-friendly, Moderate, Splurge)
 - Suggest time of day (Morning, Afternoon, Evening, Night)
-- Be creative and avoid generic suggestions
 
 Format your response as JSON:
 {
   "activity": "Activity Name",
-  "description": "Brief description",
+  "description": "Brief description incorporating the local event",
   "estimatedCost": "Budget-friendly|Moderate|Splurge",
   "timeOfDay": "Morning|Afternoon|Evening|Night"
 }`;
