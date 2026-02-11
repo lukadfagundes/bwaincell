@@ -204,5 +204,5 @@ See [CONTRIBUTING.md](../CONTRIBUTING.md) for general contribution guidelines.
 ---
 
 **Last Updated** 2026-01-12
-**Version:** 2.0.0
+**Version:** 2.1.0
 **Maintained by:** [lukadfagundes](https://github.com/lukadfagundes)

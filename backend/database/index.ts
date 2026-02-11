@@ -12,6 +12,7 @@ import Budget from './models/Budget';
 import Schedule from './models/Schedule';
 import List from './models/List';
 import { User } from './models/User';
+import EventConfig from './models/EventConfig';
 
 // Validate DATABASE_URL environment variable
 const databaseUrl = process.env.DATABASE_URL;
@@ -62,8 +63,9 @@ Budget.init(sequelize);
 Schedule.init(sequelize);
 List.init(sequelize);
 User.init(sequelize);
+EventConfig.init(sequelize);
 
 // Export sequelize instance and models
-export { sequelize, Task, Note, Reminder, Budget, Schedule, List, User };
+export { sequelize, Task, Note, Reminder, Budget, Schedule, List, User, EventConfig };
 
 export default sequelize;

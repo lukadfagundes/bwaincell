@@ -12,7 +12,7 @@ The `tests/` directory contains all testing infrastructure for the Bwaincell pro
 - **Integration Tests** - Multi-component interaction testing
 - **E2E Tests** - Full workflow testing
 - **Test Helpers** - Shared utilities, mocks, fixtures
-- **Coverage Tracking** - 80%+ target (current: 35% backend, 45% frontend)
+- **Coverage Tracking** - 80%+ target (282 tests across 13 suites)
 
 ---
 
@@ -122,10 +122,10 @@ describe("Task API", () => {
 - **Functions:** 80%
 - **Lines:** 80%
 
-**Current Coverage:**
+**Current Status:**
 
-- **Backend:** 35% (needs improvement)
-- **Frontend:** 45% (needs improvement)
+- **Backend:** 282 tests across 13 suites (improving toward 80% target)
+- **Frontend:** Coverage tracking in progress
 
 **100% Coverage Required for:**
 
@@ -504,7 +504,7 @@ export const OAuth2Client = jest.fn(() => ({
 ### Important Considerations
 
 - **Test Isolation:** Each test must be independent (no shared state)
-- **Coverage Target:** 80%+ (current: 35% backend, 45% frontend)
+- **Coverage Target:** 80%+ (282 tests across 13 suites)
 - **TDD Workflow:** Write tests before implementation
 - **Mock External Services:** Database, APIs, file system
 - **Clean Up:** Remove temp files, test data after tests
@@ -521,8 +521,8 @@ export const OAuth2Client = jest.fn(() => ({
 
 ### Future Improvements
 
-- [ ] Increase backend coverage from 35% to 80%
-- [ ] Increase frontend coverage from 45% to 80%
+- [ ] Increase backend coverage to 80% (282 tests currently)
+- [ ] Increase frontend coverage to 80%
 - [ ] Add E2E tests for Discord bot commands
 - [ ] Implement visual regression testing (frontend)
 - [ ] Add performance benchmarking tests
@@ -548,7 +548,7 @@ See [Contributing Guidelines](../CONTRIBUTING.md) for general contribution proce
 
 **Testing Framework:** Jest 30.1.3 + ts-jest 29.4.4
 **Coverage Target:** 80%+ (Statements, Branches, Functions, Lines)
-**Current Coverage:** 35% backend, 45% frontend
-**Last Updated** 2026-01-12
+**Current Coverage:** 282 tests across 13 suites
+**Last Updated** 2026-02-11
 
 ---

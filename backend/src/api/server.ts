@@ -92,7 +92,7 @@ export function createApiServer(): Application {
       timestamp: new Date().toISOString(),
       uptime: process.uptime(),
       environment: process.env.NODE_ENV || 'development',
-      version: '2.0.0',
+      version: '2.1.0',
     });
   });
 
@@ -100,7 +100,7 @@ export function createApiServer(): Application {
   app.get('/api', (_req: Request, res: Response) => {
     res.json({
       name: 'Bwaincell API',
-      version: '2.0.0',
+      version: '2.1.0',
       description: 'REST API for Bwaincell Discord bot features',
       endpoints: {
         tasks: '/api/tasks',

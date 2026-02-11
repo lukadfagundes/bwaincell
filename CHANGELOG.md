@@ -5,15 +5,102 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [Unreleased]
+## [2.1.0] - 2026-02-11
 
 ### Added
 
+- **AI-Powered Date Suggestions** - `/random date` command now uses Google Gemini 2.5 Flash with **Google Search grounding** for real-time, event-aware date ideas (Issue #18, #19)
+  - Features:
+    - **Real-time local event integration** - Gemini searches the web for actual events happening tonight or this weekend near your location and builds date ideas around them
+    - **Event links** - Includes a clickable URL to the event page or venue website when available
+    - **Location-aware suggestions** based on ZIP code (configured via `LOCATION_ZIP_CODE` environment variable)
+    - **Cost estimates**: Budget-friendly, Moderate, or Splurge
+    - **Time-of-day recommendations**: Morning, Afternoon, Evening, or Night
+    - **Enhanced Discord embeds** with cost, time, and event link fields
+    - **Robust fallback mechanism**: Gracefully falls back to static date ideas on API errors (zero user-facing failures)
+  - Configuration:
+    - `GEMINI_API_KEY` - Get yours at https://ai.google.dev/
+    - `LOCATION_ZIP_CODE` - Your ZIP code for location-aware suggestions (e.g., 90210)
+  - Technical:
+    - `GeminiService` utility class with `@google/genai` SDK and Google Search grounding
+    - JSON response parsing with markdown cleanup support
+    - 11 unit tests covering API integration, error handling, response parsing, and URL field
+    - Model: `gemini-2.5-flash` with `googleSearch` tool enabled
+  - Example output: "Reclaim Your Heartbeats: Emo Night Rendezvous - Ignite a spark of nostalgic romance at The Shanty's Broken Hearts Ball Vol. 2 this Friday... 💰 Moderate 🕐 Night 🔗 More Info ✨ Powered by AI"
+- **AI-Powered Conversation Starters** - `/random question` command now generates WNRS-inspired questions using Google Gemini 2.5 Flash with **Google Search grounding** (Issue #20)
+  - Features:
+    - **3 progressive levels** inspired by "We're Not Really Strangers": Level 1 Perception (light/approachable), Level 2 Connection (deeper/vulnerable), Level 3 Reflection (introspective/grateful)
+    - **Level-aware Discord embeds** with color coding: green (Perception), blue (Connection), purple (Reflection)
+    - **Level badge** displayed on each question embed (e.g., "Level 2: Connection")
+    - **Daily Question of the Day** - Automated 5:00 PM post to the announcements channel via scheduler
+    - **Robust fallback mechanism**: Gracefully falls back to static conversation starters on API errors (zero user-facing failures)
+    - **Reroll support** - "Next Question" button generates fresh AI questions with the same fallback behavior
+  - Technical:
+    - `GeminiService.generateQuestion()` with WNRS-aware prompt and `WNRSQuestionResponse` interface
+    - `parseQuestionResponse()` with level validation (1-3) and levelName auto-lookup fallback
+    - Daily question scheduler (`0 17 * * *`) reusing `EventConfig` announcement channels per guild
+    - 9 unit tests covering response parsing, prompt structure, level validation, markdown cleanup, API errors
+    - Model: `gemini-2.5-flash` with `googleSearch` tool enabled
+- **`/events` Discord Command** - AI-powered local event discovery with Google Search grounding (Issue #19)
+  - Discovers real local events using Gemini 2.5 Flash with real-time web search
+  - Configurable weekly scheduled announcements (day and time)
+  - Discord embed formatting with event details, dates, times, locations, and links
+  - Features:
+    - **Real-time event discovery** - Gemini searches the web for festivals, concerts, markets, community events, and more
+    - **Robust time parsing** - Handles varied AI time formats (ranges like "6:00 PM - 9:30 PM", date ranges, vague descriptions)
+    - **Scheduled announcements** - Set a day and time for weekly event digests via `/events day:<day> time:<time>`
+    - **Database persistence** - Schedule preferences stored in `event_configs` table per guild
+    - **Caching** - Results cached with configurable TTL to avoid redundant API calls
+    - **Mock provider** - Development/testing mode with sample data
+  - Configuration:
+    - `EVENTS_AI_SERVICE` - Provider selection (`gemini` or `mock`)
+    - `EVENTS_MAX_RESULTS` - Maximum events to return (default: 10)
+    - `EVENTS_CACHE_TTL` - Cache duration in seconds (default: 3600)
+  - Technical:
+    - `EventsService` with provider pattern (GeminiEventProvider, MockEventProvider)
+    - 30 unit tests covering discovery, parsing, caching, formatting, error handling, and mock provider
+    - Scheduler integration for automated weekly announcements
+- **`/remind monthly` Discord Subcommand** - Create monthly recurring reminders (Issue #23)
+  - Options: `message` (required), `day` (1-31, required), `time` (12-hour format, required)
+  - Usage: `/remind monthly message:"Pay rent" day:1 time:"9:00 AM"`
+  - Handles edge cases: day 31 in 30-day months, day 31 in February
+  - Automatic adjustment to last day of month when requested day doesn't exist
+  - Timezone-aware scheduling using Luxon DateTime
+- **`/remind yearly` Discord Subcommand** - Create yearly recurring reminders (Issue #23)
+  - Options: `message` (required), `month` (1-12 with names, required), `day` (1-31, required), `time` (12-hour format, required)
+  - Usage: `/remind yearly message:"Mom's birthday" month:March day:15 time:"8:00 AM"`
+  - Handles leap year edge cases: Feb 29 in leap years, Feb 28 in non-leap years
+  - Automatic adjustment for invalid dates (e.g., Feb 31 → Feb 28/29)
+  - Perfect for birthdays, anniversaries, annual renewals, tax deadlines
+- **Monthly/Yearly Reminder Display** - Enhanced list and autocomplete formatting
+  - `/remind list` now shows monthly reminders with 📆 emoji: "Monthly (15th)"
+  - `/remind list` now shows yearly reminders with 🎂 emoji: "Yearly (Mar 15)"
+  - Autocomplete includes monthly/yearly formatting for easy selection
+  - Ordinal day suffixes (1st, 2nd, 3rd, 15th, etc.)
+- **Comprehensive Test Suite** - 51 new tests for monthly/yearly reminders and AI date suggestions
+  - 15 unit tests for Reminder model date calculations
+  - 11 unit tests for command structure validation
+  - 15 unit tests for scheduler cron expression generation
+  - 10 unit tests for GeminiService (API integration, error handling, response parsing)
+  - Edge case coverage: Feb 31, leap years, month boundaries, timezone handling, AI API failures
+  - **Total test count: 282 tests**
 - **`/issues` Discord Command** - Submit bug reports, feature requests, and suggestions directly to GitHub from Discord
   - Options: `title` (required), `description` (required), `type` (optional: bug/feature/question/documentation)
   - Auto-labels issues based on type selection
   - Includes Discord user metadata (username, user ID, guild ID) in issue body
   - Interactive buttons: "View on GitHub" link and "Submit Another Issue"
+- **`/make-it-a-quote` Discord Command** - Generate dramatic quote images from Discord messages
+  - Slash command with `message_id` as required parameter
+  - Usage: Right-click message → Copy Message ID → `/make-it-a-quote <message_id>` → generate quote
+  - Features:
+    - **Dramatic spotlight design** with radial gradient glow effect
+    - **Guild-specific avatars** (uses server profile picture, not default Discord avatar)
+    - **Grayscale circular avatar** on the left with extended white spotlight
+    - **Smooth gradient transition** from spotlight to pure black background
+    - White quote text on right side with italic username attribution
+    - 1200x630 canvas (16:9 aspect ratio, optimized for social sharing)
+  - Comprehensive error handling for invalid message IDs, missing channels, and API errors
+  - All 22 tests passing with 100% coverage
 - **GitHub Service** (`backend/utils/githubService.ts`) - Octokit API wrapper for GitHub issue creation
   - Singleton pattern with initialization validation
   - Comprehensive error handling (401, 403, 404, 429 status codes)
@@ -25,15 +112,41 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Backend Test Infrastructure**
   - New test setup file (`backend/tests/setup.ts`)
   - Unit tests for `/issues` command (30 tests)
+  - Unit tests for `/make-it-a-quote` command (22 tests)
+  - Unit tests for ImageService (13 tests)
   - Unit tests for GitHubService (15 tests)
   - Jest configuration for `@octokit/rest` ESM compatibility
 
 ### Changed
 
-- **Discord Bot** - Now provides **8 slash commands** with **47 total subcommands** (was 7 commands, 46 subcommands)
+- **Gemini SDK Migration** - Migrated from deprecated `@google/generative-ai` to `@google/genai@1.40.0` (Issue #19)
+  - Enables Google Search grounding (`googleSearch` tool) for real-time web data access
+  - New SDK API surface: centralized `GoogleGenAI` client with `models.generateContent()` and flat response shape
+  - Both `GeminiService` and `EventsService` updated to new SDK
+- **Reminder Database Schema** - Extended to support monthly/yearly frequencies
+  - Added `day_of_month` field (1-31) for monthly/yearly reminders
+  - Added `month` field (1-12) for yearly reminders
+  - Extended `frequency` ENUM: `'once' | 'daily' | 'weekly' | 'monthly' | 'yearly'`
+- **Reminder Model** - Enhanced date calculation logic
+  - `calculateNextTrigger()` now handles monthly/yearly with edge cases
+  - Invalid date detection using Luxon date rollover check
+  - Automatic fallback to month-end for invalid days (e.g., Feb 31 → Feb 28/29)
+- **Scheduler Service** - Added cron expression generation for monthly/yearly and daily question announcements
+  - Monthly cron format: `${minutes} ${hours} ${dayOfMonth} * *`
+  - Yearly cron format: `${minutes} ${hours} ${dayOfMonth} ${month} *`
+  - Daily question cron: `0 17 * * *` (5:00 PM) per guild timezone, reusing EventConfig channels
+- **Discord Bot** - Now provides **8 slash commands** with **49 total subcommands** (was 7 commands, 47 subcommands)
+  - `/remind` command expanded from 5 to 7 subcommands
 - **Documentation** - Updated `docs/api/discord-commands.md` with complete `/issues` command reference
-- **Dependencies** - Added `@octokit/rest@22.0.1` for GitHub API integration
-- **Environment Validation** - Extended Joi schema to validate GitHub configuration variables
+- **Discord Bot** - Now provides **10 slash commands** (was 9)
+  - Added `/events` command for AI-powered local event discovery
+  - Added `/issues` and `/make-it-a-quote` to production command list
+- **Documentation** - Updated `docs/api/discord-commands.md` with complete command references
+- **Dependencies**
+  - Added `@octokit/rest@22.0.1` for GitHub API integration
+  - Replaced deprecated `@google/generative-ai@0.24.1` with `@google/genai@1.40.0`
+  - Added `luxon` for timezone-aware date handling in events
+- **Environment Validation** - Extended Joi schema to validate GitHub and events configuration variables
 
 ## [2.0.0] - 2026-01-12
 
@@ -438,6 +551,6 @@ Frontend: Vercel PWA (separate repo)
 
 This version represents the initial production release built for personal use by the author and his wife. The system was designed as a dual-purpose productivity platform accessible via Discord bot commands and a companion Progressive Web App.
 
-[unreleased]: https://github.com/lukadfagundes/bwaincell/compare/v2.0.0...HEAD
+[2.1.0]: https://github.com/lukadfagundes/bwaincell/compare/v2.0.0...v2.1.0
 [2.0.0]: https://github.com/lukadfagundes/bwaincell/compare/v1.0.0...v2.0.0
 [1.0.0]: https://github.com/lukadfagundes/bwaincell/releases/tag/v1.0.0

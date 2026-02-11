@@ -567,4 +567,4 @@ test("GET /api/tasks returns tasks", async () => {
 
 **Directory:** frontend/app/
 **Framework:** Next.js 14.2+ App Router
-**Last Updated** 2026-01-12
+**Last Updated** 2026-02-11

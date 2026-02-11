@@ -5,7 +5,7 @@ import schemas from '../schema';
 import config from '../../config/config';
 
 // Define frequency enum type
-type ReminderFrequency = 'once' | 'daily' | 'weekly';
+type ReminderFrequency = 'once' | 'daily' | 'weekly' | 'monthly' | 'yearly';
 
 // Define attributes interface matching the schema
 interface ReminderAttributes {
@@ -13,7 +13,9 @@ interface ReminderAttributes {
   message: string;
   time: string;
   frequency: ReminderFrequency;
-  day_of_week?: number | null;
+  day_of_week?: number | null; // 0-6 for weekly (Sun-Sat)
+  day_of_month?: number | null; // 1-31 for monthly/yearly
+  month?: number | null; // 1-12 for yearly only
   channel_id: string;
   user_id: string;
   guild_id: string;
@@ -59,9 +61,18 @@ class Reminder
     frequency: ReminderFrequency = 'once',
     dayOfWeek: number | null = null,
     userId?: string,
-    targetDate?: Date | null
+    targetDate?: Date | null,
+    dayOfMonth?: number | null,
+    month?: number | null
   ): Promise<Reminder> {
-    const nextTrigger = this.calculateNextTrigger(time, frequency, dayOfWeek, targetDate);
+    const nextTrigger = this.calculateNextTrigger(
+      time,
+      frequency,
+      dayOfWeek,
+      targetDate,
+      dayOfMonth,
+      month
+    );
 
     return await (this as any).create({
       user_id: userId || 'system', // Keep for audit trail (WO-015)
@@ -71,6 +82,8 @@ class Reminder
       time,
       frequency,
       day_of_week: dayOfWeek,
+      day_of_month: dayOfMonth,
+      month: month,
       next_trigger: nextTrigger,
       active: true,
     });
@@ -83,16 +96,20 @@ class Reminder
    * reminders fire at the correct local time regardless of server timezone.
    *
    * @param time - Time string in 24-hour format (e.g., "17:00")
-   * @param frequency - Reminder frequency: 'once', 'daily', or 'weekly'
+   * @param frequency - Reminder frequency: 'once', 'daily', 'weekly', 'monthly', or 'yearly'
    * @param dayOfWeek - Day of week for weekly reminders (0-6, Sun-Sat), null otherwise
    * @param targetDate - Optional specific date for one-time reminders
+   * @param dayOfMonth - Day of month for monthly/yearly reminders (1-31), null otherwise
+   * @param month - Month for yearly reminders (1-12), null otherwise
    * @returns JavaScript Date object representing next trigger time
    */
   static calculateNextTrigger(
     time: string,
     frequency: ReminderFrequency,
     dayOfWeek: number | null,
-    targetDate?: Date | null
+    targetDate?: Date | null,
+    dayOfMonth?: number | null,
+    month?: number | null
   ): Date {
     const timezone = config.settings.timezone; // e.g., 'America/Los_Angeles'
 
@@ -150,6 +167,88 @@ class Reminder
       }
 
       nextTrigger = nextTrigger.plus({ days: daysUntilNext });
+    } else if (frequency === 'monthly' && dayOfMonth !== null) {
+      // Calculate next monthly trigger
+      let nextTrigger = now.set({
+        day: dayOfMonth,
+        hour: hours,
+        minute: minutes,
+        second: 0,
+        millisecond: 0,
+      });
+
+      // Handle invalid dates (e.g., Feb 31 → last day of Feb)
+      // Luxon rolls over invalid dates, so check if we got the day we requested
+      if (nextTrigger.day !== dayOfMonth) {
+        nextTrigger = now.endOf('month').set({
+          hour: hours,
+          minute: minutes,
+          second: 0,
+          millisecond: 0,
+        });
+      }
+
+      // If time has passed this month, schedule for next month
+      if (nextTrigger < now) {
+        nextTrigger = nextTrigger.plus({ months: 1 });
+
+        // Re-validate for next month (handle month boundaries)
+        if (nextTrigger.day !== dayOfMonth) {
+          nextTrigger = nextTrigger.endOf('month').set({
+            hour: hours,
+            minute: minutes,
+            second: 0,
+            millisecond: 0,
+          });
+        }
+      }
+
+      return nextTrigger.toJSDate();
+    } else if (frequency === 'yearly' && month !== null && dayOfMonth !== null) {
+      // Calculate next yearly trigger
+      let nextTrigger = now.set({
+        month,
+        day: dayOfMonth,
+        hour: hours,
+        minute: minutes,
+        second: 0,
+        millisecond: 0,
+      });
+
+      // Handle leap year edge case (Feb 29 in non-leap year)
+      // Luxon rolls over invalid dates, so check if we got the day we requested
+      if (nextTrigger.day !== dayOfMonth || nextTrigger.month !== month) {
+        // Get the last day of the specified month in current year
+        nextTrigger = DateTime.fromObject(
+          {
+            year: now.year,
+            month,
+          },
+          { zone: timezone }
+        )
+          .endOf('month')
+          .set({ hour: hours, minute: minutes, second: 0, millisecond: 0 });
+      }
+
+      // If date has passed this year, schedule for next year
+      if (nextTrigger < now) {
+        nextTrigger = nextTrigger.plus({ years: 1 });
+
+        // Re-validate for next year (leap year handling)
+        if (nextTrigger.day !== dayOfMonth || nextTrigger.month !== month) {
+          nextTrigger = DateTime.fromObject(
+            {
+              year: nextTrigger.year,
+              month,
+            },
+            { zone: timezone }
+          )
+            .endOf('month')
+            .set({ hour: hours, minute: minutes, second: 0, millisecond: 0 });
+        }
+      }
+
+      return nextTrigger.toJSDate();
     }
 
     // Convert to JavaScript Date for Sequelize compatibility
@@ -191,7 +290,10 @@ class Reminder
       reminder.next_trigger = this.calculateNextTrigger(
         reminder.time,
         reminder.frequency,
-        reminder.day_of_week ?? null
+        reminder.day_of_week ?? null,
+        null,
+        reminder.day_of_month ?? null,
+        reminder.month ?? null
       );
     }
 

@@ -1,6 +1,6 @@
 # Bwaincell
 
-A **unified monorepo productivity platform** providing task management, reminders, lists, notes, budgets, scheduling, and random generators through three integrated interfaces: **Discord Bot** (7 slash commands with 46 subcommands), **REST API** (39 authenticated endpoints), and **Progressive Web App** (Next.js 14).
+A **unified monorepo productivity platform** providing task management, reminders, lists, notes, budgets, scheduling, AI-powered suggestions, and random generators through three integrated interfaces: **Discord Bot** (10 slash commands with 49+ subcommands), **REST API** (39 authenticated endpoints), and **Progressive Web App** (Next.js 14).
 
 **Built for personal and household productivity** with guild-based data sharing, deployed on **Raspberry Pi 4B** (backend + PostgreSQL) and **Vercel** (frontend PWA).
 
@@ -10,7 +10,6 @@ A **unified monorepo productivity platform** providing task management, reminder
 [![Next.js](https://img.shields.io/badge/Next.js-14.2.35-black)](https://nextjs.org/)
 [![PostgreSQL](https://img.shields.io/badge/PostgreSQL-15-blue)](https://www.postgresql.org/)
 [![License](https://img.shields.io/badge/License-MIT-yellow)](LICENSE)
-[![Trinity Method](https://img.shields.io/badge/Trinity_Method-2.0.8-orange)](https://github.com/trinity-method/trinity-sdk)
 
 ---
 
@@ -42,7 +41,7 @@ A **unified monorepo productivity platform** providing task management, reminder
 
 **For Users:**
 
-1. Add the Discord bot to your server → Use `/task`, `/list`, `/note`, `/remind`, `/budget`, `/schedule`, `/random` commands
+1. Add the Discord bot to your server → Use `/task`, `/list`, `/note`, `/remind`, `/budget`, `/schedule`, `/random`, `/events`, `/issues`, `/quote` commands
 2. Or access the PWA at [https://bwaincell.sunny-stack.com](https://bwaincell.sunny-stack.com) → Sign in with Google
 3. Full guide: [docs/guides/getting-started.md](docs/guides/getting-started.md)
 
@@ -79,7 +78,7 @@ npm run deploy --workspace=backend
 
 ### Core Interfaces
 
-- 💬 **Discord Bot** - Primary interface via 7 slash commands (/task, /list, /note, /remind, /budget, /schedule, /random) with multiple subcommands for each feature
+- 💬 **Discord Bot** - Primary interface via 10 slash commands (/task, /list, /note, /remind, /budget, /schedule, /random, /events, /issues, /quote) with multiple subcommands for each feature
 - 🌐 **REST API** - Express 4.21.2 API with Google OAuth 2.0 + JWT authentication for programmatic access
 - 📱 **Progressive Web App** - Next.js 14.2 PWA with offline support, installable on iOS, Android, and desktop (see [frontend/README.md](frontend/README.md) for installation guide)
 
@@ -88,10 +87,13 @@ npm run deploy --workspace=backend
 - ✅ **Task Management** - Create tasks with due dates, mark complete, filter by status, edit descriptions
 - 📝 **List Management** - Shareable lists with checkable items, completion tracking, bulk operations
 - 📓 **Note Taking** - Rich notes with tagging, full-text search, edit history, tag-based organization
-- ⏰ **Smart Reminders** - One-time, daily, and weekly reminders with timezone support and automated scheduling
+- ⏰ **Smart Reminders** - One-time, daily, weekly, monthly, and yearly reminders with timezone support and automated scheduling
 - 💰 **Budget Tracking** - Income/expense tracking, category spending, monthly summaries, trend analysis
 - 📅 **Event Scheduling** - Event management with countdown timers, today/week views, upcoming/past filters
 - 🎲 **Random Utilities** - Movie picker, dinner suggestions, date ideas, dice roller, coin flipper, and more
+- 🤖 **AI-Powered Features** - Gemini-powered date suggestions with local events, WNRS-inspired conversation starters, daily question scheduler
+- 📰 **GitHub Issues** - Browse and view project issues directly from Discord
+- 💬 **Inspirational Quotes** - Random motivational quotes on demand
 
 ### Technical Architecture
 
@@ -100,7 +102,7 @@ npm run deploy --workspace=backend
 - 🚀 **Docker Deployment** - Containerized backend + PostgreSQL on Raspberry Pi 4B with GitHub Actions CI/CD
 - 📦 **Monorepo** - npm workspaces (backend/, frontend/, shared/) with shared TypeScript types across packages
 - 🔧 **TypeScript 5.9.2** - Strict mode, shared type definitions, compile-time safety across all interfaces
-- 🧪 **Testing** - Jest + ts-jest with 35% backend coverage (target: 80%), integration tests with Supertest
+- 🧪 **Testing** - Jest + ts-jest with 282 tests across 13 suites (target: 80% coverage), integration tests with Supertest
 - 📊 **Monitoring** - Winston 3.17.0 structured logging, health endpoints, Docker stats, resource monitoring
 - 🔐 **Security** - Google OAuth 2.0, JWT access/refresh tokens, email whitelist, input validation with Joi
 
@@ -219,6 +221,8 @@ npm run lint
 /remind me <message> <time>             - Set one-time reminder
 /remind daily <message> <time>          - Set daily recurring reminder
 /remind weekly <message> <day> <time>   - Set weekly recurring reminder
+/remind monthly <message> <day> <time>  - Set monthly recurring reminder
+/remind yearly <message> <date> <time>  - Set yearly recurring reminder
 /remind list                            - View active reminders
 /remind delete <reminder_id>            - Delete a reminder
 
@@ -241,12 +245,23 @@ npm run lint
 # Random Utilities (/random)
 /random movie                           - Pick random movie with details
 /random dinner                          - Pick random dinner suggestion
-/random date                            - Generate random date idea
-/random question                        - Get conversation starter
+/random date                            - Generate AI-powered date idea (with local events)
+/random question                        - Get AI-powered WNRS-style conversation starter
 /random choice <options>                - Pick from comma-separated options
 /random number <max>                    - Generate random number (1-max)
 /random coin                            - Flip a coin
 /random dice <sides> [count]            - Roll dice (2-100 sides, 1-10 count)
+
+# Events (/events)
+/events upcoming                        - View upcoming local events (AI-powered)
+/events configure                       - Configure event announcements for your server
+
+# GitHub Issues (/issues)
+/issues list                            - Browse open project issues
+/issues view <number>                   - View specific issue details
+
+# Quotes (/quote)
+/quote                                  - Get a random inspirational quote
 ```
 
 ### REST API Endpoints
@@ -422,14 +437,17 @@ Comprehensive documentation organized into user guides, API references, architec
 **REST API & Discord Bot References:**
 
 - **[API Overview](docs/api/README.md)** - Complete REST API reference with authentication flow
-- **[Discord Bot Commands](docs/api/discord-commands.md)** - All 7 slash commands with detailed subcommands and examples
+- **[Discord Bot Commands](docs/api/discord-commands.md)** - All 10 slash commands with detailed subcommands and examples
   - Task Management (/task) - 5 subcommands
   - List Management (/list) - 7 subcommands
   - Note Management (/note) - 8 subcommands
-  - Reminder System (/remind) - 5 subcommands
+  - Reminder System (/remind) - 7 subcommands
   - Budget Tracking (/budget) - 6 subcommands
   - Schedule Management (/schedule) - 6 subcommands
   - Random Utilities (/random) - 8 subcommands
+  - Events (/events) - 2 subcommands
+  - GitHub Issues (/issues) - 2 subcommands
+  - Quotes (/quote) - 1 command
 
 ### Architecture Documentation
 
@@ -527,14 +545,17 @@ bwaincell/
 │   │   │   └── middleware/    # CORS, JWT auth, error handling, logging
 │   │   ├── types/             # Backend type definitions
 │   │   └── deploy-commands.ts # Discord slash command registration
-│   ├── commands/              # Discord slash commands (7 commands)
+│   ├── commands/              # Discord slash commands (10 commands)
 │   │   ├── task.ts            # Task management (/task)
 │   │   ├── list.ts            # List management (/list)
 │   │   ├── note.ts            # Note management (/note)
-│   │   ├── reminder.ts        # Reminder system (/remind)
+│   │   ├── remind.ts          # Reminder system (/remind)
 │   │   ├── budget.ts          # Budget tracking (/budget)
 │   │   ├── schedule.ts        # Event scheduling (/schedule)
-│   │   └── random.ts          # Random utilities (/random)
+│   │   ├── random.ts          # Random utilities (/random)
+│   │   ├── events.ts          # Local events (AI-powered) (/events)
+│   │   ├── issues.ts          # GitHub issues browser (/issues)
+│   │   └── quote.ts           # Inspirational quotes (/quote)
 │   ├── database/              # Sequelize ORM layer
 │   │   ├── index.ts           # Database initialization and connection
 │   │   ├── models/            # Data models (Task, List, Note, Reminder, etc.)
@@ -542,9 +563,15 @@ bwaincell/
 │   │   └── config.js          # Sequelize configuration
 │   ├── utils/
 │   │   ├── interactions/      # Discord interaction handlers (buttons, modals, selects)
-│   │   ├── scheduler.ts       # Node-cron reminder scheduler
-│   │   ├── logger.ts          # Winston logger configuration
-│   │   └── recipeData.js      # Data for /random commands
+│   │   ├── scheduler.ts       # Node-cron reminder & daily question scheduler
+│   │   ├── geminiService.ts   # Google Gemini AI service (date ideas, WNRS questions)
+│   │   ├── eventsService.ts   # Local event discovery service
+│   │   ├── githubService.ts   # GitHub API integration
+│   │   ├── imageService.ts    # Image generation service
+│   │   ├── googleServices.ts  # Google API utilities
+│   │   ├── validators.ts      # Input validation utilities
+│   │   ├── dateHelpers.ts     # Date/time helper functions
+│   │   └── recipeData.ts      # Data for /random commands
 │   ├── config/                # Configuration files
 │   ├── tests/                 # Jest unit and integration tests
 │   ├── Dockerfile             # Multi-stage Docker build
@@ -624,7 +651,7 @@ Contributions are welcome!
 
 - **TypeScript Strict Mode** - All code must pass `tsc --strict`
 - **ESLint Compliance** - Run `npm run lint` before committing
-- **Test Coverage** - 80%+ target (current: 35% backend, 45% frontend)
+- **Test Coverage** - 80%+ target (282 tests across 13 suites)
 - **Documentation** - JSDoc for public functions, inline comments for complex logic
 - **Error Handling** - Use Winston logger, try-catch for async operations
 - **Commit Messages** - Conventional commits format
@@ -677,6 +704,7 @@ This project is licensed under the ISC License - see the [LICENSE](LICENSE) file
 - **Joi 18.0.1** - Schema description and validation ([joi.dev](https://joi.dev/))
 - **node-cron 4.2.1** - Task scheduler for reminder system ([github.com/node-cron/node-cron](https://github.com/node-cron/node-cron))
 - **jsonwebtoken 9.0.2** - JWT implementation ([github.com/auth0/node-jsonwebtoken](https://github.com/auth0/node-jsonwebtoken))
+- **@google/genai** - Google Gemini AI SDK for date ideas and conversation questions
 
 ### Frontend Frameworks & Libraries
 
@@ -712,14 +740,14 @@ This project is licensed under the ISC License - see the [LICENSE](LICENSE) file
 
 ---
 
-**Version:** 2.0.0
+**Version:** 2.1.0
 **Status:** Production Ready
-**Last Updated** 2026-01-12
+**Last Updated** 2026-02-11
 **Framework:** TypeScript 5.9.2 + Discord.js 14.14.1 + Express 4.21.2 + Next.js 14.2.35
 **Database:** PostgreSQL 15 + Sequelize 6.37.7 (Backend) + Prisma 5.22.0 (Frontend)
 **Deployment:** Backend (Raspberry Pi 4B + Docker) + Frontend (Vercel)
-**Test Coverage:** Backend 35% (target: 80%) | Frontend 45% (target: 80%)
-**Discord Commands:** 7 commands | 46 subcommands
+**Tests:** 282 tests across 13 suites (target: 80% coverage)
+**Discord Commands:** 10 commands | 49+ subcommands
 **API Endpoints:** 39 RESTful endpoints with JWT authentication
 **Documentation:** 30 comprehensive documentation files in docs/
 **Maintained by:** [lukadfagundes](https://github.com/lukadfagundes)
