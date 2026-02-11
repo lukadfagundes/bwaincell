@@ -23,15 +23,12 @@ services:
       POSTGRES_USER: ${POSTGRES_USER:-bwaincell}
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
       POSTGRES_DB: ${POSTGRES_DB:-bwaincell}
-      # Performance tuning for production (conservative for household bot)
-      POSTGRES_SHARED_BUFFERS: 128MB
-      POSTGRES_MAX_CONNECTIONS: 20
 
     volumes:
       # Persistent data storage on Pi
       - postgres-data:/var/lib/postgresql/data
-      # Database initialization script
-      - ./database/init.sql:/docker-entrypoint-initdb.d/init.sql
+      # Database initialization script (path relative to repo root)
+      - ./backend/database/init.sql:/docker-entrypoint-initdb.d/init.sql
 
     # Expose port 5433 externally to avoid conflict with sunny-stack-db (5432)
     ports:
@@ -45,17 +42,9 @@ services:
       interval: 10s
       timeout: 5s
       retries: 5
-      start_period: 10s
+      start_period: 30s
 
-    # Resource limits optimized for Raspberry Pi 4B
-    deploy:
-      resources:
-        limits:
-          cpus: "0.5"   # Max 0.5 cores
-          memory: 512M  # Max 512MB RAM
-        reservations:
-          cpus: "0.25"  # Min 0.25 cores reserved
-          memory: 256M  # Min 256MB RAM reserved
+    # Note: deploy.resources removed - requires cgroup support which Pi kernel lacks
 
     # Logging configuration with rotation
     logging:
@@ -117,15 +106,7 @@ services:
       - ./data:/app/data  # Data persistence (if needed)
       - ./logs:/app/logs  # Log files persistence
 
-    # Resource limits optimized for Raspberry Pi 4B (4GB RAM model)
-    deploy:
-      resources:
-        limits:
-          cpus: "1.0"     # Max 1 core (Pi has 4)
-          memory: 512M    # Max 512MB RAM
-        reservations:
-          cpus: "0.25"    # Min 0.25 cores reserved
-          memory: 128M    # Min 128MB RAM reserved
+    # Note: deploy.resources removed - requires cgroup support which Pi kernel lacks
 
     # Logging configuration with rotation
     logging:
