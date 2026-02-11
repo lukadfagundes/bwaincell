@@ -11,7 +11,8 @@ The `backend/` directory implements the core server-side functionality for Bwain
 - **Discord Bot** - Slash commands for Discord-based productivity management (Discord.js 14.14.1)
 - **REST API** - Express.js HTTP API with Google OAuth 2.0 authentication (port 3000)
 - **Database Layer** - PostgreSQL 15 + Sequelize ORM with user/guild isolation
-- **Scheduler** - node-cron based reminder system with Discord notifications
+- **Scheduler** - node-cron based reminder/daily question scheduler with Discord notifications
+- **AI Services** - Google Gemini integration for date ideas, WNRS questions, and event discovery
 - **Shared Utilities** - Winston logging, validators, interaction handlers
 
 ---
@@ -59,10 +60,11 @@ The `backend/` directory implements the core server-side functionality for Bwain
 - **sequelize** 6.37.7 - PostgreSQL ORM
 - **pg** 8.16.3 - PostgreSQL client
 - **winston** 3.17.0 - Structured logging
-- **node-cron** 4.2.1 - Reminder scheduler
+- **node-cron** 4.2.1 - Reminder & daily question scheduler
 - **jsonwebtoken** 9.0.2 - JWT authentication
 - **google-auth-library** 10.4.0 - Google OAuth 2.0 verification
 - **joi** 18.0.1 - Input validation
+- **@google/genai** - Google Gemini AI SDK (date ideas, WNRS questions, events)
 
 ---
 
@@ -106,12 +108,17 @@ backend/
 │   │   │   └── oauth.ts        # JWT verification middleware
 │   │   └── utils/              # API utilities
 │   └── types/                  # TypeScript type definitions
-├── commands/                    # Discord slash commands
+├── commands/                    # Discord slash commands (10 commands)
 │   ├── task.ts                 # /task commands
 │   ├── list.ts                 # /list commands
 │   ├── note.ts                 # /note commands
-│   ├── reminder.ts             # /reminder commands
-│   └── budget.ts               # /budget commands
+│   ├── remind.ts               # /remind commands
+│   ├── budget.ts               # /budget commands
+│   ├── schedule.ts             # /schedule commands
+│   ├── random.ts               # /random commands
+│   ├── events.ts               # /events commands (AI-powered)
+│   ├── issues.ts               # /issues commands (GitHub)
+│   └── quote.ts                # /quote command
 ├── database/                    # Database layer
 │   ├── index.ts                # Sequelize instance and sync
 │   ├── schema.ts               # Database schema definitions
@@ -127,6 +134,11 @@ backend/
 │   │   ├── buttons.ts         # Button interaction handlers
 │   │   ├── selectMenus.ts     # Select menu handlers
 │   │   └── modals.ts          # Modal submission handlers
+│   ├── geminiService.ts       # Google Gemini AI (date ideas, WNRS questions)
+│   ├── eventsService.ts       # Local event discovery service
+│   ├── githubService.ts       # GitHub API integration
+│   ├── imageService.ts        # Image generation service
+│   ├── scheduler.ts           # Reminder & daily question scheduler
 │   └── validators/             # Input validators
 ├── shared/                      # Shared types and utilities (symlink to ../shared/)
 │   ├── types/
@@ -342,14 +354,10 @@ npm run test:coverage
 npm run coverage:threshold
 ```
 
-### Current Coverage
+### Current Status
 
-- **Statements:** 35%
-- **Branches:** 30%
-- **Functions:** 35%
-- **Lines:** 35%
-
-**Target:** 80%+ across all metrics
+- **Tests:** 282 across 13 test suites
+- **Improving toward** 80%+ coverage target across all metrics
 
 ---
 
@@ -513,6 +521,6 @@ See [Contributing Guidelines](../CONTRIBUTING.md) for general contribution proce
 **Language:** TypeScript 5.9.2
 **Database:** PostgreSQL 15 + Sequelize ORM 6.37.7
 **Runtime:** Node.js 18+
-**Last Updated** 2026-01-12
+**Last Updated** 2026-02-11
 
 ---

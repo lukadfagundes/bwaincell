@@ -28,7 +28,9 @@ src/
 │   │   ├── lists.ts    # List management endpoints
 │   │   ├── notes.ts    # Note endpoints with search
 │   │   ├── reminders.ts # Reminder scheduling endpoints
-│   │   └── budget.ts   # Budget tracking endpoints
+│   │   ├── budget.ts   # Budget tracking endpoints
+│   │   ├── schedule.ts # Schedule management endpoints
+│   │   └── health.ts   # Health check endpoint
 │   ├── middleware/      # Authentication & error handling
 │   │   └── oauth.ts    # JWT verification middleware
 │   └── utils/           # API utilities
@@ -103,7 +105,7 @@ npm run deploy
 **Health Check:**
 
 ```bash
-curl https://bwaincell.fly.dev/health
+curl https://localhost:3000/health
 ```
 
 ---
@@ -209,6 +211,8 @@ curl https://bwaincell.fly.dev/health
 - `once` - One-time reminder at specified time
 - `daily` - Recurring daily at specified time
 - `weekly` - Recurring weekly on specified day (dayOfWeek: 0-6, 0=Sunday)
+- `monthly` - Recurring monthly on specified day
+- `yearly` - Recurring yearly on specified date
 
 **Integration:**
 
@@ -317,14 +321,14 @@ export JWT_TOKEN="your_jwt_token_here"
 
 # Test tasks endpoint
 curl -H "Authorization: Bearer $JWT_TOKEN" \
-  https://bwaincell.fly.dev/api/tasks
+  https://localhost:3000/api/tasks
 
 # Create task
 curl -X POST \
   -H "Authorization: Bearer $JWT_TOKEN" \
   -H "Content-Type: application/json" \
   -d '{"text":"Test task","dueDate":"2026-01-15"}' \
-  https://bwaincell.fly.dev/api/tasks
+  https://localhost:3000/api/tasks
 ```
 
 ---
@@ -455,7 +459,7 @@ logger.debug('Processing request', { endpoint, method });
 
 - All secrets in environment variables
 - CORS configured for specific origins
-- HTTPS enforcement on Fly.io
+- HTTPS enforcement via reverse proxy
 - JWT tokens expire after 1 hour
 - Refresh tokens expire after 7 days
 
@@ -475,7 +479,7 @@ logger.debug('Processing request', { endpoint, method });
 
 - Health check endpoint (`/health`)
 - Winston logging for error tracking
-- Fly.io metrics and monitoring
+- Docker stats and resource monitoring
 
 ---
 
@@ -512,18 +516,14 @@ COPY dist ./dist
 CMD ["node", "dist/src/bot.js"]
 ```
 
-### Fly.io
+### Raspberry Pi 4B
 
-```toml
-# fly.toml configuration
-app = "bwaincell"
+Deployed via Docker Compose on Raspberry Pi 4B with GitHub Actions CI/CD:
 
-[build]
-  builder = "dockerfile"
-
-[[services]]
-  internal_port = 3000
-  protocol = "tcp"
+```yaml
+# docker-compose.yml services: backend + PostgreSQL
+# Deployed on Raspberry Pi 4B (self-hosted)
+# GitHub Actions workflow: deploy-pi.yml
 ```
 
 ---
@@ -605,7 +605,7 @@ app = "bwaincell"
 - **Logging:** Winston 3.17.0
 
 **Project:** Bwaincell
-**Trinity Version:** 2.0.8
-**Last Updated** 2026-01-12
+**Version:** 2.1.0
+**Last Updated** 2026-02-11
 
 ---

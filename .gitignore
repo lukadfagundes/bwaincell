@@ -50,6 +50,9 @@ tmp/
 temp/
 *.tmp
 
+# Accidental test output
+1
+
 # Trinity Method SDK
 .claude/
 trinity/*

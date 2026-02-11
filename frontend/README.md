@@ -51,7 +51,7 @@ https://github.com/lukadfagundes/bwaincell
 | **Charts**           | Recharts                       |
 | **PWA**              | next-pwa (Workbox)             |
 | **Deployment**       | Vercel                         |
-| **Backend API**      | Fly.io (Node.js)               |
+| **Backend API**      | Raspberry Pi 4B (Node.js)      |
 
 ---
 
@@ -72,7 +72,7 @@ Inspired by the anime film "Your Name" (Kimi no Na wa), the app features three t
 - **Node.js** 18.0 or higher
 - **npm** 9.0 or higher
 - **Google OAuth 2.0 Credentials** ([Google Cloud Console](https://console.cloud.google.com))
-- **Backend API** running at https://bwaincell.fly.dev
+- **Backend API** running at http://localhost:3000
 
 ### Installation
 
@@ -97,7 +97,7 @@ Create a `.env.local` file in the root directory:
 ```env
 # API Configuration
 # Development: http://localhost:3000
-# Production: https://bwaincell.fly.dev
+# Production: http://localhost:3000
 NEXT_PUBLIC_API_URL=http://localhost:3000
 
 # NextAuth Configuration
@@ -370,7 +370,7 @@ See [CONTRIBUTING.md](CONTRIBUTING.md) for detailed contribution guidelines.
 ### API requests failing
 
 - Check `NEXT_PUBLIC_API_URL` in `.env.local`
-- Verify backend is running at https://bwaincell.fly.dev
+- Verify backend is running at http://localhost:3000
 - Check Network tab in DevTools for error details
 - Ensure you're signed in with a whitelisted email
 
@@ -400,14 +400,14 @@ MIT License - see [LICENSE](LICENSE) file for details.
 - UI components from [shadcn/ui](https://ui.shadcn.com/)
 - Icons from [Lucide](https://lucide.dev/)
 - Hosted on [Vercel](https://vercel.com/)
-- Backend API on [Fly.io](https://fly.io/)
+- Backend API on [Raspberry Pi 4B](https://www.raspberrypi.com/) (self-hosted with Docker)
 - Authentication by [NextAuth.js](https://next-auth.js.org/) + [Google OAuth 2.0](https://developers.google.com/identity/protocols/oauth2)
 
 ---
 
-**Version:** 2.0.0
+**Version:** 2.1.0
 **Status:** Production Ready
-**Last Updated** 2026-01-12
+**Last Updated** 2026-02-11
 **Maintained by:** Bwain.app team
 
 ---
