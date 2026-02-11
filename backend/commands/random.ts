@@ -264,9 +264,41 @@ export default {
         }
 
         case 'question': {
-          const question =
-            conversationStarters[Math.floor(Math.random() * conversationStarters.length)];
-          embed.setTitle('💭 Conversation Starter').setDescription(question);
+          const levelColors: Record<number, number> = {
+            1: 0x2ecc71, // Green - Perception
+            2: 0x3498db, // Blue - Connection
+            3: 0x9b59b6, // Purple - Reflection
+          };
+
+          let questionText: string;
+          let footerText: string = '💡 Tip';
+
+          try {
+            const wnrsResponse = await GeminiService.generateQuestion();
+
+            questionText = wnrsResponse.question;
+            footerText = "✨ Inspired by We're Not Really Strangers • Powered by AI";
+            embed.setColor(levelColors[wnrsResponse.level] || 0x9932cc);
+            embed.addFields({
+              name: '📊 Level',
+              value: `Level ${wnrsResponse.level}: ${wnrsResponse.levelName}`,
+              inline: true,
+            });
+
+            logger.info('Generated AI question', {
+              level: wnrsResponse.level,
+              levelName: wnrsResponse.levelName,
+            });
+          } catch (error) {
+            logger.warn('Gemini API unavailable for question, using fallback', { error });
+            questionText =
+              conversationStarters[Math.floor(Math.random() * conversationStarters.length)];
+          }
+
+          embed
+            .setTitle('💭 Conversation Starter')
+            .setDescription(questionText)
+            .setFooter({ text: footerText });
 
           const row = new ActionRowBuilder<ButtonBuilder>().addComponents(
             new ButtonBuilder()

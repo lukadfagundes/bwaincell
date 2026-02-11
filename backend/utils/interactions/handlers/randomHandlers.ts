@@ -9,6 +9,8 @@ import {
 import { dinnerOptions, movieData } from '../../recipeData';
 import { getModels } from '../helpers/databaseHelper';
 import { handleInteractionError } from '../responses/errorResponses';
+import { GeminiService } from '../../geminiService';
+import { logger } from '../../../shared/utils/logger';
 
 const dateIdeas = [
   'Picnic in the park',
@@ -226,13 +228,60 @@ export async function handleRandomButton(interaction: ButtonInteraction<CacheTyp
 
     // Conversation starter reroll
     if (customId === 'random_question_reroll') {
-      const question =
-        conversationStarters[Math.floor(Math.random() * conversationStarters.length)];
+      const levelColors: Record<number, number> = {
+        1: 0x2ecc71, // Green - Perception
+        2: 0x3498db, // Blue - Connection
+        3: 0x9b59b6, // Purple - Reflection
+      };
+
+      let questionText: string;
+      let footerText: string = '💡 Tip';
+      let embedColor: number = 0x9932cc;
+
+      try {
+        const wnrsResponse = await GeminiService.generateQuestion();
+
+        questionText = wnrsResponse.question;
+        footerText = "✨ Inspired by We're Not Really Strangers • Powered by AI";
+        embedColor = levelColors[wnrsResponse.level] || 0x9932cc;
+
+        const embed = new EmbedBuilder()
+          .setTitle('💭 Conversation Starter')
+          .setDescription(questionText)
+          .addFields({
+            name: '📊 Level',
+            value: `Level ${wnrsResponse.level}: ${wnrsResponse.levelName}`,
+            inline: true,
+          })
+          .setColor(embedColor)
+          .setTimestamp()
+          .setFooter({ text: footerText });
+
+        const row = new ActionRowBuilder<ButtonBuilder>().addComponents(
+          new ButtonBuilder()
+            .setCustomId('random_question_reroll')
+            .setLabel('Next Question')
+            .setStyle(ButtonStyle.Primary)
+            .setEmoji('💬')
+        );
+
+        if (!interaction.deferred && !interaction.replied) {
+          await interaction.deferUpdate();
+        }
+        await interaction.editReply({ embeds: [embed], components: [row] });
+        return;
+      } catch (error) {
+        logger.warn('Gemini API unavailable for question reroll, using fallback', { error });
+        questionText =
+          conversationStarters[Math.floor(Math.random() * conversationStarters.length)];
+      }
+
       const embed = new EmbedBuilder()
         .setTitle('💭 Conversation Starter')
-        .setDescription(question)
-        .setColor(0x9932cc)
-        .setTimestamp();
+        .setDescription(questionText)
+        .setColor(embedColor)
+        .setTimestamp()
+        .setFooter({ text: footerText });
 
       const row = new ActionRowBuilder<ButtonBuilder>().addComponents(
         new ButtonBuilder()

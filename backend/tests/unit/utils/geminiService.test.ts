@@ -235,4 +235,158 @@ ${JSON.stringify(expectedResponse)}
       );
     });
   });
+
+  describe('generateQuestion', () => {
+    beforeEach(() => {
+      process.env.GEMINI_API_KEY = 'test-api-key';
+    });
+
+    it('should return valid WNRSQuestionResponse with all fields', async () => {
+      const expectedResponse = {
+        question: 'What do you think is my biggest strength?',
+        level: 1,
+        levelName: 'Perception',
+      };
+
+      mockGenerateContent.mockResolvedValueOnce({
+        text: JSON.stringify(expectedResponse),
+      });
+
+      const result = await GeminiService.generateQuestion();
+
+      expect(result).toEqual(expectedResponse);
+    });
+
+    it('should pass googleSearch tool in config', async () => {
+      mockGenerateContent.mockResolvedValueOnce({
+        text: JSON.stringify({
+          question: 'Test question?',
+          level: 2,
+          levelName: 'Connection',
+        }),
+      });
+
+      await GeminiService.generateQuestion();
+
+      expect(mockGenerateContent).toHaveBeenCalledWith(
+        expect.objectContaining({
+          model: 'gemini-2.5-flash',
+          config: expect.objectContaining({
+            tools: [{ googleSearch: {} }],
+          }),
+        })
+      );
+    });
+
+    it('should include WNRS level structure in prompt', async () => {
+      mockGenerateContent.mockResolvedValueOnce({
+        text: JSON.stringify({
+          question: 'Test?',
+          level: 1,
+          levelName: 'Perception',
+        }),
+      });
+
+      await GeminiService.generateQuestion();
+
+      expect(mockGenerateContent).toHaveBeenCalledWith(
+        expect.objectContaining({
+          contents: expect.stringContaining('Perception'),
+        })
+      );
+      expect(mockGenerateContent).toHaveBeenCalledWith(
+        expect.objectContaining({
+          contents: expect.stringContaining('Connection'),
+        })
+      );
+      expect(mockGenerateContent).toHaveBeenCalledWith(
+        expect.objectContaining({
+          contents: expect.stringContaining('Reflection'),
+        })
+      );
+    });
+
+    it('should throw when API key not configured', async () => {
+      delete process.env.GEMINI_API_KEY;
+
+      await expect(GeminiService.generateQuestion()).rejects.toThrow('Gemini API not configured');
+    });
+
+    it('should throw on invalid response format (missing question field)', async () => {
+      mockGenerateContent.mockResolvedValueOnce({
+        text: JSON.stringify({
+          level: 2,
+          levelName: 'Connection',
+        }),
+      });
+
+      await expect(GeminiService.generateQuestion()).rejects.toThrow('Invalid response format');
+
+      expect(logger.error).toHaveBeenCalledWith(
+        'Failed to parse Gemini question response',
+        expect.objectContaining({
+          text: expect.any(String),
+          error: expect.stringContaining('question'),
+        })
+      );
+    });
+
+    it('should handle markdown code blocks in response', async () => {
+      const expectedResponse = {
+        question: 'What is the bravest thing you have ever done?',
+        level: 3,
+        levelName: 'Reflection',
+      };
+
+      const markdownWrapped = `\`\`\`json
+${JSON.stringify(expectedResponse)}
+\`\`\``;
+
+      mockGenerateContent.mockResolvedValueOnce({
+        text: markdownWrapped,
+      });
+
+      const result = await GeminiService.generateQuestion();
+
+      expect(result).toEqual(expectedResponse);
+    });
+
+    it('should fall back on levelName lookup when levelName is missing', async () => {
+      mockGenerateContent.mockResolvedValueOnce({
+        text: JSON.stringify({
+          question: 'What would you change about your past?',
+          level: 3,
+          // levelName omitted
+        }),
+      });
+
+      const result = await GeminiService.generateQuestion();
+
+      expect(result.question).toBe('What would you change about your past?');
+      expect(result.level).toBe(3);
+      expect(result.levelName).toBe('Reflection');
+    });
+
+    it('should throw on invalid level value', async () => {
+      mockGenerateContent.mockResolvedValueOnce({
+        text: JSON.stringify({
+          question: 'Test?',
+          level: 5,
+          levelName: 'Invalid',
+        }),
+      });
+
+      await expect(GeminiService.generateQuestion()).rejects.toThrow('Invalid response format');
+    });
+
+    it('should handle API errors gracefully', async () => {
+      mockGenerateContent.mockRejectedValueOnce(new Error('API quota exceeded'));
+
+      await expect(GeminiService.generateQuestion()).rejects.toThrow('API quota exceeded');
+
+      expect(logger.error).toHaveBeenCalledWith('Failed to generate question from Gemini', {
+        error: 'API quota exceeded',
+      });
+    });
+  });
 });

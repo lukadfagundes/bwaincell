@@ -31,6 +31,7 @@ class Scheduler {
 
       await this.loadReminders(Reminder);
       await this.loadEventConfigs(EventConfig);
+      await this.scheduleDailyQuestions(EventConfig);
       logger.info('Scheduler initialized successfully');
     } catch (error) {
       logger.error('Scheduler initialization failed', {
@@ -382,6 +383,146 @@ class Scheduler {
       job.task.stop();
       this.jobs.delete(jobId);
       logger.info('Event config removed from scheduler', { guildId });
+    }
+  }
+
+  // ============================================================================
+  // Daily Question Scheduling
+  // ============================================================================
+
+  private async scheduleDailyQuestions(EventConfig: any): Promise<void> {
+    if (!EventConfig || !EventConfig.getEnabledConfigs) {
+      logger.warn('EventConfig model not properly initialized, skipping daily question setup');
+      return;
+    }
+
+    try {
+      const configs = await EventConfig.getEnabledConfigs();
+      let count = 0;
+      for (const config of configs) {
+        if (config.announcement_channel_id) {
+          this.scheduleDailyQuestion(config);
+          count++;
+        }
+      }
+      logger.info('Daily questions scheduled', { count });
+    } catch (error) {
+      logger.error('Failed to schedule daily questions', {
+        error: error instanceof Error ? error.message : 'Unknown error',
+      });
+    }
+  }
+
+  private scheduleDailyQuestion(config: any): void {
+    try {
+      const cronExpression = '0 17 * * *'; // 5:00 PM daily
+
+      const task = cron.schedule(
+        cronExpression,
+        async () => {
+          await this.executeDailyQuestion(config.guild_id);
+        },
+        {
+          timezone: config.timezone,
+        }
+      );
+
+      this.jobs.set(`daily_question_${config.guild_id}`, {
+        id: `daily_question_${config.guild_id}`,
+        task,
+      });
+
+      logger.info('Daily question scheduled', {
+        guildId: config.guild_id,
+        cronExpression,
+        timezone: config.timezone,
+        channelId: config.announcement_channel_id,
+      });
+    } catch (error) {
+      logger.error('Failed to schedule daily question', {
+        guildId: config.guild_id,
+        error: error instanceof Error ? error.message : 'Unknown error',
+      });
+    }
+  }
+
+  private async executeDailyQuestion(guildId: string): Promise<void> {
+    try {
+      const { EventConfig } = await import('../database');
+      const { GeminiService } = await import('./geminiService');
+      const { EmbedBuilder } = await import('discord.js');
+
+      logger.info('Executing daily question', { guildId });
+
+      const config = await EventConfig.getGuildConfig(guildId);
+
+      if (!config || !config.is_enabled || !config.announcement_channel_id) {
+        logger.warn('Event config not found, disabled, or missing channel for daily question', {
+          guildId,
+        });
+        return;
+      }
+
+      const levelColors: Record<number, number> = {
+        1: 0x2ecc71,
+        2: 0x3498db,
+        3: 0x9b59b6,
+      };
+
+      let questionText: string;
+      let footerText: string;
+      let embedColor: number = 0x9932cc;
+      const fields: Array<{ name: string; value: string; inline: boolean }> = [];
+
+      try {
+        const wnrsResponse = await GeminiService.generateQuestion();
+        questionText = wnrsResponse.question;
+        footerText = "✨ Inspired by We're Not Really Strangers • Powered by AI";
+        embedColor = levelColors[wnrsResponse.level] || 0x9932cc;
+        fields.push({
+          name: '📊 Level',
+          value: `Level ${wnrsResponse.level}: ${wnrsResponse.levelName}`,
+          inline: true,
+        });
+      } catch (error) {
+        logger.warn('Gemini API unavailable for daily question, skipping', {
+          guildId,
+          error: error instanceof Error ? error.message : 'Unknown error',
+        });
+        return;
+      }
+
+      const embed = new EmbedBuilder()
+        .setTitle('💭 Question of the Day')
+        .setDescription(questionText)
+        .setColor(embedColor)
+        .setTimestamp()
+        .setFooter({ text: footerText });
+
+      for (const field of fields) {
+        embed.addFields(field);
+      }
+
+      const channel = await this.client.channels.fetch(config.announcement_channel_id);
+
+      if (channel && 'send' in channel) {
+        await channel.send({ embeds: [embed] });
+        logger.info('Daily question sent successfully', {
+          guildId,
+          channelId: config.announcement_channel_id,
+        });
+      } else {
+        logger.warn('Daily question channel not found or invalid', {
+          guildId,
+          channelId: config.announcement_channel_id,
+        });
+      }
+    } catch (error) {
+      logger.error('Failed to execute daily question', {
+        guildId,
+        error: error instanceof Error ? error.message : 'Unknown error',
+        stack: error instanceof Error ? error.stack : undefined,
+      });
     }
   }
 
