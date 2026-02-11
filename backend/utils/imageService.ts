@@ -1,5 +1,25 @@
-import { createCanvas, loadImage, SKRSContext2D } from '@napi-rs/canvas';
 import https from 'https';
+import { logger } from '../shared/utils/logger';
+
+// Lazy-load @napi-rs/canvas to prevent crash on platforms without prebuilt binaries (e.g. ARM64 Alpine)
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+let canvasModule: any = null;
+
+async function getCanvas() {
+  if (!canvasModule) {
+    try {
+      canvasModule = await import('@napi-rs/canvas');
+    } catch (error) {
+      logger.error('Failed to load @napi-rs/canvas - quote image generation unavailable', {
+        error: error instanceof Error ? error.message : String(error),
+      });
+      throw new Error(
+        '@napi-rs/canvas is not available on this platform. Quote image generation is disabled.'
+      );
+    }
+  }
+  return canvasModule;
+}
 
 export class ImageService {
   // Canvas dimensions (16:9 aspect ratio like reference)
@@ -19,6 +39,8 @@ export class ImageService {
     quoteText: string,
     username: string
   ): Promise<Buffer> {
+    const { createCanvas, loadImage } = await getCanvas();
+
     // Create canvas
     const canvas = createCanvas(this.WIDTH, this.HEIGHT);
     const ctx = canvas.getContext('2d');
@@ -90,7 +112,8 @@ export class ImageService {
     ctx.font = '42px sans-serif';
     ctx.textAlign = 'left';
 
-    const wrappedLines = this.wrapText(ctx, quoteText, textMaxWidth);
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const wrappedLines = this.wrapText(ctx as any, quoteText, textMaxWidth);
     const lineHeight = 52;
     const totalTextHeight = wrappedLines.length * lineHeight;
     let textY = this.HEIGHT / 2 - totalTextHeight / 2 + 30;
@@ -134,7 +157,8 @@ export class ImageService {
   /**
    * Wrap text to fit within max width
    */
-  private static wrapText(ctx: SKRSContext2D, text: string, maxWidth: number): string[] {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  private static wrapText(ctx: any, text: string, maxWidth: number): string[] {
     const words = text.split(' ');
     const lines: string[] = [];
     let currentLine = '';
