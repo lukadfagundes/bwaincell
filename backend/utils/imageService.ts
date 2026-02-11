@@ -1,16 +1,47 @@
+import { spawnSync } from 'child_process';
 import https from 'https';
 import { logger } from '../shared/utils/logger';
 
-// Lazy-load @napi-rs/canvas to prevent crash on platforms without prebuilt binaries (e.g. ARM64 Alpine)
+// Pre-check @napi-rs/canvas availability using an isolated child process.
+// On platforms without prebuilt binaries (e.g., ARM64 Alpine with --ignore-scripts),
+// loading the native module can cause a segfault that kills the process entirely,
+// bypassing all JavaScript try/catch error handling.
+// By probing in a child process first, any native crash is contained there.
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 let canvasModule: any = null;
+let canvasAvailable = false;
+
+try {
+  const probe = spawnSync(process.execPath, ['-e', "require('@napi-rs/canvas')"], {
+    timeout: 10000,
+    stdio: 'ignore',
+  });
+  canvasAvailable = probe.status === 0;
+} catch {
+  canvasAvailable = false;
+}
+
+if (canvasAvailable) {
+  logger.info('@napi-rs/canvas is available - quote image generation enabled');
+} else {
+  logger.warn(
+    '@napi-rs/canvas is not available on this platform - quote image generation disabled'
+  );
+}
 
 async function getCanvas() {
+  if (!canvasAvailable) {
+    throw new Error(
+      '@napi-rs/canvas is not available on this platform. Quote image generation is disabled.'
+    );
+  }
+
   if (!canvasModule) {
     try {
       canvasModule = await import('@napi-rs/canvas');
     } catch (error) {
-      logger.error('Failed to load @napi-rs/canvas - quote image generation unavailable', {
+      canvasAvailable = false;
+      logger.error('Failed to load @napi-rs/canvas', {
         error: error instanceof Error ? error.message : String(error),
       });
       throw new Error(

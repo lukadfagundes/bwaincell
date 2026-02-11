@@ -55,6 +55,83 @@ jobs:
               echo "ℹ️  No previous image to backup (first deployment)"
             fi
 
+      - name: Backup PostgreSQL database
+        uses: appleboy/ssh-action@v1.0.0
+        with:
+          host: ${{ secrets.PI_HOST }}
+          username: ${{ secrets.PI_USERNAME }}
+          key: ${{ secrets.PI_SSH_KEY }}
+          passphrase: ${{ secrets.PI_SSH_PASSPHRASE }}
+          port: ${{ secrets.PI_SSH_PORT || 22 }}
+          timeout: 5m
+          command_timeout: 3m
+          script: |
+            set -e
+
+            echo "💾 Backing up PostgreSQL database..."
+            cd ~/bwaincell
+
+            # Load env vars for DB credentials
+            source .env 2>/dev/null || true
+
+            # Create backup directory if it doesn't exist
+            mkdir -p ~/bwaincell-backups
+
+            # Generate timestamped filename
+            TIMESTAMP=$(date +%Y%m%d_%H%M%S)
+            BACKUP_FILE="bwaincell_backup_${TIMESTAMP}.sql"
+            BACKUP_PATH=~/bwaincell-backups/${BACKUP_FILE}
+
+            # Check if postgres container is running
+            if ! docker compose ps postgres | grep -q "running"; then
+              echo "⚠️  PostgreSQL not running - skipping backup (may be first deployment)"
+              exit 0
+            fi
+
+            # Run pg_dump inside the postgres container
+            docker compose exec -T postgres pg_dump \
+              -U ${POSTGRES_USER:-bwaincell} \
+              ${POSTGRES_DB:-bwaincell} > "${BACKUP_PATH}"
+
+            # Verify backup file is not empty
+            if [ ! -s "${BACKUP_PATH}" ]; then
+              echo "⚠️  Backup file is empty - database may be empty"
+              rm -f "${BACKUP_PATH}"
+              exit 0
+            fi
+
+            BACKUP_SIZE=$(du -h "${BACKUP_PATH}" | cut -f1)
+            echo "✅ Database backed up: ${BACKUP_FILE} (${BACKUP_SIZE})"
+
+            # Keep only last 5 backups to manage disk space
+            ls -t ~/bwaincell-backups/bwaincell_backup_*.sql | tail -n +6 | xargs rm -f 2>/dev/null || true
+            echo "📁 Backups retained: $(ls ~/bwaincell-backups/bwaincell_backup_*.sql | wc -l)"
+
+            # Email backup if BACKUP_EMAIL is configured and msmtp is available
+            if [ -n "${BACKUP_EMAIL}" ] && command -v msmtp &> /dev/null; then
+              echo "📧 Emailing backup to ${BACKUP_EMAIL}..."
+              {
+                echo "Subject: [Bwaincell] Database Backup - ${TIMESTAMP}"
+                echo "To: ${BACKUP_EMAIL}"
+                echo "Content-Type: text/plain"
+                echo ""
+                echo "Bwaincell PostgreSQL backup created before deployment."
+                echo "Timestamp: ${TIMESTAMP}"
+                echo "Size: ${BACKUP_SIZE}"
+                echo "File: ${BACKUP_FILE}"
+                echo ""
+                echo "--- SQL Dump Below ---"
+                echo ""
+                cat "${BACKUP_PATH}"
+              } | msmtp "${BACKUP_EMAIL}" && echo "✅ Backup emailed" || echo "⚠️  Email failed (non-critical)"
+            elif [ -n "${BACKUP_EMAIL}" ]; then
+              echo "⚠️  BACKUP_EMAIL set but msmtp not installed"
+              echo "    Install with: sudo apt install msmtp msmtp-mta"
+              echo "    Backup saved locally at: ${BACKUP_PATH}"
+            else
+              echo "ℹ️  BACKUP_EMAIL not set - backup saved locally only"
+            fi
+
       - name: Deploy to Raspberry Pi
         id: deploy-main
         uses: appleboy/ssh-action@v1.0.0

@@ -91,7 +91,12 @@ export default {
     } catch (error) {
       logger.error('Failed to generate quote image:', error);
 
-      const errorMessage = '❌ Failed to generate quote image. Please try again.';
+      const isCanvasUnavailable =
+        error instanceof Error && error.message.includes('@napi-rs/canvas is not available');
+
+      const errorMessage = isCanvasUnavailable
+        ? '❌ Quote image generation is not available on this server. The required image library (`@napi-rs/canvas`) is missing for this platform.'
+        : '❌ Failed to generate quote image. Please try again.';
 
       if (interaction.deferred) {
         await interaction.editReply({ content: errorMessage });
