@@ -5,7 +5,7 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [Unreleased]
+## [2.1.0] - 2026-02-11
 
 ### Added
 
@@ -27,6 +27,20 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
     - 11 unit tests covering API integration, error handling, response parsing, and URL field
     - Model: `gemini-2.5-flash` with `googleSearch` tool enabled
   - Example output: "Reclaim Your Heartbeats: Emo Night Rendezvous - Ignite a spark of nostalgic romance at The Shanty's Broken Hearts Ball Vol. 2 this Friday... 💰 Moderate 🕐 Night 🔗 More Info ✨ Powered by AI"
+- **AI-Powered Conversation Starters** - `/random question` command now generates WNRS-inspired questions using Google Gemini 2.5 Flash with **Google Search grounding** (Issue #20)
+  - Features:
+    - **3 progressive levels** inspired by "We're Not Really Strangers": Level 1 Perception (light/approachable), Level 2 Connection (deeper/vulnerable), Level 3 Reflection (introspective/grateful)
+    - **Level-aware Discord embeds** with color coding: green (Perception), blue (Connection), purple (Reflection)
+    - **Level badge** displayed on each question embed (e.g., "Level 2: Connection")
+    - **Daily Question of the Day** - Automated 5:00 PM post to the announcements channel via scheduler
+    - **Robust fallback mechanism**: Gracefully falls back to static conversation starters on API errors (zero user-facing failures)
+    - **Reroll support** - "Next Question" button generates fresh AI questions with the same fallback behavior
+  - Technical:
+    - `GeminiService.generateQuestion()` with WNRS-aware prompt and `WNRSQuestionResponse` interface
+    - `parseQuestionResponse()` with level validation (1-3) and levelName auto-lookup fallback
+    - Daily question scheduler (`0 17 * * *`) reusing `EventConfig` announcement channels per guild
+    - 9 unit tests covering response parsing, prompt structure, level validation, markdown cleanup, API errors
+    - Model: `gemini-2.5-flash` with `googleSearch` tool enabled
 - **`/events` Discord Command** - AI-powered local event discovery with Google Search grounding (Issue #19)
   - Discovers real local events using Gemini 2.5 Flash with real-time web search
   - Configurable weekly scheduled announcements (day and time)
@@ -69,7 +83,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - 15 unit tests for scheduler cron expression generation
   - 10 unit tests for GeminiService (API integration, error handling, response parsing)
   - Edge case coverage: Feb 31, leap years, month boundaries, timezone handling, AI API failures
-  - **Total test count: 123 tests (was 113 tests before WO-007, was 37 tests before WO-006)**
+  - **Total test count: 282 tests**
 - **`/issues` Discord Command** - Submit bug reports, feature requests, and suggestions directly to GitHub from Discord
   - Options: `title` (required), `description` (required), `type` (optional: bug/feature/question/documentation)
   - Auto-labels issues based on type selection
@@ -117,9 +131,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - `calculateNextTrigger()` now handles monthly/yearly with edge cases
   - Invalid date detection using Luxon date rollover check
   - Automatic fallback to month-end for invalid days (e.g., Feb 31 → Feb 28/29)
-- **Scheduler Service** - Added cron expression generation for monthly/yearly
+- **Scheduler Service** - Added cron expression generation for monthly/yearly and daily question announcements
   - Monthly cron format: `${minutes} ${hours} ${dayOfMonth} * *`
   - Yearly cron format: `${minutes} ${hours} ${dayOfMonth} ${month} *`
+  - Daily question cron: `0 17 * * *` (5:00 PM) per guild timezone, reusing EventConfig channels
 - **Discord Bot** - Now provides **8 slash commands** with **49 total subcommands** (was 7 commands, 47 subcommands)
   - `/remind` command expanded from 5 to 7 subcommands
 - **Documentation** - Updated `docs/api/discord-commands.md` with complete `/issues` command reference
@@ -536,6 +551,6 @@ Frontend: Vercel PWA (separate repo)
 
 This version represents the initial production release built for personal use by the author and his wife. The system was designed as a dual-purpose productivity platform accessible via Discord bot commands and a companion Progressive Web App.
 
-[unreleased]: https://github.com/lukadfagundes/bwaincell/compare/v2.0.0...HEAD
+[2.1.0]: https://github.com/lukadfagundes/bwaincell/compare/v2.0.0...v2.1.0
 [2.0.0]: https://github.com/lukadfagundes/bwaincell/compare/v1.0.0...v2.0.0
 [1.0.0]: https://github.com/lukadfagundes/bwaincell/releases/tag/v1.0.0
