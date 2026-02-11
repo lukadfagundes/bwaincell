@@ -12,8 +12,8 @@
 # -----------------------------------------------------------------------------
 FROM --platform=linux/arm64 node:18-alpine AS deps
 
-# Install dependencies for native modules (pg for PostgreSQL)
-RUN apk add --no-cache libc6-compat postgresql-client && \
+# Install dependencies for native modules (pg, @napi-rs/canvas)
+RUN apk add --no-cache libc6-compat postgresql-client python3 make g++ && \
     rm -rf /var/cache/apk/*
 
 WORKDIR /app
@@ -23,9 +23,9 @@ COPY package.json package-lock.json* ./
 COPY backend/package.json ./backend/
 COPY shared/package.json ./shared/
 
-# Install production dependencies only (disable husky during install)
-# This installs for all workspaces
-RUN HUSKY=0 npm ci --omit=dev --ignore-scripts && npm cache clean --force
+# Install production dependencies (disable husky but allow other scripts)
+# @napi-rs/canvas needs postinstall to download platform-specific native binary
+RUN HUSKY=0 npm ci --omit=dev && npm cache clean --force
 
 # -----------------------------------------------------------------------------
 # Stage 2: Builder
