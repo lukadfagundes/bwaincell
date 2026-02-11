@@ -2,7 +2,7 @@ import { spawnSync } from 'child_process';
 import https from 'https';
 import { logger } from '../shared/utils/logger';
 
-// Pre-check @napi-rs/canvas availability using an isolated child process.
+// Pre-check skia-canvas availability using an isolated child process.
 // On platforms without prebuilt binaries (e.g., ARM64 Alpine with --ignore-scripts),
 // loading the native module can cause a segfault that kills the process entirely,
 // bypassing all JavaScript try/catch error handling.
@@ -12,7 +12,7 @@ let canvasModule: any = null;
 let canvasAvailable = false;
 
 try {
-  const probe = spawnSync(process.execPath, ['-e', "require('@napi-rs/canvas')"], {
+  const probe = spawnSync(process.execPath, ['-e', "require('skia-canvas')"], {
     timeout: 10000,
     stdio: 'ignore',
   });
@@ -22,30 +22,34 @@ try {
 }
 
 if (canvasAvailable) {
-  logger.info('@napi-rs/canvas is available - quote image generation enabled');
+  logger.info('skia-canvas is available - quote image generation enabled');
 } else {
-  logger.warn(
-    '@napi-rs/canvas is not available on this platform - quote image generation disabled'
-  );
+  logger.warn('skia-canvas is not available on this platform - quote image generation disabled');
 }
 
 async function getCanvas() {
   if (!canvasAvailable) {
     throw new Error(
-      '@napi-rs/canvas is not available on this platform. Quote image generation is disabled.'
+      'skia-canvas is not available on this platform. Quote image generation is disabled.'
     );
   }
 
   if (!canvasModule) {
     try {
-      canvasModule = await import('@napi-rs/canvas');
+      const skia = await import('skia-canvas');
+      // skia-canvas exports Canvas class instead of createCanvas function
+      // Wrap it for API compatibility
+      canvasModule = {
+        createCanvas: (w: number, h: number) => new skia.Canvas(w, h),
+        loadImage: skia.loadImage,
+      };
     } catch (error) {
       canvasAvailable = false;
-      logger.error('Failed to load @napi-rs/canvas', {
+      logger.error('Failed to load skia-canvas', {
         error: error instanceof Error ? error.message : String(error),
       });
       throw new Error(
-        '@napi-rs/canvas is not available on this platform. Quote image generation is disabled.'
+        'skia-canvas is not available on this platform. Quote image generation is disabled.'
       );
     }
   }
@@ -165,8 +169,8 @@ export class ImageService {
     ctx.textAlign = 'right';
     ctx.fillText('Make it a quote', this.WIDTH - 20, this.HEIGHT - 15);
 
-    // Return PNG buffer
-    return canvas.toBuffer('image/png');
+    // Return PNG buffer (skia-canvas toBuffer is async and uses short format names)
+    return await canvas.toBuffer('png');
   }
 
   /**

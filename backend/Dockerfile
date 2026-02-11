@@ -25,7 +25,10 @@ COPY shared/package.json ./shared/
 
 # Install production dependencies only (disable husky during install)
 # --ignore-scripts required: postinstall runs tsc which isn't available with --omit=dev
-RUN HUSKY=0 npm ci --omit=dev --ignore-scripts && npm cache clean --force
+# npm rebuild skia-canvas: downloads prebuilt ARM64 binary that --ignore-scripts skipped
+RUN HUSKY=0 npm ci --omit=dev --ignore-scripts && \
+    npm rebuild skia-canvas && \
+    npm cache clean --force
 
 # -----------------------------------------------------------------------------
 # Stage 2: Builder
@@ -88,8 +91,8 @@ RUN test -f backend/dist/src/bot.js || \
 # -----------------------------------------------------------------------------
 FROM --platform=linux/arm64 node:18-alpine AS runner
 
-# Install dumb-init for proper signal handling
-RUN apk add --no-cache dumb-init curl && \
+# Install dumb-init for proper signal handling + fonts for skia-canvas text rendering
+RUN apk add --no-cache dumb-init curl fontconfig ttf-dejavu && \
     rm -rf /var/cache/apk/*
 
 WORKDIR /app

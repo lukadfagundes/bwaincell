@@ -1,4 +1,4 @@
-import { createCanvas } from '@napi-rs/canvas';
+import { Canvas } from 'skia-canvas';
 import fs from 'fs';
 import path from 'path';
 import { logger } from './shared/utils/logger';
@@ -11,7 +11,7 @@ if (!fs.existsSync(assetsDir)) {
 
 // Function to create Onion Knight icon (1024x1024)
 function createIcon(): void {
-    const canvas = createCanvas(1024, 1024);
+    const canvas = new Canvas(1024, 1024);
     const ctx = canvas.getContext('2d');
 
     // Clear background (transparent)
@@ -74,7 +74,7 @@ function createIcon(): void {
     ctx.fill();
 
     // Save icon
-    const buffer = canvas.toBuffer('image/png');
+    const buffer = canvas.toBufferSync('png');
     fs.writeFileSync(path.join(assetsDir, 'bwaincell-icon.png'), buffer);
     logger.info('Icon created successfully', {
         file: 'assets/bwaincell-icon.png',
@@ -84,7 +84,7 @@ function createIcon(): void {
 
 // Function to create Onion Knight banner (680x240)
 function createBanner(): void {
-    const canvas = createCanvas(680, 240);
+    const canvas = new Canvas(680, 240);
     const ctx = canvas.getContext('2d');
 
     // Background gradient
@@ -152,7 +152,7 @@ function createBanner(): void {
     ctx.fillText('Your Onion Knight Assistant', 400, 170);
 
     // Save banner
-    const buffer = canvas.toBuffer('image/png');
+    const buffer = canvas.toBufferSync('png');
     fs.writeFileSync(path.join(assetsDir, 'bwaincell-banner.png'), buffer);
     logger.info('Banner created successfully', {
         file: 'assets/bwaincell-banner.png',
@@ -182,8 +182,8 @@ try {
 } catch (error) {
     if (isModuleNotFoundError(error)) {
         logger.warn('Canvas module not found', {
-            action: 'Run: npm install @napi-rs/canvas',
-            note: '@napi-rs/canvas is a modern drop-in replacement',
+            action: 'Run: npm install skia-canvas',
+            note: 'skia-canvas is a modern drop-in replacement',
             platforms: {
                 windows: 'Pre-built binaries, no dependencies needed',
                 mac: 'Pre-built binaries, no dependencies needed',

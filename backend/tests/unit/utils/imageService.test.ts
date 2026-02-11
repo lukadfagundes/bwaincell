@@ -5,7 +5,6 @@
  */
 
 // Mock dependencies BEFORE imports
-const mockCreateCanvas = jest.fn();
 const mockLoadImage = jest.fn();
 const mockToBuffer = jest.fn();
 const mockGetContext = jest.fn();
@@ -25,8 +24,15 @@ const mockClip = jest.fn();
 const mockSave = jest.fn();
 const mockRestore = jest.fn();
 
-jest.mock('@napi-rs/canvas', () => ({
-  createCanvas: mockCreateCanvas,
+// Mock child_process so spawnSync probe returns success (canvasAvailable = true)
+jest.mock('child_process', () => ({
+  spawnSync: jest.fn().mockReturnValue({ status: 0 }),
+}));
+
+// Mock skia-canvas with Canvas constructor (skia-canvas exports Canvas class, not createCanvas)
+let mockCanvasInstance = {};
+jest.mock('skia-canvas', () => ({
+  Canvas: jest.fn().mockImplementation(() => mockCanvasInstance),
   loadImage: mockLoadImage,
 }));
 
@@ -74,13 +80,14 @@ describe('ImageService', () => {
       filter: '',
     };
 
-    // Setup mock canvas
+    // Setup mock canvas instance (returned by Canvas constructor)
     mockCanvas = {
       getContext: mockGetContext.mockReturnValue(mockContext),
-      toBuffer: mockToBuffer.mockReturnValue(Buffer.from('fake-png-data')),
+      toBuffer: mockToBuffer.mockResolvedValue(Buffer.from('fake-png-data')),
     };
 
-    mockCreateCanvas.mockReturnValue(mockCanvas);
+    // Set the instance that the Canvas constructor mock will return
+    mockCanvasInstance = mockCanvas;
     mockLoadImage.mockResolvedValue({
       width: 512,
       height: 512,
@@ -113,7 +120,8 @@ describe('ImageService', () => {
         'TestUser'
       );
 
-      expect(mockCreateCanvas).toHaveBeenCalledWith(1200, 630);
+      const { Canvas } = require('skia-canvas');
+      expect(Canvas).toHaveBeenCalledWith(1200, 630);
     });
 
     it('should fetch and draw avatar as background', async () => {
@@ -250,7 +258,7 @@ describe('ImageService', () => {
         'TestUser'
       );
 
-      expect(mockToBuffer).toHaveBeenCalledWith('image/png');
+      expect(mockToBuffer).toHaveBeenCalledWith('png');
       expect(result).toBeInstanceOf(Buffer);
       expect(result.toString()).toBe('fake-png-data');
     });

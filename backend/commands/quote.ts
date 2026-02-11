@@ -92,10 +92,10 @@ export default {
       logger.error('Failed to generate quote image:', error);
 
       const isCanvasUnavailable =
-        error instanceof Error && error.message.includes('@napi-rs/canvas is not available');
+        error instanceof Error && error.message.includes('skia-canvas is not available');
 
       const errorMessage = isCanvasUnavailable
-        ? '❌ Quote image generation is not available on this server. The required image library (`@napi-rs/canvas`) is missing for this platform.'
+        ? '❌ Quote image generation is not available on this server. The required image library (`skia-canvas`) is missing for this platform.'
         : '❌ Failed to generate quote image. Please try again.';
 
       if (interaction.deferred) {
