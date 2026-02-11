@@ -129,7 +129,8 @@ ENV NODE_ENV=production \
     PORT=3000
 
 # Health check (Express API health endpoint)
-HEALTHCHECK --interval=30s --timeout=10s --start-period=10s --retries=3 \
+# start-period must be generous: bot loads DB, commands, scheduler, Discord login, THEN starts API
+HEALTHCHECK --interval=30s --timeout=10s --start-period=60s --retries=5 \
   CMD curl -f http://localhost:3000/health || exit 1
 
 # Use dumb-init to handle signals properly

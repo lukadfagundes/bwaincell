@@ -103,12 +103,23 @@ jobs:
             # Force remove any lingering containers
             docker rm -f bwaincell-backend bwaincell-db 2>/dev/null || true
 
-            # Clean up old images and free disk space
+            # Clean up old images and free disk space (preserve backup for rollback)
             echo "🧹 Cleaning up old images and freeing disk space..."
-            docker rmi -f bwaincell-backend:latest || true
 
-            # Remove dangling images and unused resources (keep backup for rollback)
-            docker image prune -af --filter "label!=com.bwaincell.service" || true
+            # Only remove :latest tag, NOT the backup image
+            # Check if backup exists and points to a different image than latest
+            LATEST_ID=$(docker images bwaincell-backend:latest -q 2>/dev/null || echo "none")
+            BACKUP_ID=$(docker images bwaincell-backend:backup -q 2>/dev/null || echo "none")
+
+            if [ "$LATEST_ID" != "none" ] && [ "$LATEST_ID" != "$BACKUP_ID" ]; then
+              docker rmi -f bwaincell-backend:latest || true
+            elif [ "$LATEST_ID" != "none" ]; then
+              # Latest and backup are the same image - just untag latest
+              docker rmi bwaincell-backend:latest || true
+            fi
+
+            # Remove dangling images only (not all unused - preserves backup)
+            docker image prune -f || true
             docker builder prune -af
 
             # Show disk space after cleanup
@@ -134,9 +145,9 @@ jobs:
             echo "🚀 Starting production service..."
             docker compose up -d
 
-            # Wait for service to start
-            echo "⏳ Waiting for services to start..."
-            sleep 20
+            # Wait for service to start (bot needs time: DB connect + command load + Discord login + API start)
+            echo "⏳ Waiting for services to start (60s for Pi cold boot)..."
+            sleep 60
 
             # Deploy Discord slash commands from container
             echo "🚀 Deploying Discord slash commands..."
@@ -200,9 +211,9 @@ jobs:
             echo "📊 Container resource usage:"
             timeout 10 docker stats bwaincell-backend --no-stream --format "table {{.Name}}\t{{.CPUPerc}}\t{{.MemUsage}}" || echo "⚠️  Stats collection timed out (non-critical)"
 
-            # Clean up old images (older than 7 days)
-            echo "🧹 Cleaning up old Docker images..."
-            docker image prune -af --filter "until=168h" || true
+            # Clean up dangling images (safe - won't remove tagged images like backup)
+            echo "🧹 Cleaning up dangling Docker images..."
+            docker image prune -f || true
 
             echo "================================================"
             echo "✅ Deployment Complete"
@@ -228,9 +239,9 @@ jobs:
 
             cd ~/bwaincell
 
-            # Check Bot health with retries
+            # Check Bot health with retries (Pi startup can take 60s+)
             echo "Checking Bot health endpoint..."
-            MAX_RETRIES=3
+            MAX_RETRIES=12
             RETRY_DELAY=10
 
             for i in $(seq 1 $MAX_RETRIES); do
@@ -246,11 +257,11 @@ jobs:
                 echo "❌ Bot health check failed after $MAX_RETRIES attempts"
                 echo "Last response: $HEALTH_RESPONSE"
 
-                echo "Bot container status:"
-                docker ps -a | grep bwaincell-bot
+                echo "Container status:"
+                docker ps -a | grep bwaincell
 
-                echo "Recent bot logs:"
-                docker logs --tail=50 bwaincell-bot
+                echo "Recent backend logs:"
+                docker logs --tail=100 bwaincell-backend 2>&1 || echo "Could not retrieve logs"
 
                 exit 1
               fi
@@ -338,9 +349,9 @@ jobs:
             echo "🚀 Starting service with backup image..."
             docker compose up -d
 
-            # Wait for service to start
-            echo "⏳ Waiting for services to start..."
-            sleep 20
+            # Wait for service to start (bot needs time: DB connect + command load + Discord login + API start)
+            echo "⏳ Waiting for services to start (60s for Pi cold boot)..."
+            sleep 60
 
             # Verify PostgreSQL is healthy
             echo "🔍 Checking PostgreSQL health..."
