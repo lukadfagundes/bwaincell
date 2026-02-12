@@ -22,7 +22,7 @@ jest.mock('../../../shared/utils/logger', () => ({
 }));
 
 import { ChatInputCommandInteraction } from 'discord.js';
-import quoteCommand from '../../../commands/quote';
+import quoteCommand, { parseMessageInput } from '../../../commands/quote';
 import { logger } from '../../../shared/utils/logger';
 
 describe('/make-it-a-quote Slash Command', () => {
@@ -34,7 +34,8 @@ describe('/make-it-a-quote Slash Command', () => {
     // Reset all mocks
     jest.clearAllMocks();
 
-    // Setup mock target message
+    // Setup mock target message (member is null by default — matching real-world behavior
+    // for other users' fetched messages where Discord API doesn't include member data)
     mockTargetMessage = {
       content: 'This is a test quote message',
       author: {
@@ -44,6 +45,7 @@ describe('/make-it-a-quote Slash Command', () => {
           .fn()
           .mockReturnValue('https://cdn.discordapp.com/avatars/author123/avatar.png'),
       },
+      member: null,
     };
 
     // Setup mock channel with message fetch capability
@@ -64,6 +66,8 @@ describe('/make-it-a-quote Slash Command', () => {
       channel: mockChannel as any,
       guild: {
         id: 'guild123',
+        channels: { fetch: jest.fn() },
+        members: { fetch: jest.fn() },
       } as any,
       deferReply: jest.fn(),
       editReply: jest.fn(),
@@ -71,6 +75,13 @@ describe('/make-it-a-quote Slash Command', () => {
       deferred: true,
       commandName: 'make-it-a-quote',
     };
+
+    // Mock guild.members.fetch to return a member with server avatar by default
+    (mockInteraction.guild as any).members.fetch.mockResolvedValue({
+      displayAvatarURL: jest
+        .fn()
+        .mockReturnValue('https://cdn.discordapp.com/guilds/guild123/users/author123/avatar.png'),
+    });
 
     // Mock successful image generation by default
     mockGenerateQuoteImage.mockResolvedValue(Buffer.from('fake-image-data'));
@@ -90,7 +101,7 @@ describe('/make-it-a-quote Slash Command', () => {
       expect(options).toBeDefined();
       expect(options.length).toBe(1);
       expect(options[0].name).toBe('message_id');
-      expect(options[0].description).toContain('Copy Message ID');
+      expect(options[0].description).toContain('Copy Message Link');
       expect(options[0].required).toBe(true);
     });
   });
@@ -110,8 +121,9 @@ describe('/make-it-a-quote Slash Command', () => {
       await quoteCommand.execute(mockInteraction as ChatInputCommandInteraction);
 
       // Verify image generation was called with correct parameters
+      // Uses server avatar (from guild.members.fetch) since targetMessage.member is null
       expect(mockGenerateQuoteImage).toHaveBeenCalledWith(
-        'https://cdn.discordapp.com/avatars/author123/avatar.png',
+        'https://cdn.discordapp.com/guilds/guild123/users/author123/avatar.png',
         'This is a test quote message',
         'TestAuthor'
       );
@@ -145,10 +157,15 @@ describe('/make-it-a-quote Slash Command', () => {
       );
     });
 
-    it('should request avatar with correct parameters', async () => {
+    it('should request avatar with correct parameters via guild member fetch', async () => {
       await quoteCommand.execute(mockInteraction as ChatInputCommandInteraction);
 
-      expect(mockTargetMessage.author.displayAvatarURL).toHaveBeenCalledWith({
+      // Since targetMessage.member is null, guild.members.fetch is called
+      expect((mockInteraction.guild as any).members.fetch).toHaveBeenCalledWith('author123');
+      // The fetched member's displayAvatarURL is called with correct params
+      const fetchedMember = await (mockInteraction.guild as any).members.fetch.mock.results[0]
+        .value;
+      expect(fetchedMember.displayAvatarURL).toHaveBeenCalledWith({
         extension: 'png',
         size: 512,
       });
@@ -176,6 +193,7 @@ describe('/make-it-a-quote Slash Command', () => {
         'Failed to fetch message for quote:',
         expect.objectContaining({
           messageId: 'test-message-id-123',
+          channelId: null,
           error: expect.any(Error),
         })
       );
@@ -311,18 +329,23 @@ describe('/make-it-a-quote Slash Command', () => {
       );
     });
 
-    it('should handle missing guild context', async () => {
+    it('should handle missing guild context (falls back to global avatar)', async () => {
       mockInteraction.guild = null as any;
 
       await quoteCommand.execute(mockInteraction as ChatInputCommandInteraction);
 
-      // Should still work, just log with undefined guildId
+      // Should still work, just log with undefined guildId and use global avatar
       expect(logger.info).toHaveBeenCalledWith(
         expect.any(String),
         expect.objectContaining({
           guildId: undefined,
         })
       );
+      // Uses global avatar since guild is null (can't fetch member)
+      expect(mockTargetMessage.author.displayAvatarURL).toHaveBeenCalledWith({
+        extension: 'png',
+        size: 512,
+      });
     });
 
     it('should create AttachmentBuilder with correct filename', async () => {
@@ -376,6 +399,177 @@ describe('/make-it-a-quote Slash Command', () => {
       expect(mockGenerateQuoteImage).toHaveBeenCalledTimes(2);
       expect(mockInteraction.editReply).toHaveBeenCalled();
       expect(mockInteraction2.editReply).toHaveBeenCalled();
+    });
+  });
+
+  describe('parseMessageInput', () => {
+    it('should extract IDs from a valid Discord message link', () => {
+      const result = parseMessageInput(
+        'https://discord.com/channels/111222333/444555666/777888999'
+      );
+      expect(result).toEqual({
+        guildId: '111222333',
+        channelId: '444555666',
+        messageId: '777888999',
+      });
+    });
+
+    it('should return plain message ID with nulls for channel/guild', () => {
+      const result = parseMessageInput('777888999');
+      expect(result).toEqual({
+        messageId: '777888999',
+        channelId: null,
+        guildId: null,
+      });
+    });
+
+    it('should treat malformed link as plain ID', () => {
+      const result = parseMessageInput('discord.com/channels/abc/def/ghi');
+      expect(result).toEqual({
+        messageId: 'discord.com/channels/abc/def/ghi',
+        channelId: null,
+        guildId: null,
+      });
+    });
+
+    it('should handle link with extra query params', () => {
+      const result = parseMessageInput(
+        'https://discord.com/channels/111/222/333?extra=param#fragment'
+      );
+      expect(result).toEqual({
+        guildId: '111',
+        channelId: '222',
+        messageId: '333',
+      });
+    });
+  });
+
+  describe('cross-channel fetch', () => {
+    let mockTargetChannel: any;
+
+    beforeEach(() => {
+      mockTargetChannel = {
+        isTextBased: jest.fn().mockReturnValue(true),
+        messages: {
+          fetch: jest.fn().mockResolvedValue(mockTargetMessage),
+        },
+      };
+      (mockInteraction.guild as any).channels.fetch.mockResolvedValue(mockTargetChannel);
+    });
+
+    it('should fetch message from extracted channel when link provided', async () => {
+      (mockInteraction.options as any).getString = jest.fn(
+        () => 'https://discord.com/channels/111222333/444555666/777888999'
+      );
+      (mockInteraction.guild as any).id = '111222333';
+
+      await quoteCommand.execute(mockInteraction as ChatInputCommandInteraction);
+
+      expect((mockInteraction.guild as any).channels.fetch).toHaveBeenCalledWith('444555666');
+      expect(mockTargetChannel.messages.fetch).toHaveBeenCalledWith('777888999');
+      expect(mockChannel.messages.fetch).not.toHaveBeenCalled();
+    });
+
+    it('should error when guild ID in link mismatches', async () => {
+      (mockInteraction.options as any).getString = jest.fn(
+        () => 'https://discord.com/channels/999999999/444555666/777888999'
+      );
+
+      await quoteCommand.execute(mockInteraction as ChatInputCommandInteraction);
+
+      expect(mockInteraction.editReply).toHaveBeenCalledWith({
+        content: '❌ That message link points to a different server.',
+      });
+      expect(mockGenerateQuoteImage).not.toHaveBeenCalled();
+    });
+
+    it('should error when target channel not found', async () => {
+      (mockInteraction.options as any).getString = jest.fn(
+        () => 'https://discord.com/channels/111222333/444555666/777888999'
+      );
+      (mockInteraction.guild as any).id = '111222333';
+      (mockInteraction.guild as any).channels.fetch.mockRejectedValue(new Error('Unknown Channel'));
+
+      await quoteCommand.execute(mockInteraction as ChatInputCommandInteraction);
+
+      expect(mockInteraction.editReply).toHaveBeenCalledWith({
+        content: expect.stringContaining('Could not access the channel'),
+      });
+      expect(mockGenerateQuoteImage).not.toHaveBeenCalled();
+    });
+
+    it('should error when target channel is not text-based', async () => {
+      (mockInteraction.options as any).getString = jest.fn(
+        () => 'https://discord.com/channels/111222333/444555666/777888999'
+      );
+      (mockInteraction.guild as any).id = '111222333';
+      mockTargetChannel.isTextBased.mockReturnValue(false);
+
+      await quoteCommand.execute(mockInteraction as ChatInputCommandInteraction);
+
+      expect(mockInteraction.editReply).toHaveBeenCalledWith({
+        content: '❌ The channel from that message link is not a text channel.',
+      });
+      expect(mockGenerateQuoteImage).not.toHaveBeenCalled();
+    });
+  });
+
+  describe('server avatar resolution', () => {
+    it('should use member displayAvatarURL when targetMessage.member exists', async () => {
+      const mockMember = {
+        displayAvatarURL: jest
+          .fn()
+          .mockReturnValue(
+            'https://cdn.discordapp.com/guilds/guild123/users/author123/server-avatar.png'
+          ),
+      };
+      mockTargetMessage.member = mockMember;
+
+      await quoteCommand.execute(mockInteraction as ChatInputCommandInteraction);
+
+      expect(mockMember.displayAvatarURL).toHaveBeenCalledWith({
+        extension: 'png',
+        size: 512,
+      });
+      // guild.members.fetch should NOT be called since member already exists
+      expect((mockInteraction.guild as any).members.fetch).not.toHaveBeenCalled();
+      expect(mockGenerateQuoteImage).toHaveBeenCalledWith(
+        'https://cdn.discordapp.com/guilds/guild123/users/author123/server-avatar.png',
+        expect.any(String),
+        'TestAuthor'
+      );
+    });
+
+    it('should fetch guild member when targetMessage.member is null', async () => {
+      mockTargetMessage.member = null;
+
+      await quoteCommand.execute(mockInteraction as ChatInputCommandInteraction);
+
+      expect((mockInteraction.guild as any).members.fetch).toHaveBeenCalledWith('author123');
+      expect(mockGenerateQuoteImage).toHaveBeenCalledWith(
+        'https://cdn.discordapp.com/guilds/guild123/users/author123/avatar.png',
+        expect.any(String),
+        'TestAuthor'
+      );
+    });
+
+    it('should fall back to global avatar when guild member fetch fails', async () => {
+      mockTargetMessage.member = null;
+      (mockInteraction.guild as any).members.fetch.mockRejectedValue(new Error('Unknown Member'));
+
+      await quoteCommand.execute(mockInteraction as ChatInputCommandInteraction);
+
+      expect((mockInteraction.guild as any).members.fetch).toHaveBeenCalledWith('author123');
+      // Falls back to author's global avatar
+      expect(mockTargetMessage.author.displayAvatarURL).toHaveBeenCalledWith({
+        extension: 'png',
+        size: 512,
+      });
+      expect(mockGenerateQuoteImage).toHaveBeenCalledWith(
+        'https://cdn.discordapp.com/avatars/author123/avatar.png',
+        expect.any(String),
+        'TestAuthor'
+      );
     });
   });
 });

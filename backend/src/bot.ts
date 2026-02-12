@@ -52,6 +52,8 @@ function createClient() {
       GatewayIntentBits.Guilds,
       GatewayIntentBits.GuildMessages,
       GatewayIntentBits.DirectMessages,
+      GatewayIntentBits.MessageContent,
+      GatewayIntentBits.GuildMembers,
     ],
   }) as Client & { commands?: Collection<any, any> };
   newClient.commands = new Collection();
