@@ -90,8 +90,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - Includes Discord user metadata (username, user ID, guild ID) in issue body
   - Interactive buttons: "View on GitHub" link and "Submit Another Issue"
 - **`/make-it-a-quote` Discord Command** - Generate dramatic quote images from Discord messages
-  - Slash command with `message_id` as required parameter
-  - Usage: Right-click message → Copy Message ID → `/make-it-a-quote <message_id>` → generate quote
+  - Slash command with `Message Link` as required parameter
+  - Usage: Right-click message → Copy Message ID → `/make-it-a-quote <Message Link>` → generate quote
   - Features:
     - **Dramatic spotlight design** with radial gradient glow effect
     - **Guild-specific avatars** (uses server profile picture, not default Discord avatar)

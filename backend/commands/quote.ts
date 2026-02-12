@@ -30,8 +30,8 @@ export default {
     .setDescription('Generate a dramatic quote image from a message')
     .addStringOption((option) =>
       option
-        .setName('message_id')
-        .setDescription('Message ID or message link (right-click → Copy Message Link)')
+        .setName('message_link')
+        .setDescription('Message link (right-click → Copy Message Link)')
         .setRequired(true)
     ),
 
@@ -41,7 +41,7 @@ export default {
       // No need to defer here - interaction is already deferred by bot.ts
 
       // Get message input from command options (plain ID or Discord message link)
-      const rawInput = interaction.options.getString('message_id', true);
+      const rawInput = interaction.options.getString('message_link', true);
       const { messageId, channelId, guildId } = parseMessageInput(rawInput);
 
       // Validate channel context

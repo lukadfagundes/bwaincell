@@ -59,7 +59,7 @@ describe('/make-it-a-quote Slash Command', () => {
     mockInteraction = {
       options: {
         getString: jest.fn((name: string) => {
-          if (name === 'message_id') return 'test-message-id-123';
+          if (name === 'message_link') return 'test-message-id-123';
           return null;
         }),
       } as any,
@@ -96,11 +96,11 @@ describe('/make-it-a-quote Slash Command', () => {
       expect(quoteCommand.data.description).toBe('Generate a dramatic quote image from a message');
     });
 
-    it('should have message_id option', () => {
+    it('should have message_link option', () => {
       const options = (quoteCommand.data as any).options;
       expect(options).toBeDefined();
       expect(options.length).toBe(1);
-      expect(options[0].name).toBe('message_id');
+      expect(options[0].name).toBe('message_link');
       expect(options[0].description).toContain('Copy Message Link');
       expect(options[0].required).toBe(true);
     });
@@ -110,7 +110,7 @@ describe('/make-it-a-quote Slash Command', () => {
     it('should fetch message by ID from channel', async () => {
       await quoteCommand.execute(mockInteraction as ChatInputCommandInteraction);
 
-      expect(mockInteraction.options.getString).toHaveBeenCalledWith('message_id', true);
+      expect(mockInteraction.options.getString).toHaveBeenCalledWith('message_link', true);
       expect(mockChannel.messages.fetch).toHaveBeenCalledWith('test-message-id-123');
     });
 
@@ -382,7 +382,7 @@ describe('/make-it-a-quote Slash Command', () => {
         channel: mockChannel2 as any,
         options: {
           getString: jest.fn((name: string) => {
-            if (name === 'message_id') return 'test-message-id-456';
+            if (name === 'message_link') return 'test-message-id-456';
             return null;
           }),
         } as any,
