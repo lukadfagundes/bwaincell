@@ -7,11 +7,25 @@ import config from '../config/config';
 /** Path to the version tracking file (persisted via Docker volume mount) */
 const VERSION_FILE = path.resolve(__dirname, '../../data/.last-announced-version');
 
-/** Path to root package.json (contains monorepo version) */
+/** Path to backend package.json (contains version) */
 const PACKAGE_JSON = path.resolve(__dirname, '../../package.json');
 
-/** Path to CHANGELOG.md at repository root */
-const CHANGELOG_PATH = path.resolve(__dirname, '../../CHANGELOG.md');
+/**
+ * Find CHANGELOG.md by walking up from __dirname.
+ * Works from source (backend/utils/), compiled (backend/dist/utils/), and Docker (/app/backend/dist/utils/).
+ */
+function findChangelog(): string {
+  let dir = __dirname;
+  for (let i = 0; i < 5; i++) {
+    const candidate = path.join(dir, 'CHANGELOG.md');
+    if (fs.existsSync(candidate)) return candidate;
+    dir = path.dirname(dir);
+  }
+  // Fallback: relative to package.json parent's parent (repo root)
+  return path.resolve(__dirname, '../../../CHANGELOG.md');
+}
+
+const CHANGELOG_PATH = findChangelog();
 
 /** Discord embed description limit */
 const EMBED_MAX_LENGTH = 4096;
