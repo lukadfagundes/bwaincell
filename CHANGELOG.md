@@ -5,6 +5,26 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased]
+
+### Added
+
+- **Release Workflow + Deploy-on-Release** - Tag-driven release pipeline with manual publish gate before Pi deployment (PR #37 comment)
+  - New `release.yml` workflow triggered by `v*.*.*` tags: validates (tests + build), extracts changelog notes, creates **draft** GitHub Release
+  - `deploy-bot.yml` now triggers on `release: published` instead of `push: main` — no more auto-deploy on every merge
+  - `workflow_dispatch` preserved on deploy-bot.yml for emergency manual deployments
+  - Release flow: tag → validate → draft release → user reviews → publish → deploy
+
+### Fixed
+
+- **PostgreSQL Auto-Increment Sequence Desync** - Fixed `SequelizeUniqueConstraintError` on `/remind me` caused by sequence `reminders_id_seq` falling behind actual `max(id)` (Issue #36)
+  - Added self-healing `syncSequences()` utility in `backend/database/index.ts` that runs on every bot startup
+  - PL/pgSQL query compares `max(id)` vs sequence `last_value` for all 9 auto-increment tables and calls `setval()` to repair
+  - Non-fatal: catches errors and logs warning without blocking startup
+  - Called from `loadModels()` in `bot.ts` after `sequelize.sync()`
+  - 4 unit tests covering query execution, success logging, error handling, and non-Error exceptions
+  - **Total test count: 297 tests**
+
 ## [2.1.0] - 2026-02-11
 
 ### Added

@@ -19,7 +19,7 @@ import {
   handleModalSubmit,
 } from '../utils/interactions';
 // Import the properly configured database with all models
-import { sequelize } from '../database';
+import { sequelize, syncSequences } from '../database';
 // Import API server
 import { createApiServer } from './api/server';
 import type { Server } from 'http';
@@ -83,6 +83,9 @@ async function loadModels() {
   logger.info('Database synced successfully', {
     models: Object.keys(sequelize.models),
   });
+
+  // Fix auto-increment sequences that may be out of sync
+  await syncSequences();
 }
 
 async function loadCommands() {
