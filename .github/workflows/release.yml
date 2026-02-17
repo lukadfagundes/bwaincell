@@ -1,0 +1,122 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - 'v*.*.*'
+
+concurrency:
+  group: release-${{ github.ref }}
+  cancel-in-progress: false
+
+permissions:
+  contents: write
+
+jobs:
+  # ---------------------------------------------------------------------------
+  # Extract version from tag
+  # ---------------------------------------------------------------------------
+  version:
+    name: Extract Version
+    runs-on: ubuntu-latest
+    outputs:
+      version: ${{ steps.get_version.outputs.version }}
+      version_without_v: ${{ steps.get_version.outputs.version_without_v }}
+    steps:
+      - name: Get version from tag
+        id: get_version
+        run: |
+          echo "version=${GITHUB_REF_NAME}" >> $GITHUB_OUTPUT
+          echo "version_without_v=${GITHUB_REF_NAME#v}" >> $GITHUB_OUTPUT
+
+  # ---------------------------------------------------------------------------
+  # Extract release notes from CHANGELOG.md
+  # ---------------------------------------------------------------------------
+  release-notes:
+    name: Extract Release Notes
+    runs-on: ubuntu-latest
+    outputs:
+      notes: ${{ steps.extract.outputs.notes }}
+    steps:
+      - uses: actions/checkout@v4
+      - name: Extract release notes from CHANGELOG
+        id: extract
+        run: |
+          VERSION="${GITHUB_REF_NAME#v}"
+          if ! grep -q "## \[$VERSION\]" CHANGELOG.md; then
+            echo "::error::CHANGELOG.md does not contain a section for version $VERSION"
+            exit 1
+          fi
+          NOTES=$(sed -n "/## \[$VERSION\]/,/## \[/p" CHANGELOG.md | sed '$d' | tail -n +2)
+          if [ -z "$NOTES" ]; then
+            echo "::error::Version $VERSION section in CHANGELOG.md is empty"
+            exit 1
+          fi
+          EOF=$(dd if=/dev/urandom bs=15 count=1 status=none | base64)
+          echo "notes<<$EOF" >> $GITHUB_OUTPUT
+          echo "$NOTES" >> $GITHUB_OUTPUT
+          echo "$EOF" >> $GITHUB_OUTPUT
+
+  # ---------------------------------------------------------------------------
+  # Validate (tests + build)
+  # ---------------------------------------------------------------------------
+  validate:
+    name: Validate Release
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:15-alpine
+        env:
+          POSTGRES_USER: test_user
+          POSTGRES_PASSWORD: test_password
+          POSTGRES_DB: bwaincell_test
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+        ports:
+          - 5432:5432
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '18'
+          cache: 'npm'
+      - run: npm ci --ignore-scripts
+      - name: Build shared package
+        run: npm run build --workspace=shared
+      - name: Build backend
+        run: npm run build --workspace=backend
+      - name: TypeScript type check
+        run: tsc --build
+      - name: Run backend tests
+        env:
+          NODE_ENV: test
+          DATABASE_URL: postgresql://test_user:test_password@localhost:5432/bwaincell_test
+        run: npm run test --workspace=backend
+
+  # ---------------------------------------------------------------------------
+  # Create draft release
+  # ---------------------------------------------------------------------------
+  release:
+    name: Create Draft Release
+    needs: [version, release-notes, validate]
+    runs-on: ubuntu-latest
+    steps:
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          name: Bwaincell ${{ needs.version.outputs.version }}
+          tag_name: ${{ needs.version.outputs.version }}
+          body: |
+            ${{ needs.release-notes.outputs.notes }}
+
+            ---
+
+            **Full Changelog**: https://github.com/${{ github.repository }}/blob/main/CHANGELOG.md
+          draft: true
+          prerelease: false
+          generate_release_notes: false
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

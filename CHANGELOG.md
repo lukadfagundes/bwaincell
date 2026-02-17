@@ -7,6 +7,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- **Release Workflow + Deploy-on-Release** - Tag-driven release pipeline with manual publish gate before Pi deployment (PR #37 comment)
+  - New `release.yml` workflow triggered by `v*.*.*` tags: validates (tests + build), extracts changelog notes, creates **draft** GitHub Release
+  - `deploy-bot.yml` now triggers on `release: published` instead of `push: main` — no more auto-deploy on every merge
+  - `workflow_dispatch` preserved on deploy-bot.yml for emergency manual deployments
+  - Release flow: tag → validate → draft release → user reviews → publish → deploy
+
 ### Fixed
 
 - **PostgreSQL Auto-Increment Sequence Desync** - Fixed `SequelizeUniqueConstraintError` on `/remind me` caused by sequence `reminders_id_seq` falling behind actual `max(id)` (Issue #36)
