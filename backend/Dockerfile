@@ -114,6 +114,10 @@ COPY --chown=botuser:botuser backend/package.json ./backend/
 COPY --from=builder --chown=botuser:botuser /app/shared/dist ./shared/dist
 COPY --chown=botuser:botuser shared/package.json ./shared/
 
+# Copy root package.json (version) and CHANGELOG.md (release notes) for announcements
+COPY --chown=botuser:botuser package.json ./
+COPY --chown=botuser:botuser CHANGELOG.md ./
+
 # Create data and logs directories with proper permissions
 RUN mkdir -p /app/data /app/logs && \
     chown -R botuser:botuser /app

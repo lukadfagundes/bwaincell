@@ -15,6 +15,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - `workflow_dispatch` preserved on deploy-bot.yml for emergency manual deployments
   - Release flow: tag → validate → draft release → user reviews → publish → deploy
 
+- **Release Notes Announcement** - Bot automatically announces new versions to Discord on startup (Issue #38)
+  - New `releaseAnnouncer.ts` utility compares running version against last announced version stored in `data/.last-announced-version`
+  - Extracts release notes from CHANGELOG.md and sends a rich Discord embed to `DEFAULT_REMINDER_CHANNEL`
+  - Only announces on version change — regular restarts are silent
+  - Non-fatal: all failures log warnings without blocking startup
+  - Dockerfile updated to include `package.json` and `CHANGELOG.md` in runner stage
+  - 11 unit tests covering announcements, skips, error handling, truncation, and first-deploy edge cases
+  - **Total test count: 308 tests**
+
 ### Fixed
 
 - **PostgreSQL Auto-Increment Sequence Desync** - Fixed `SequelizeUniqueConstraintError` on `/remind me` caused by sequence `reminders_id_seq` falling behind actual `max(id)` (Issue #36)
