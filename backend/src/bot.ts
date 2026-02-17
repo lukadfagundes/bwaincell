@@ -22,6 +22,7 @@ import {
 import { sequelize, syncSequences } from '../database';
 // Import API server
 import { createApiServer } from './api/server';
+import { announceRelease } from '../utils/releaseAnnouncer';
 import type { Server } from 'http';
 
 // Detect test environment
@@ -162,13 +163,16 @@ function setupEventHandlers() {
     throw new Error('Client must be initialized before setting up event handlers');
   }
 
-  client!.once('clientReady', () => {
+  client!.once('clientReady', async () => {
     logger.info(`Bot logged in as ${client!.user?.tag}`);
     logBotEvent('clientReady', {
       username: client!.user?.username,
       id: client!.user?.id,
       guilds: client!.guilds.cache.size,
     });
+
+    // Announce new version if this is a fresh deployment
+    await announceRelease(client!);
   });
 
   client!.on('interactionCreate', async (interaction) => {
