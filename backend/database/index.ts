@@ -65,6 +65,44 @@ List.init(sequelize);
 User.init(sequelize);
 EventConfig.init(sequelize);
 
+/**
+ * Sync all auto-increment sequences to match actual max(id) values.
+ * Prevents SequelizeUniqueConstraintError when sequences fall behind
+ * (e.g., after database restore, manual inserts, or truncate without RESTART IDENTITY).
+ */
+export async function syncSequences(): Promise<void> {
+  try {
+    await sequelize.query(`
+      DO $$
+      DECLARE
+        r RECORD;
+        max_id BIGINT;
+        seq_val BIGINT;
+      BEGIN
+        FOR r IN
+          SELECT table_name, column_name,
+                 pg_get_serial_sequence(table_name, column_name) AS seq_name
+          FROM information_schema.columns
+          WHERE table_schema = 'public'
+            AND column_default LIKE 'nextval%'
+        LOOP
+          EXECUTE format('SELECT COALESCE(MAX(%I), 0) FROM %I',
+                         r.column_name, r.table_name) INTO max_id;
+          EXECUTE format('SELECT last_value FROM %s', r.seq_name) INTO seq_val;
+          IF seq_val < max_id THEN
+            EXECUTE format('SELECT setval(%L, %s)', r.seq_name, max_id);
+          END IF;
+        END LOOP;
+      END $$;
+    `);
+    logger.info('Auto-increment sequences verified');
+  } catch (error) {
+    logger.warn('Failed to verify auto-increment sequences (non-fatal)', {
+      error: error instanceof Error ? error.message : String(error),
+    });
+  }
+}
+
 // Export sequelize instance and models
 export { sequelize, Task, Note, Reminder, Budget, Schedule, List, User, EventConfig };
 
