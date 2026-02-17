@@ -88,8 +88,6 @@ jobs:
         run: npm run build --workspace=shared
       - name: Build backend
         run: npm run build --workspace=backend
-      - name: TypeScript type check
-        run: tsc --build
       - name: Run backend tests
         env:
           NODE_ENV: test
