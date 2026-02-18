@@ -7,6 +7,34 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- **Comprehensive Test Coverage** - 33 new test files with 996 new tests, bringing total from 308 to 1304 (Issue #31)
+  - **Wave 1 — Command Unit Tests** (WO-013): 6 files covering all untested Discord slash commands
+    - `task.test.ts` — add, list, done, delete, edit subcommands + autocomplete + error handling
+    - `list.test.ts` — create, add, show, remove, clear, delete, all, complete subcommands + autocomplete + button disabled states
+    - `schedule.test.ts` — add, list, delete, countdown, today, week subcommands + helper functions (parseTimeToMilitaryFormat, formatTimeTo12Hour, formatDateForDisplay) + autocomplete
+    - `note.test.ts` — add, list, view, delete, search, edit, tag, tags subcommands + autocomplete + content preview truncation
+    - `random.test.ts` — movie, dinner, date, question, choice, number, coin, dice subcommands + AI fallback + reroll buttons
+    - `budget.test.ts` — add, income, summary, categories, recent, trend subcommands + color coding + bar chart display
+  - **Wave 2 — API Route Unit Tests** (WO-014): 8 files covering all Express API routes
+    - `tasks.test.ts`, `lists.test.ts`, `notes.test.ts`, `schedule.test.ts`, `budget.test.ts`, `reminders.test.ts` — full CRUD + user isolation + validation
+    - `oauth.test.ts` — Google token verification, JWT generation, token refresh
+    - `health.test.ts` — health endpoint with auth check
+    - Uses supertest with mini Express app pattern for HTTP-level testing
+  - **Wave 3 — Database Model Unit Tests** (WO-015): 6 files covering all untested Sequelize models
+    - `Budget.test.ts` (29 tests), `Schedule.test.ts` (25 tests), `List.test.ts` (33 tests), `Note.test.ts` (36 tests), `Task.test.ts` (26 tests), `User.test.ts` (11 tests)
+    - Guild isolation verified on all model methods
+  - **Wave 4 — Interaction Handler & Middleware Tests** (WO-016): 10 files covering Discord interaction handlers and middleware
+    - Handlers: `taskHandlers.test.ts`, `listHandlers.test.ts`, `selectMenuHandlers.test.ts`, `randomHandlers.test.ts`, `reminderHandlers.test.ts`, `modalHandlers.test.ts`
+    - Middleware: `rateLimitMiddleware.test.ts`, `errorMiddleware.test.ts`, `validationMiddleware.test.ts`, `loggingMiddleware.test.ts`
+    - Button, modal submit, and select menu interaction mocking patterns
+  - **Wave 5 — API Auth Middleware & Server Tests** (WO-017): 3 files covering security-critical auth layer
+    - `auth.test.ts` — Basic Auth validation, credential parsing, user context injection, error response format
+    - `oauth.test.ts` — Google OAuth token exchange, JWT generation/refresh, user creation
+    - `server.test.ts` — Express app creation, middleware registration, route mounting, 404 handler
+  - **Total test count: 1304 tests across 48 test suites** (was 308 tests across 15 suites)
+
 ## [2.1.1] - 2026-02-17
 
 ### Added
